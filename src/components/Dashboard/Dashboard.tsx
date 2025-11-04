@@ -148,20 +148,6 @@ const Dashboard: React.FC = () => {
             });
           }
         });
-        
-        console.log('Dashboard Cases Filtering:', {
-          currentUserId: currentUser?.id,
-          currentUserRole: currentUser?.role,
-          counselorId: counselorId,
-          totalCasesInDB: totalCases,
-          userSpecificCases: filteredCases,
-          casesData: casesData.map(c => ({
-            title: c.title,
-            status: c.status,
-            assignedCounselorId: c.assignedCounselorId,
-            createdBy: c.createdBy
-          }))
-        });
 
 
         // Load user-specific appointments from Firebase
@@ -231,38 +217,11 @@ const Dashboard: React.FC = () => {
             const isCaseAssignedToUser = activity.type === 'case_assigned' && 
               activity.metadata?.assignedToUserId === currentUser.id;
             
-            // Debug logging
-            console.log('Activity filtering:', {
-              activityType: activity.type,
-              activityUserId: activity.userId,
-              currentUserId: currentUser.id,
-              isUserCreated,
-              isCaseAssignedToUser,
-              metadata: activity.metadata,
-              willShow: isUserCreated || isCaseAssignedToUser
-            });
             
             return isUserCreated || isCaseAssignedToUser;
           });
         }
         // For leaders: show all activities (no filtering by user)
-        
-        // Debug logging
-        const caseAssignedActivities = activitiesData.filter(a => a.type === 'case_assigned');
-        console.log('Dashboard Activities Debug:', {
-          totalActivities: activitiesData.length,
-          userActivities: userActivities.length,
-          currentUserRole: currentUser?.role,
-          currentUserId: currentUser?.id,
-          case_assigned_count: caseAssignedActivities.length,
-          case_assigned_details: caseAssignedActivities.map(a => ({
-            title: a.title,
-            metadata: a.metadata,
-            userId: a.userId,
-            currentUserId: currentUser?.id,
-            matchAssigned: a.metadata?.assignedToUserId === currentUser?.id
-          }))
-        });
         
         // Take the 4 most recent activities
         const sortedActivities = userActivities
@@ -469,13 +428,6 @@ const Dashboard: React.FC = () => {
     }, {} as Record<CaseStatus, number>)
   };
 
-  console.log('Dashboard Metrics:', {
-    totalCases: metrics.totalCases,
-    activeCases: metrics.activeCases,
-    pendingCases: metrics.pendingCases,
-    completedCases: metrics.completedCases,
-    userCasesStatusBreakdown: userCases.map(c => ({ title: c.title, status: c.status }))
-  });
 
   const upcomingAppointments = appointments
     .filter(apt => {
@@ -503,6 +455,29 @@ const Dashboard: React.FC = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: { xs: 2, sm: 4 }, mb: { xs: 2, sm: 4 }, px: { xs: 2, sm: 3 } }}>
+      {/* Page Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography 
+          variant="h4" 
+          component="h1" 
+          sx={{ 
+            fontWeight: 'bold', 
+            color: '#ffc700',
+            fontSize: { xs: '1.75rem', sm: '2.25rem' },
+            mb: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}
+        >
+          <TrendingUp sx={{ fontSize: { xs: '1.75rem', sm: '2.25rem' } }} />
+          {t.dashboard.title || 'Dashboard'}
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+          Prezentare generală a performanței tale
+        </Typography>
+      </Box>
+
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {/* Top Row */}
         <Box sx={{ display: 'flex', gap: { xs: 2, sm: 3 }, flexWrap: 'wrap' }}>
@@ -713,7 +688,7 @@ const Dashboard: React.FC = () => {
                   onClick={() => navigate('/profile?edit=true')}
                   sx={{ 
                     backgroundColor: '#ffc700',
-                    color: 'white',
+                    color: '#000',
                       fontWeight: 'bold',
                       py: 1,
                       px: 3,
@@ -739,7 +714,21 @@ const Dashboard: React.FC = () => {
         <Box sx={{ display: 'flex', gap: { xs: 2, sm: 3 }, flexWrap: 'wrap' }}>
           {/* Quick Actions */}
           <Box sx={{ flex: '1 1 300px', minWidth: { xs: '100%', sm: '300px' }, width: { xs: '100%', sm: 'auto' } }}>
-            <Paper sx={{ p: { xs: 2, sm: 3 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Paper 
+              elevation={2}
+              sx={{ 
+                p: { xs: 2, sm: 3 }, 
+                height: '100%', 
+                display: 'flex', 
+                flexDirection: 'column',
+                borderRadius: 2,
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                  transform: 'translateY(-2px)'
+                }
+              }}
+            >
               <Box display="flex" alignItems="center" mb={2}>
                 <Assignment sx={{ mr: 1, color: '#ffc700' }} />
                 <Typography variant="h6" component="h2">
@@ -752,7 +741,9 @@ const Dashboard: React.FC = () => {
                   fullWidth
                   onClick={() => navigate('/cases')}
                   sx={{ 
-                    backgroundColor: '#ffc700', 
+                    backgroundColor: '#ffc700',
+                    color: '#000',
+                    fontWeight: 'bold',
                     '&:hover': { backgroundColor: '#e6b300' },
                     py: 1.5
                   }}
@@ -791,7 +782,21 @@ const Dashboard: React.FC = () => {
 
           {/* Upcoming Appointments */}
           <Box sx={{ flex: '1 1 300px', minWidth: { xs: '100%', sm: '300px' }, width: { xs: '100%', sm: 'auto' } }}>
-            <Paper sx={{ p: { xs: 2, sm: 3 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Paper 
+              elevation={2}
+              sx={{ 
+                p: { xs: 2, sm: 3 }, 
+                height: '100%', 
+                display: 'flex', 
+                flexDirection: 'column',
+                borderRadius: 2,
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                  transform: 'translateY(-2px)'
+                }
+              }}
+            >
               <Box display="flex" alignItems="center" mb={2}>
                 <Schedule sx={{ mr: 1, color: '#ffc700' }} />
                 <Typography variant="h6" component="h2">
@@ -836,7 +841,21 @@ const Dashboard: React.FC = () => {
 
           {/* Recent Activity */}
           <Box sx={{ flex: '1 1 300px', minWidth: { xs: '100%', sm: '300px' }, width: { xs: '100%', sm: 'auto' } }}>
-            <Paper sx={{ p: { xs: 2, sm: 3 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Paper 
+              elevation={2}
+              sx={{ 
+                p: { xs: 2, sm: 3 }, 
+                height: '100%', 
+                display: 'flex', 
+                flexDirection: 'column',
+                borderRadius: 2,
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                  transform: 'translateY(-2px)'
+                }
+              }}
+            >
               <Box display="flex" alignItems="center" mb={2}>
                 <TrendingUp sx={{ mr: 1, color: '#ffc700' }} />
                 <Typography variant="h6" component="h2">
@@ -941,6 +960,8 @@ const Dashboard: React.FC = () => {
               sx={{ 
                 minWidth: 150,
                 backgroundColor: '#ffc700',
+                color: '#000',
+                fontWeight: 'bold',
                 '&:hover': {
                   backgroundColor: '#ffb700'
                 }

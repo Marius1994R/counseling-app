@@ -357,7 +357,30 @@ const CalendarManagement: React.FC<CalendarManagementProps> = ({ isAdminView = t
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: { xs: 2, sm: 4 }, mb: { xs: 2, sm: 4 }, px: { xs: 1, sm: 3 } }}>
+    <Container maxWidth="lg" sx={{ mt: { xs: 2, sm: 4 }, mb: { xs: 2, sm: 4 }, px: { xs: 2, sm: 3 } }}>
+      {/* Page Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography 
+          variant="h4" 
+          component="h1" 
+          sx={{ 
+            fontWeight: 'bold', 
+            color: '#ffc700',
+            fontSize: { xs: '1.75rem', sm: '2.25rem' },
+            mb: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}
+        >
+          <CalendarToday sx={{ fontSize: { xs: '1.75rem', sm: '2.25rem' } }} />
+          {t.appointments.title || 'Calendar'}
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+          {filteredAppointments.length} {filteredAppointments.length === 1 ? 'programare disponibilă' : 'programări disponibile'}
+        </Typography>
+      </Box>
+
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
@@ -365,26 +388,51 @@ const CalendarManagement: React.FC<CalendarManagementProps> = ({ isAdminView = t
       )}
 
       {/* Filters */}
-      <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 2 }}>
+      <Paper 
+        elevation={2}
+        sx={{ 
+          p: { xs: 2, sm: 3 }, 
+          mb: 3,
+          borderRadius: 2,
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+          border: '1px solid rgba(255, 199, 0, 0.1)'
+        }}
+      >
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center" }}>
-          <Box sx={{ flex: "1 1 300px", minWidth: "250px" }}>
+          <Box sx={{ flex: "1 1 300px", minWidth: { xs: "100%", sm: "250px" } }}>
             <TextField
               fullWidth
+              size="small"
               label={t.appointments.searchPlaceholder || "Căutați programări"}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
-                startAdornment: <Search sx={{ mr: 1, color: 'action.active' }} />
+                startAdornment: <Search sx={{ mr: 1, color: '#ffc700' }} />
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: '#ffc700',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#ffc700',
+                  },
+                },
               }}
             />
           </Box>
-          <Box sx={{ flex: "1 1 300px", minWidth: "250px" }}>
-            <FormControl fullWidth>
+          <Box sx={{ flex: "1 1 300px", minWidth: { xs: "100%", sm: "250px" } }}>
+            <FormControl fullWidth size="small">
               <InputLabel>{t.appointments.counselor || "Consilier"}</InputLabel>
               <Select
                 value={counselorFilter}
                 onChange={(e) => setCounselorFilter(e.target.value)}
                 label={t.appointments.counselor || "Consilier"}
+                sx={{
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#ffc700',
+                  },
+                }}
               >
                 <MenuItem value="all">{t.appointments.filters.allCounselors || "Toți Consilierii"}</MenuItem>
                 {counselors.map((counselor) => (
@@ -396,16 +444,22 @@ const CalendarManagement: React.FC<CalendarManagementProps> = ({ isAdminView = t
             </FormControl>
           </Box>
           <Box sx={{ 
-            flex: "1 1 300px", 
-            minWidth: "250px",
             display: 'flex',
-            justifyContent: 'flex-start'
+            alignItems: 'center',
+            justifyContent: { xs: 'flex-start', sm: 'center' }
           }}>
             <Chip
-              label={`${filteredAppointments.length} ${t.appointments.filters.all || 'programări'}`}
-              color="primary"
-              variant="outlined"
-              size="small"
+              label={`${filteredAppointments.length} ${filteredAppointments.length === 1 ? 'programare' : 'programări'}`}
+              sx={{
+                backgroundColor: '#ffc700',
+                color: '#000',
+                fontWeight: 'bold',
+                fontSize: '0.875rem',
+                height: '32px',
+                '& .MuiChip-label': {
+                  px: 2
+                }
+              }}
             />
           </Box>
         </Box>
@@ -424,7 +478,14 @@ const CalendarManagement: React.FC<CalendarManagementProps> = ({ isAdminView = t
           onClick={handleAddAppointment}
           sx={{ 
             px: 3,
-            width: { xs: '100%', sm: 'auto' }
+            width: { xs: '100%', sm: 'auto' },
+            backgroundColor: '#ffc700',
+            color: '#000',
+            fontWeight: 'bold',
+            '&:hover': {
+              backgroundColor: '#e6b300',
+              color: '#000'
+            }
           }}
         >
           {t.dashboard.scheduleAppointment}

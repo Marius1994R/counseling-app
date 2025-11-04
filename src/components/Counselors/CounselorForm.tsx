@@ -62,7 +62,6 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
         const allUsers = await getAllUsers();
         // Show all users (not just counselors) so they can be linked to counselors
         setUsers(allUsers);
-        console.log('Loaded users for counselor linking:', allUsers);
       } catch (error) {
         console.error('Error loading users:', error);
         setUsers([]);

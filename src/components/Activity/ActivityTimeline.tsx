@@ -367,45 +367,97 @@ const ActivityTimeline: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      {/* Header */}
-      <Box display="flex" alignItems="center" mb={3}>
-        <Button
-          startIcon={<ArrowBack />}
-          onClick={() => navigate('/')}
-          sx={{ mr: 2 }}
+    <Container maxWidth="lg" sx={{ mt: { xs: 2, sm: 4 }, mb: { xs: 2, sm: 4 }, px: { xs: 2, sm: 3 } }}>
+      {/* Page Header */}
+      <Box sx={{ mb: 4 }}>
+        <Box display="flex" alignItems="center" mb={2}>
+          <Button
+            startIcon={<ArrowBack />}
+            onClick={() => navigate('/')}
+            sx={{ 
+              mr: 2,
+              color: '#666',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 199, 0, 0.1)'
+              }
+            }}
+          >
+            {t.common.back}
+          </Button>
+        </Box>
+        <Typography 
+          variant="h4" 
+          component="h1" 
+          sx={{ 
+            fontWeight: 'bold', 
+            color: '#ffc700',
+            fontSize: { xs: '1.75rem', sm: '2.25rem' },
+            mb: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}
         >
-          {t.common.back}
-        </Button>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: '#ffc700' }}>
-          Activitatea Mea
+          <Update sx={{ fontSize: { xs: '1.75rem', sm: '2.25rem' } }} />
+          {t.activity.title || 'Activitatea Mea'}
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+          {filteredActivities.length} {filteredActivities.length === 1 ? 'activitate găsită' : 'activiți găsite'}
         </Typography>
       </Box>
 
       {/* Filters */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Box display="flex" flexWrap="wrap" gap={2} alignItems="center">
-          <TextField
-            placeholder="Caută activități..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ minWidth: 200 }}
-          />
+      <Paper 
+        elevation={2}
+        sx={{ 
+          p: { xs: 2, sm: 3 }, 
+          mb: 3,
+          borderRadius: 2,
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+          border: '1px solid rgba(255, 199, 0, 0.1)'
+        }}
+      >
+        <Box display="flex" flexWrap="wrap" gap={2} alignItems={ { xs: 'stretch', sm: 'center' } }>
+          <Box sx={{ flex: "1 1 300px", minWidth: { xs: "100%", sm: "250px" } }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Caută activități..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search sx={{ color: '#ffc700' }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: '#ffc700',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#ffc700',
+                  },
+                },
+              }}
+            />
+          </Box>
           
-          <FormControl sx={{ minWidth: 150 }}>
-            <InputLabel>Tip</InputLabel>
-            <Select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              label="Tip"
-            >
+          <Box sx={{ flex: "1 1 200px", minWidth: { xs: "100%", sm: "200px" } }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Tip</InputLabel>
+              <Select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                label="Tip"
+                sx={{
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#ffc700',
+                  },
+                }}
+              >
               <MenuItem value="all">Toate tipurile</MenuItem>
               <MenuItem value="case_created">Caz creat</MenuItem>
               <MenuItem value="case_status_changed">Status schimbat</MenuItem>
@@ -419,15 +471,22 @@ const ActivityTimeline: React.FC = () => {
               )}
             </Select>
           </FormControl>
+          </Box>
 
           {currentUser?.role === 'leader' && (
-            <FormControl sx={{ minWidth: 150 }}>
-              <InputLabel>Consilier</InputLabel>
-              <Select
-                value={counselorFilter}
-                onChange={(e) => setCounselorFilter(e.target.value)}
-                label="Consilier"
-              >
+            <Box sx={{ flex: "1 1 200px", minWidth: { xs: "100%", sm: "200px" } }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Consilier</InputLabel>
+                <Select
+                  value={counselorFilter}
+                  onChange={(e) => setCounselorFilter(e.target.value)}
+                  label="Consilier"
+                  sx={{
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#ffc700',
+                    },
+                  }}
+                >
                 <MenuItem value="all">Toți consilierii</MenuItem>
                 {counselors.map((counselor) => (
                   <MenuItem key={counselor.id} value={counselor.id}>
@@ -436,26 +495,59 @@ const ActivityTimeline: React.FC = () => {
                 ))}
               </Select>
             </FormControl>
+            </Box>
           )}
 
-          <FormControl sx={{ minWidth: 150 }}>
-            <InputLabel>Perioadă</InputLabel>
-            <Select
-              value={timeRangeFilter}
-              onChange={(e) => setTimeRangeFilter(e.target.value)}
-              label="Perioadă"
-            >
+          <Box sx={{ flex: "1 1 200px", minWidth: { xs: "100%", sm: "200px" } }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Perioadă</InputLabel>
+              <Select
+                value={timeRangeFilter}
+                onChange={(e) => setTimeRangeFilter(e.target.value)}
+                label="Perioadă"
+                sx={{
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#ffc700',
+                  },
+                }}
+              >
               <MenuItem value="3months">Ultimele 3 luni</MenuItem>
               <MenuItem value="6months">Ultimele 6 luni</MenuItem>
               <MenuItem value="9months">Ultimele 9 luni</MenuItem>
               <MenuItem value="alltime">Tot timpul</MenuItem>
             </Select>
           </FormControl>
+          </Box>
+          <Box sx={{ 
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: { xs: 'flex-start', sm: 'center' }
+          }}>
+            <Chip
+              label={`${filteredActivities.length} ${filteredActivities.length === 1 ? 'activitate' : 'activiți'}`}
+              sx={{
+                backgroundColor: '#ffc700',
+                color: '#000',
+                fontWeight: 'bold',
+                fontSize: '0.875rem',
+                height: '32px',
+                '& .MuiChip-label': {
+                  px: 2
+                }
+              }}
+            />
+          </Box>
         </Box>
       </Paper>
 
       {/* Activity List */}
-      <Paper>
+      <Paper 
+        elevation={2}
+        sx={{
+          borderRadius: 2,
+          overflow: 'hidden'
+        }}
+      >
         <Box p={3}>
           <Typography variant="h6" gutterBottom>
             {filteredActivities.length} {filteredActivities.length === 1 ? 'Activitate găsită' : 'Activități găsite'}

@@ -458,15 +458,6 @@ Link app: http://localhost:3000`;
           const assignedCounselor = counselors.find(c => c.id === caseData.assignedCounselorId);
           const assignedToUserId = assignedCounselor?.linkedUserId || caseData.assignedCounselorId;
           
-          console.log('Logging case assignment (admin edit):', {
-            caseId: editingCase.id,
-            caseTitle: editingCase.title,
-            assignedToUserId,
-            assignedCounselorName: assignedCounselor?.fullName,
-            assignedByUserId: currentUser.id,
-            assignedByUserName: currentUser.fullName || currentUser.email || 'Unknown User'
-          });
-          
           await logCaseAssigned(
             editingCase.id,
             editingCase.title,
@@ -491,15 +482,6 @@ Link app: http://localhost:3000`;
         if (caseData.assignedCounselorId && currentUser) {
           const assignedCounselor = counselors.find(c => c.id === caseData.assignedCounselorId);
           const assignedToUserId = assignedCounselor?.linkedUserId || caseData.assignedCounselorId;
-          
-          console.log('Logging case assignment (admin create):', {
-            caseId: docRef.id,
-            caseTitle: caseData.title,
-            assignedToUserId,
-            assignedCounselorName: assignedCounselor?.fullName,
-            assignedByUserId: currentUser.id,
-            assignedByUserName: currentUser.fullName || currentUser.email || 'Unknown User'
-          });
           
           await logCaseAssigned(
             docRef.id,
@@ -764,7 +746,12 @@ Link app: http://localhost:3000`;
                         variant="contained"
                         startIcon={<PersonAdd />}
                         onClick={() => setCreateDialogOpen(true)}
-                        sx={{ backgroundColor: '#ffc700', '&:hover': { backgroundColor: '#e6b300' } }}
+                        sx={{ 
+                          backgroundColor: '#ffc700',
+                          color: '#000',
+                          fontWeight: 'bold',
+                          '&:hover': { backgroundColor: '#e6b300' }
+                        }}
                       >
                         {t.admin.users.createUser}
                       </Button>
@@ -821,7 +808,6 @@ Link app: http://localhost:3000`;
                               <IconButton
                                 size="small"
                                 onClick={() => {
-                                  console.log('Edit clicked for user:', user.id, 'current user:', currentUser?.id);
                                   openEditDialog(user);
                                 }}
                                 disabled={
@@ -842,7 +828,6 @@ Link app: http://localhost:3000`;
                                 <IconButton
                                   size="small"
                                   onClick={() => {
-                                    console.log('Deactivate clicked for user:', user.id, 'current user:', currentUser?.id);
                                     handleDeactivateUser(user.id);
                                   }}
                                   disabled={
@@ -988,7 +973,9 @@ Link app: http://localhost:3000`;
                   startIcon={<Add />}
                   onClick={() => setCounselorFormOpen(true)}
                   sx={{ 
-                    backgroundColor: '#ffc700', 
+                    backgroundColor: '#ffc700',
+                    color: '#000',
+                    fontWeight: 'bold',
                     '&:hover': { backgroundColor: '#e6b300' },
                     width: { xs: '100%', sm: 'auto' }
                   }}
@@ -1088,7 +1075,9 @@ Link app: http://localhost:3000`;
                   startIcon={<Add />}
                   onClick={() => setCaseFormOpen(true)}
                   sx={{ 
-                    backgroundColor: '#ffc700', 
+                    backgroundColor: '#ffc700',
+                    color: '#000',
+                    fontWeight: 'bold',
                     '&:hover': { backgroundColor: '#e6b300' },
                     width: { xs: '100%', sm: 'auto' }
                   }}
@@ -1263,7 +1252,12 @@ Link app: http://localhost:3000`;
             onClick={handleCreateUser}
             variant="contained"
             disabled={!createUserData.email || !createUserData.fullName || !createUserData.password}
-            sx={{ backgroundColor: '#ffc700', '&:hover': { backgroundColor: '#e6b300' } }}
+            sx={{ 
+              backgroundColor: '#ffc700',
+              color: '#000',
+              fontWeight: 'bold',
+              '&:hover': { backgroundColor: '#e6b300' }
+            }}
           >
             {t.admin.users.createUser}
           </Button>
@@ -1311,7 +1305,12 @@ Link app: http://localhost:3000`;
             onClick={handleEditUser}
             variant="contained"
             disabled={!editUserData.fullName || !editUserData.role}
-            sx={{ backgroundColor: '#ffc700', '&:hover': { backgroundColor: '#e6b300' } }}
+            sx={{ 
+              backgroundColor: '#ffc700',
+              color: '#000',
+              fontWeight: 'bold',
+              '&:hover': { backgroundColor: '#e6b300' }
+            }}
           >
             {t.admin.users.updateUser}
           </Button>
@@ -1352,7 +1351,12 @@ Link app: http://localhost:3000`;
           <Button
             onClick={handleNextStepToCounselor}
             variant="contained"
-            sx={{ backgroundColor: '#ffc700', '&:hover': { backgroundColor: '#e6b300' } }}
+            sx={{ 
+              backgroundColor: '#ffc700',
+              color: '#000',
+              fontWeight: 'bold',
+              '&:hover': { backgroundColor: '#e6b300' }
+            }}
           >
             Creează Profil Consilier
           </Button>

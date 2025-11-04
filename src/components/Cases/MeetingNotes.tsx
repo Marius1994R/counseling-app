@@ -205,7 +205,12 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
               variant="contained"
               startIcon={<Add />}
               onClick={handleAddNote}
-              sx={{ backgroundColor: '#ffc700', '&:hover': { backgroundColor: '#e6b300' } }}
+              sx={{ 
+                backgroundColor: '#ffc700',
+                color: '#000',
+                fontWeight: 'bold',
+                '&:hover': { backgroundColor: '#e6b300' }
+              }}
             >
               {t.meetingNotes.addNote}
             </Button>
@@ -299,7 +304,12 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
             onClick={handleSaveNote}
             variant="contained"
             disabled={!noteContent.trim()}
-            sx={{ backgroundColor: '#ffc700', '&:hover': { backgroundColor: '#e6b300' } }}
+            sx={{ 
+              backgroundColor: '#ffc700',
+              color: '#000',
+              fontWeight: 'bold',
+              '&:hover': { backgroundColor: '#e6b300' }
+            }}
           >
             {editingNote ? t.common.save : t.meetingNotes.addNote}
           </Button>

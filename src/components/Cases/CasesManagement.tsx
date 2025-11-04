@@ -205,14 +205,6 @@ const CasesManagement: React.FC = () => {
           // Get the counselor's linked user ID
           const assignedToUserId = assignedCounselor.linkedUserId || caseData.assignedCounselorId!;
           
-          console.log('Logging case assignment (edit):', {
-            caseId: editingCase.id,
-            caseTitle: editingCase.title,
-            assignedToUserId,
-            assignedCounselorName,
-            assignedByUserId: currentUser.id,
-            assignedByUserName: currentUser.fullName || currentUser.email || 'Unknown User'
-          });
           
           await logCaseAssigned(
             editingCase.id,
@@ -251,14 +243,6 @@ const CasesManagement: React.FC = () => {
           // Get the counselor's linked user ID
           const assignedToUserId = assignedCounselor.linkedUserId || caseData.assignedCounselorId;
           
-          console.log('Logging case assignment:', {
-            caseId: docRef.id,
-            caseTitle: caseData.title,
-            assignedToUserId,
-            assignedCounselorName,
-            assignedByUserId: currentUser.id,
-            assignedByUserName: currentUser.fullName || currentUser.email || 'Unknown User'
-          });
           
           await logCaseAssigned(
             docRef.id,

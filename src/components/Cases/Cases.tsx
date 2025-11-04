@@ -340,28 +340,76 @@ const Cases: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: { xs: 2, sm: 4 }, mb: 4, px: { xs: 1, sm: 2 } }}>
+      {/* Page Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography 
+          variant="h4" 
+          component="h1" 
+          sx={{ 
+            fontWeight: 'bold', 
+            color: '#ffc700',
+            fontSize: { xs: '1.75rem', sm: '2.25rem' },
+            mb: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}
+        >
+          <Assignment sx={{ fontSize: { xs: '1.75rem', sm: '2.25rem' } }} />
+          {t.cases.title}
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+          {filteredCases.length} {filteredCases.length === 1 ? 'caz disponibil' : 'cazuri disponibile'}
+        </Typography>
+      </Box>
+
       {/* Search and Filter Controls */}
-      <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 3 }}>
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center" }}>
-          <Box sx={{ flex: "1 1 300px", minWidth: "250px" }}>
+      <Paper 
+        elevation={2}
+        sx={{ 
+          p: { xs: 2, sm: 3 }, 
+          mb: 3,
+          borderRadius: 2,
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+          border: '1px solid rgba(255, 199, 0, 0.1)'
+        }}
+      >
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: { xs: 'stretch', sm: 'center' } }}>
+          <Box sx={{ flex: "1 1 300px", minWidth: { xs: "100%", sm: "250px" } }}>
             <TextField
               fullWidth
+              size="small"
               label={t.cases.filters.searchPlaceholder || "Căutați cazuri"}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
-                startAdornment: <Search sx={{ mr: 1, color: 'action.active' }} />
+                startAdornment: <Search sx={{ mr: 1, color: '#ffc700' }} />
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: '#ffc700',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#ffc700',
+                  },
+                },
               }}
             />
           </Box>
-          <Box sx={{ flex: "1 1 300px", minWidth: "250px" }}>
-            <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
+          <Box sx={{ flex: "1 1 200px", minWidth: { xs: "100%", sm: "200px" } }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>{t.cases.status}</InputLabel>
               <Select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as CaseStatus | 'all')}
-                label="Status"
+                label={t.cases.status}
+                sx={{
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#ffc700',
+                  },
+                }}
               >
                 <MenuItem value="all">{t.status.all}</MenuItem>
                 <MenuItem value="waiting">{t.status.waiting}</MenuItem>
@@ -373,16 +421,22 @@ const Cases: React.FC = () => {
             </FormControl>
           </Box>
           <Box sx={{ 
-            flex: "1 1 300px", 
-            minWidth: "250px",
             display: 'flex',
-            justifyContent: 'flex-start'
+            alignItems: 'center',
+            justifyContent: { xs: 'flex-start', sm: 'center' }
           }}>
             <Chip
-              label={`${filteredCases.length} ${t.cases.filters.all.toLowerCase()}`}
-              color="primary"
-              variant="outlined"
-              size="small"
+              label={`${filteredCases.length} ${filteredCases.length === 1 ? 'caz' : 'cazuri'}`}
+              sx={{
+                backgroundColor: '#ffc700',
+                color: '#000',
+                fontWeight: 'bold',
+                fontSize: '0.875rem',
+                height: '32px',
+                '& .MuiChip-label': {
+                  px: 2
+                }
+              }}
             />
           </Box>
         </Box>
@@ -421,37 +475,81 @@ const Cases: React.FC = () => {
           display: 'grid', 
           gridTemplateColumns: { 
             xs: '1fr', 
-            sm: 'repeat(auto-fill, minmax(350px, 1fr))' 
+            sm: 'repeat(auto-fill, minmax(380px, 1fr))' 
           }, 
-          gap: 2 
+          gap: 3 
         }}>
           {filteredCases.map((caseItem) => (
-          <Card key={caseItem.id} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <Card 
+            key={caseItem.id} 
+            elevation={4}
+            sx={{ 
+              height: '100%', 
+              display: 'flex', 
+              flexDirection: 'column',
+              borderRadius: 3,
+              overflow: 'hidden',
+              transition: 'all 0.3s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 8,
+                border: '1px solid rgba(255, 199, 0, 0.3)'
+              }
+            }}
+          >
             {/* Header Section */}
             <Box sx={{ 
-              backgroundColor: '#f8f9fa', 
-              p: 2, 
-              borderBottom: '1px solid #e0e0e0',
+              background: 'linear-gradient(135deg, #ffc700 0%, #e6b300 100%)',
+              p: 2.5,
               display: 'flex',
               flexDirection: 'column',
-              gap: 2
+              gap: 2,
+              position: 'relative'
             }}>
-              <Typography 
-                variant="h6" 
-                component="h2" 
-                sx={{ 
-                  fontWeight: 'bold', 
-                  color: '#333',
-                  fontSize: { xs: '1.1rem', sm: '1.25rem' }
-                }}
-              >
-                {caseItem.title}
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
+                <Typography 
+                  variant="h6" 
+                  component="h2" 
+                  sx={{ 
+                    fontWeight: 'bold', 
+                    color: '#000',
+                    fontSize: { xs: '1.1rem', sm: '1.3rem' },
+                    flex: 1,
+                    lineHeight: 1.3
+                  }}
+                >
+                  {caseItem.title}
+                </Typography>
+                <Chip
+                  label={caseItem.status.charAt(0).toUpperCase() + caseItem.status.slice(1)}
+                  color={getStatusColor(caseItem.status)}
+                  size="small"
+                  icon={getStatusIcon(caseItem.status)}
+                  sx={{
+                    fontWeight: 'bold',
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    color: '#000',
+                    '& .MuiChip-label': {
+                      color: '#000',
+                      fontWeight: 'bold'
+                    },
+                    '& .MuiChip-icon': {
+                      color: (() => {
+                        if (caseItem.status === 'unfinished' || caseItem.status === 'cancelled') return '#f44336';
+                        if (caseItem.status === 'active') return '#4caf50';
+                        if (caseItem.status === 'finished') return '#2196f3';
+                        if (caseItem.status === 'waiting') return '#ff9800';
+                        return '#757575';
+                      })()
+                    }
+                  }}
+                />
+              </Box>
+              
               <Box sx={{ 
                 display: 'flex', 
                 gap: 1,
                 width: '100%',
-                justifyContent: { xs: 'center', sm: 'flex-start' },
                 flexWrap: 'wrap'
               }}>
                 <Button
@@ -459,15 +557,18 @@ const Cases: React.FC = () => {
                   startIcon={<Note />}
                   onClick={() => handleOpenMeetingNotes(caseItem)}
                   sx={{ 
-                    color: '#ffc700',
-                    borderColor: '#ffc700',
+                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                    color: '#fff',
+                    borderColor: 'transparent',
                     '&:hover': {
-                      backgroundColor: 'rgba(255, 199, 0, 0.1)',
-                      borderColor: '#e6b300'
+                      backgroundColor: 'rgba(0, 0, 0, 0.8)',
                     },
-                    flex: { xs: 1, sm: 'none' }
+                    flex: { xs: '1 1 auto', sm: 'none' },
+                    minWidth: { sm: '120px' },
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold'
                   }}
-                  variant="outlined"
+                  variant="contained"
                 >
                   {t.meetingNotes.addNote}
                 </Button>
@@ -477,24 +578,22 @@ const Cases: React.FC = () => {
                     startIcon={<CalendarToday />}
                     onClick={() => handleOpenSessionReport(caseItem)}
                     sx={{ 
-                      color: '#ffc700',
-                      borderColor: '#ffc700',
+                      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                      color: '#fff',
+                      borderColor: 'transparent',
                       '&:hover': {
-                        backgroundColor: 'rgba(255, 199, 0, 0.1)',
-                        borderColor: '#e6b300'
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
                       },
-                      flex: { xs: 1, sm: 'none' },
+                      flex: { xs: '1 1 auto', sm: 'none' },
+                      minWidth: { sm: '140px' },
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold',
                       whiteSpace: 'normal',
-                      lineHeight: 1.2,
-                      textAlign: 'center',
-                      minWidth: { sm: 'auto' },
-                      maxWidth: { sm: '110px' },
-                      height: { sm: 'auto' },
-                      py: { sm: 1 }
+                      lineHeight: 1.2
                     }}
-                    variant="outlined"
+                    variant="contained"
                   >
-                    <Box component="span" sx={{ display: 'block', fontSize: { sm: '0.7rem' } }}>
+                    <Box component="span" sx={{ display: 'block', fontSize: '0.7rem' }}>
                       Gestionează<br />Rapoartele
                     </Box>
                   </Button>
@@ -504,14 +603,18 @@ const Cases: React.FC = () => {
                   startIcon={<Edit />}
                   onClick={() => handleEditCase(caseItem)}
                   sx={{ 
-                    color: '#ffc700',
-                    flex: { xs: 1, sm: 'none' },
-                    minWidth: { sm: 'auto' },
-                    px: { sm: 1 },
+                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                    color: '#fff',
+                    flex: { xs: '1 1 auto', sm: 'none' },
+                    minWidth: { sm: '80px' },
                     '& .MuiButton-startIcon': {
                       marginRight: { xs: 1, sm: 0 }
+                    },
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 0, 0, 0.8)',
                     }
                   }}
+                  variant="contained"
                   title={t.common.edit}
                 >
                   <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
@@ -521,116 +624,187 @@ const Cases: React.FC = () => {
               </Box>
             </Box>
 
-            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 3 }}>
               {/* Client Information Section */}
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#555' }}>
-                  {t.cases.caseDetails}
+              <Box sx={{ 
+                mb: 3,
+                p: 2,
+                backgroundColor: '#f8f9fa',
+                borderRadius: 2,
+                border: '1px solid #e9ecef'
+              }}>
+                <Typography 
+                  variant="subtitle2" 
+                  sx={{ 
+                    fontWeight: 'bold', 
+                    mb: 2, 
+                    color: '#495057',
+                    fontSize: '0.875rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}
+                >
+                  Informații Client
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <Person fontSize="small" color="action" />
-                  <Typography variant="body2" color="text.secondary">
-                    {caseItem.counseledName} ({caseItem.age} years)
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <Assignment fontSize="small" color="action" />
-                  <Typography variant="body2" color="text.secondary">
-                    {caseItem.civilStatus}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <CalendarToday fontSize="small" color="action" />
-                  <Typography variant="body2" color="text.secondary">
-                    Creat: {caseItem.createdAt.toLocaleDateString('ro-RO')}
-                  </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Box sx={{ 
+                      backgroundColor: '#ffc700',
+                      borderRadius: '50%',
+                      p: 0.75,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Person fontSize="small" sx={{ color: '#000' }} />
+                    </Box>
+                    <Typography variant="body2" sx={{ fontWeight: 'medium', color: '#212529' }}>
+                      {caseItem.counseledName}, {caseItem.age} {t.cases.years}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Box sx={{ 
+                      backgroundColor: '#ffc700',
+                      borderRadius: '50%',
+                      p: 0.75,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Assignment fontSize="small" sx={{ color: '#000' }} />
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      {t.cases.civilStatusTitle}: {caseItem.civilStatus.charAt(0).toUpperCase() + caseItem.civilStatus.slice(1)}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Box sx={{ 
+                      backgroundColor: '#ffc700',
+                      borderRadius: '50%',
+                      p: 0.75,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <CalendarToday fontSize="small" sx={{ color: '#000' }} />
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      {t.cases.createdLabel}: {caseItem.createdAt.toLocaleDateString('ro-RO')}
+                    </Typography>
+                  </Box>
                 </Box>
               </Box>
 
-              {/* Case Details Section */}
+              {/* Description Section */}
               <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#555' }}>
-                  {t.cases.caseDetails}
+                <Typography 
+                  variant="subtitle2" 
+                  gutterBottom 
+                  sx={{ 
+                    fontWeight: 'bold',
+                    mb: 1.5,
+                    color: '#495057',
+                    fontSize: '0.875rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}
+                >
+                  {t.cases.description}
                 </Typography>
-                
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    {t.cases.status}
-                  </Typography>
-                  <Chip
-                    label={caseItem.status.charAt(0).toUpperCase() + caseItem.status.slice(1)}
-                    color={getStatusColor(caseItem.status)}
-                    size="small"
-                    icon={getStatusIcon(caseItem.status)}
-                  />
-                </Box>
-
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    {t.cases.description}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ 
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary" 
+                  sx={{ 
                     backgroundColor: '#f8f9fa',
-                    padding: 1.5,
-                    borderRadius: 1,
-                    border: '1px solid #e0e0e0',
+                    padding: 2,
+                    borderRadius: 2,
+                    border: '1px solid #e9ecef',
                     whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word'
-                  }}>
-                    {caseItem.description.length > 150 
-                      ? `${caseItem.description.substring(0, 150)}...` 
-                      : caseItem.description}
-                  </Typography>
-                  {caseItem.description.length > 150 && (
-                    <Button
-                      size="small"
-                      onClick={() => {
-                        setSelectedCaseForDescription(caseItem);
-                        setDescriptionModalOpen(true);
-                      }}
-                      sx={{ 
-                        mt: 1,
-                        color: '#ffc700',
-                        textTransform: 'none'
-                      }}
-                    >
-                      {t.cases.viewFullDescription}
-                    </Button>
-                  )}
-                </Box>
+                    wordBreak: 'break-word',
+                    minHeight: '80px',
+                    lineHeight: 1.6
+                  }}
+                >
+                  {caseItem.description.length > 150 
+                    ? `${caseItem.description.substring(0, 150)}...` 
+                    : caseItem.description || t.cases.noDescriptionProvided}
+                </Typography>
+                {caseItem.description && caseItem.description.length > 150 && (
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      setSelectedCaseForDescription(caseItem);
+                      setDescriptionModalOpen(true);
+                    }}
+                    sx={{ 
+                      mt: 1.5,
+                      color: '#ffc700',
+                      textTransform: 'none',
+                      fontWeight: 'bold',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255, 199, 0, 0.1)'
+                      }
+                    }}
+                  >
+                    {t.cases.viewFullDescription}
+                  </Button>
+                )}
               </Box>
 
               {/* Meeting Notes Preview Section */}
               <Box sx={{ 
-                backgroundColor: 'rgba(255, 199, 0, 0.05)',
-                border: '1px solid rgba(255, 200, 0, 0)',
-                borderRadius: 1,
-                p: 2,
-                mb: 2
+                background: 'linear-gradient(135deg, rgba(255, 199, 0, 0.1) 0%, rgba(255, 199, 0, 0.05) 100%)',
+                border: '2px solid rgba(255, 199, 0, 0.2)',
+                borderRadius: 2,
+                p: 2.5,
+                mt: 'auto'
               }}>
-                <Typography variant="subtitle2" gutterBottom sx={{ 
-                  fontWeight: 'bold',
-                  color: '#ffc700',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5
-                }}>
-                  <Note fontSize="small" />
-                  {t.meetingNotes.latestNote || "Ultima Notă de Ședință"}
+                <Typography 
+                  variant="subtitle2" 
+                  gutterBottom 
+                  sx={{ 
+                    fontWeight: 'bold',
+                    color: '#ffc700',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    mb: 2,
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  <Box sx={{ 
+                    backgroundColor: '#ffc700',
+                    borderRadius: '50%',
+                    p: 0.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Note fontSize="small" sx={{ color: '#000' }} />
+                  </Box>
+                  {t.meetingNotes.latestMeetingNote}
                 </Typography>
                 
                 {caseNotes[caseItem.id] ? (
                   <>
-                    <Typography variant="body2" color="text.secondary" sx={{ 
-                      fontStyle: 'italic',
-                      maxHeight: '60px',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: 'vertical',
-                      mb: 1
-                    }}>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary" 
+                      sx={{ 
+                        fontStyle: 'italic',
+                        maxHeight: '60px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        mb: 2,
+                        lineHeight: 1.6,
+                        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                        p: 1.5,
+                        borderRadius: 1
+                      }}
+                    >
                       {caseNotes[caseItem.id]}
                     </Typography>
                     <Button
@@ -638,26 +812,44 @@ const Cases: React.FC = () => {
                       onClick={() => handleOpenMeetingNotes(caseItem)}
                       sx={{ 
                         color: '#ffc700',
-                        textTransform: 'none'
+                        textTransform: 'none',
+                        fontWeight: 'bold',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 199, 0, 0.1)'
+                        }
                       }}
                     >
-                      {t.cases.viewAllNotes || "Vezi Toate Notele"}
+                      {t.meetingNotes.viewAllNotes}
                     </Button>
                   </>
                 ) : (
                   <>
-                    <Typography variant="body2" color="text.secondary" sx={{ 
-                      fontStyle: 'italic',
-                      mb: 1
-                    }}>
-                      {t.meetingNotes.noNotesMessage || "Nu există note de ședință încă."}
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary" 
+                      sx={{ 
+                        fontStyle: 'italic',
+                        mb: 2,
+                        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                        p: 1.5,
+                        borderRadius: 1
+                      }}
+                    >
+                      {t.meetingNotes.noMeetingNotesYet}
                     </Typography>
                     <Button
                       size="small"
                       onClick={() => handleOpenMeetingNotes(caseItem)}
+                      variant="outlined"
                       sx={{ 
                         color: '#ffc700',
-                        textTransform: 'none'
+                        borderColor: '#ffc700',
+                        textTransform: 'none',
+                        fontWeight: 'bold',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 199, 0, 0.1)',
+                          borderColor: '#e6b300'
+                        }
                       }}
                     >
                       {t.meetingNotes.addNote}

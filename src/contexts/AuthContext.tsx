@@ -40,24 +40,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const initializedRef = useRef(false);
 
-  // Debug currentUser changes
-  useEffect(() => {
-    console.log('AuthContext: currentUser changed to:', currentUser);
-  }, [currentUser]);
-
   // Restore user from localStorage on app load
   useEffect(() => {
     if (initializedRef.current) return; // Prevent multiple initializations
     initializedRef.current = true;
     
-    console.log('AuthContext: Starting to restore user from localStorage...');
     const savedUser = localStorage.getItem('counselingAppUser');
-    console.log('AuthContext: Saved user found:', !!savedUser);
     
     if (savedUser) {
       try {
         const userData = JSON.parse(savedUser);
-        console.log('AuthContext: Parsed user data:', userData);
         
         // Check if the saved user is still valid (not expired)
         if (userData.id && userData.email) {
@@ -67,19 +59,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             createdAt: new Date(userData.createdAt),
             lastLogin: new Date(userData.lastLogin)
           };
-          console.log('AuthContext: Setting current user:', restoredUser);
           setCurrentUser(restoredUser);
-        } else {
-          console.log('AuthContext: Invalid user data, missing id or email');
         }
       } catch (error) {
         console.error('AuthContext: Error parsing saved user data:', error);
         localStorage.removeItem('counselingAppUser');
       }
-    } else {
-      console.log('AuthContext: No saved user found');
     }
-    console.log('AuthContext: Setting loading to false');
     setLoading(false);
   }, []);
 
@@ -146,7 +132,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await signOut(auth);
-      console.log('AuthContext: Logging out user');
       setCurrentUser(null);
       // Clear localStorage on logout
       localStorage.removeItem('counselingAppUser');
@@ -215,8 +200,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Sign out from the secondary auth instance to clean up
       await signOut(secondaryAuth);
       
-      console.log(`✅ User created successfully: ${email} (${role})`);
-      console.log(`✅ You remain logged in as: ${currentUser?.email} (${currentUser?.role})`);
       
       // Return the newly created user ID
       return user.uid;
@@ -427,8 +410,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-      console.log('Firebase auth state changed:', firebaseUser ? 'user logged in' : 'user logged out');
-      
       if (firebaseUser) {
         try {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
@@ -444,7 +425,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               lastLogin: userData.lastLogin?.toDate(),
               deactivatedAt: userData.deactivatedAt?.toDate()
             };
-            console.log('Firebase: Setting user from Firebase:', firebaseUserData);
             setCurrentUser(firebaseUserData);
           }
         } catch (error) {
@@ -454,10 +434,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Only clear currentUser if we don't have a localStorage user
         const savedUser = localStorage.getItem('counselingAppUser');
         if (!savedUser) {
-          console.log('Firebase: No Firebase user and no localStorage user, clearing currentUser');
           setCurrentUser(null);
-        } else {
-          console.log('Firebase: No Firebase user but localStorage user exists, keeping currentUser');
         }
       }
     });

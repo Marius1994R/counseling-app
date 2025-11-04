@@ -117,7 +117,6 @@ const SessionReport: React.FC<SessionReportProps> = ({
       // Sort by session number on client side to avoid index requirement
       reportsData.sort((a, b) => a.sessionNumber - b.sessionNumber);
       
-      console.log('Loaded reports for caseId:', caseId, 'Reports:', reportsData);
       setReports(reportsData);
     } catch (error) {
       console.error('Error loading reports:', error);
@@ -212,7 +211,12 @@ const SessionReport: React.FC<SessionReportProps> = ({
                 variant="contained"
                 startIcon={<Add />}
                 onClick={() => setAddReportOpen(true)}
-                sx={{ backgroundColor: '#ffc700', '&:hover': { backgroundColor: '#e6b300' } }}
+                sx={{ 
+                  backgroundColor: '#ffc700',
+                  color: '#000',
+                  fontWeight: 'bold',
+                  '&:hover': { backgroundColor: '#e6b300' }
+                }}
               >
                 Adaugă Raport Post-Sesiune
               </Button>
@@ -481,7 +485,12 @@ const SessionReport: React.FC<SessionReportProps> = ({
               (nextCommitments === 'yes' && !nextCommitmentsDetails.trim()) ||
               (nextCommitments === 'no' && !noCommitmentsReason.trim())
             }
-            sx={{ backgroundColor: '#ffc700', '&:hover': { backgroundColor: '#e6b300' } }}
+            sx={{ 
+              backgroundColor: '#ffc700',
+              color: '#000',
+              fontWeight: 'bold',
+              '&:hover': { backgroundColor: '#e6b300' }
+            }}
           >
             Salvează Raport
           </Button>

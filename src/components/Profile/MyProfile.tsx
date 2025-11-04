@@ -272,16 +272,44 @@ const MyProfile: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: { xs: 2, sm: 4 }, mb: { xs: 2, sm: 4 }, px: { xs: 2, sm: 3 } }}>
+      {/* Page Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography 
+          variant="h4" 
+          component="h1" 
+          sx={{ 
+            fontWeight: 'bold', 
+            color: '#ffc700',
+            fontSize: { xs: '1.75rem', sm: '2.25rem' },
+            mb: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}
+        >
+          <Person sx={{ fontSize: { xs: '1.75rem', sm: '2.25rem' } }} />
+          {t.profile.title || 'Profilul Meu'}
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+          {counselor ? `${counselor.fullName} - Informații despre profil` : 'Informații despre profil'}
+        </Typography>
+      </Box>
+
       {/* Profile Header with Avatar, Basic Info and Contact */}
       <Box sx={{ 
         mb: 4,
-        p: 4,
+        p: { xs: 3, sm: 4 },
         backgroundColor: 'rgba(255, 199, 0, 0.05)',
-        borderRadius: 3,
+        borderRadius: 2,
         border: '1px solid rgba(255, 199, 0, 0.2)',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+        transition: 'all 0.3s ease',
+        '&:hover': {
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)'
+        }
       }}>
         {/* Edit Profile Button - Top Right Corner */}
         <Button
@@ -296,7 +324,8 @@ const MyProfile: React.FC = () => {
             color: '#ffc700', 
             '&:hover': { 
               borderColor: '#e6b300', 
-              backgroundColor: 'rgba(255, 199, 0, 0.1)' 
+              backgroundColor: 'rgba(255, 199, 0, 0.1)',
+              color: '#000'
             },
             px: 2,
             py: 1,
@@ -534,7 +563,8 @@ const MyProfile: React.FC = () => {
                     px: 2,
                     py: 1,
                     backgroundColor: '#ffc700',
-                    color: 'white',
+                    color: '#000',
+                    fontWeight: 'bold',
                     '&:hover': {
                       backgroundColor: '#e6b300'
                     }
@@ -649,7 +679,12 @@ const MyProfile: React.FC = () => {
           <Button
             onClick={handleSave}
             variant="contained"
-            sx={{ backgroundColor: '#ffc700', '&:hover': { backgroundColor: '#e6b300' } }}
+            sx={{ 
+              backgroundColor: '#ffc700',
+              color: '#000',
+              fontWeight: 'bold',
+              '&:hover': { backgroundColor: '#e6b300' }
+            }}
           >
             {t.common.save}
           </Button>

@@ -75,8 +75,6 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 const AppContent: React.FC = () => {
   const { currentUser, loading } = useAuth();
 
-  console.log('AppContent: loading =', loading, 'currentUser =', currentUser);
-
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
