@@ -266,8 +266,13 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
       fullScreen={false}
       sx={{
         '& .MuiDialog-paper': {
-          m: { xs: 1, sm: 2 },
-          maxHeight: { xs: '95vh', sm: '90vh' }
+          m: { xs: 0, sm: 2 },
+          maxHeight: { xs: '100vh', sm: '90vh' },
+          height: { xs: '100vh', sm: 'auto' },
+          maxWidth: { xs: '100%', sm: '600px' }
+        },
+        '& .MuiDialog-container': {
+          alignItems: { xs: 'flex-end', sm: 'center' }
         }
       }}
     >
@@ -278,10 +283,13 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
         {counselorData ? 'Editează Consilier' : 'Creează Profil Consilier'}
       </DialogTitle>
       <form onSubmit={handleSubmit}>
-        <DialogContent sx={{ 
-          px: { xs: 1.5, sm: 3 },
-          py: { xs: 1, sm: 2 }
-        }}>
+      <DialogContent sx={{ 
+        px: { xs: 1.5, sm: 3 },
+        py: { xs: 1, sm: 2 },
+        pb: { xs: 2, sm: 2 },
+        overflow: 'auto',
+        flex: '1 1 auto'
+      }}>
           <Box sx={{ 
             display: "flex", 
             flexDirection: "column", 
@@ -440,9 +448,14 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
         
         <DialogActions sx={{ 
           px: { xs: 1.5, sm: 3 },
-          py: { xs: 1, sm: 2 },
+          pt: { xs: 2, sm: 2 },
+          pb: { xs: 'max(1rem, calc(1rem + env(safe-area-inset-bottom)))', sm: 2 },
           flexDirection: { xs: 'column-reverse', sm: 'row' },
-          gap: { xs: 1, sm: 0 }
+          gap: { xs: 1, sm: 0 },
+          flexShrink: 0,
+          borderTop: { xs: '1px solid', sm: 'none' },
+          borderColor: { xs: 'divider', sm: 'transparent' },
+          backgroundColor: 'background.paper'
         }}>
           <Button 
             onClick={handleClose}
