@@ -62,11 +62,13 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
   const [editingNote, setEditingNote] = useState<MeetingNote | null>(null);
   const [noteContent, setNoteContent] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
 
   // Load meeting notes for this case
   useEffect(() => {
     if (open && caseId) {
       loadMeetingNotes();
+      setExpandedNotes(new Set()); // Reset expanded notes when dialog opens
     }
   }, [open, caseId]);
 
@@ -262,9 +264,44 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
                         </IconButton>
                       </Box>
                     </Box>
-                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                      {note.content}
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word'
+                      }}
+                    >
+                      {note.content.length > 150 && !expandedNotes.has(note.id)
+                        ? `${note.content.substring(0, 150)}...`
+                        : note.content}
                     </Typography>
+                    {note.content.length > 150 && (
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          const newExpanded = new Set(expandedNotes);
+                          if (newExpanded.has(note.id)) {
+                            newExpanded.delete(note.id);
+                          } else {
+                            newExpanded.add(note.id);
+                          }
+                          setExpandedNotes(newExpanded);
+                        }}
+                        sx={{ 
+                          mt: 1,
+                          color: '#ffc700',
+                          textTransform: 'none',
+                          fontWeight: 'bold',
+                          p: 0,
+                          minWidth: 'auto',
+                          '&:hover': {
+                            backgroundColor: 'rgba(255, 199, 0, 0.1)'
+                          }
+                        }}
+                      >
+                        {expandedNotes.has(note.id) ? t.meetingNotes.showLess : t.meetingNotes.showMore}
+                      </Button>
+                    )}
                     {note.updatedAt.getTime() !== note.createdAt.getTime() && (
                         <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
                         {t.common.updated}: {note.updatedAt.toLocaleString('ro-RO')}

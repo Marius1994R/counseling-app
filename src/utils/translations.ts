@@ -407,6 +407,8 @@ export const t = {
     noMeetingNotesYet: 'Nu există note de ședință încă',
     noMeetingNotesAdded: 'Nu există note de ședință adăugate pentru acest caz încă.',
     addNoteSuccess: 'Notă de ședință adăugată cu succes',
+    showMore: 'Afișează mai mult',
+    showLess: 'Afișează mai puțin',
     addNoteError: 'Eroare la adăugarea notei de ședință',
     deleteNoteSuccess: 'Notă de ședință ștearsă cu succes',
     deleteNoteError: 'Eroare la ștergerea notei de ședință',
