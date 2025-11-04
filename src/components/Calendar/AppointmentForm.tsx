@@ -468,7 +468,16 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
           </DialogContent>
           <DialogActions>
             <Button onClick={onClose}>{t.common.cancel}</Button>
-            <Button type="submit" variant="contained">
+            <Button 
+              type="submit" 
+              variant="contained"
+              disabled={
+                !formData.counselorId ||
+                !formData.date ||
+                !formData.startTime ||
+                !formData.endTime
+              }
+            >
               {appointmentData ? t.common.save : t.appointments.schedule}
             </Button>
           </DialogActions>

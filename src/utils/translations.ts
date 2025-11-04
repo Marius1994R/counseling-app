@@ -84,6 +84,18 @@ export const t = {
     goToCalendar: 'Mergi la Calendar'
   },
 
+  // Delete/Deactivate Warnings
+  deleteWarnings: {
+    deleteCase: 'Șterge Caz',
+    deleteCaseConfirm: 'Ești sigur că vrei să ștergi cazul "{title}"? Această acțiune nu poate fi anulată.',
+    deleteCounselor: 'Șterge Consilier',
+    deleteCounselorConfirm: 'Ești sigur că vrei să ștergi consilierul "{name}"? Această acțiune nu poate fi anulată.',
+    deleteCounselorWarning: 'Acest consilier are {count} cazuri alocate. Poți dori să realocezi aceste cazuri înainte de ștergere.',
+    deleteAppointment: 'Șterge Programare',
+    deleteAppointmentConfirm: 'Ești sigur că vrei să ștergi programarea "{title}"? Această acțiune nu poate fi anulată.',
+    thisActionCannotBeUndone: 'Această acțiune nu poate fi anulată'
+  },
+
   // Cases
   cases: {
     title: 'Cazuri',
@@ -94,15 +106,22 @@ export const t = {
     caseTitle: 'Titlu Caz',
     counseledName: 'Nume Persoană Consiliată',
     age: 'Vârstă',
+    years: 'ani',
     civilStatus: 'Stare Civilă',
+    civilStatusTitle: 'Stare Civilă',
     phoneNumber: 'Număr Telefon',
     description: 'Descriere',
+    problemDescription: 'Descriere Problemă',
     status: 'Status',
     issueTypes: 'Tipuri de Problema',
+    issueTypesTitle: 'Tipuri de Problemă',
     assignedCounselor: 'Consilier Alocat',
+    assignedCounselorTitle: 'Consilier Alocat',
     created: 'Creat',
+    createdLabel: 'Creat',
     updated: 'Actualizat',
     viewAllNotes: 'Vezi Toate Notele',
+    noDescriptionProvided: 'Nu există descriere',
     updateSuccess: 'Caz actualizat cu succes',
     updateError: 'Eroare la actualizarea cazului',
     filters: {
@@ -138,7 +157,9 @@ export const t = {
     workload: 'Sarcină de Lucru',
     specialty: 'Specialitate',
     cases: 'Cazuri',
-    linkUserAccount: 'Leagă la Cont Utilizator *'
+    linkUserAccount: 'Leagă la Cont Utilizator *',
+    manageReports: 'Gestionează Rapoartele',
+    openReports: 'Deschide Rapoarte'
   },
 
   // Appointments
@@ -183,6 +204,7 @@ export const t = {
     email: 'Email',
     phoneNumber: 'Număr Telefon',
     specialties: 'Specializări',
+    specialtiesTitle: 'Specializări',
     workload: 'Sarcină',
     workloadLevel: {
       low: 'Scăzut',
@@ -190,6 +212,13 @@ export const t = {
       high: 'Ridicat'
     },
     activeCases: 'Cazuri Active',
+    activeCasesTitle: 'Cazuri Active',
+    waitingCases: 'Cazuri în Așteptare',
+    caseSummary: 'Rezumat Cazuri',
+    recentCases: 'Cazuri Recente',
+    seeHistory: 'Vezi Istoric',
+    caseHistory: 'Istoric Cazuri',
+    totalCases: 'Cazuri Totale',
     filters: {
       all: 'Toți',
       low: 'Sarcină Scăzută',
@@ -255,17 +284,37 @@ export const t = {
       addUser: 'Adaugă Utilizator',
       editUser: 'Editează Utilizator',
       deleteUser: 'Șterge Utilizator',
+      createUser: 'Creează Utilizator',
+      createNewUser: 'Creează Utilizator Nou',
       fullName: 'Nume Complet',
       email: 'Email',
       role: 'Rol',
       status: 'Status',
       actions: 'Acțiuni',
+      name: 'Nume',
+      created: 'Creat',
+      generatedPassword: 'Parolă Generată',
+      passwordHelperText: 'Parola este generată automat pe baza numelui complet',
+      copyCredentials: 'Copiază Credențiale',
+      updateUser: 'Actualizează Utilizator',
+      adminsCannotModifyLeaders: 'Administratorii nu pot modifica conturile liderilor',
+      deleteUserTitle: 'Șterge Utilizator',
+      deleteUserConfirm: 'Ești sigur că vrei să ștergi permanent acest utilizator? Această acțiune nu poate fi anulată.',
+      deleteUserSelfConfirm: 'Ești sigur că vrei să te ștergi permanent? Această acțiune nu poate fi anulată și vei fi deconectat imediat!',
+      deactivateUser: 'Dezactivează Utilizator',
+      deactivateUserConfirm: 'Ești sigur că vrei să dezactivezi acest utilizator? Nu va putea să se conecteze până când va fi reactivat.',
+      cannotDeactivateSelf: 'Nu te poți dezactiva singur',
+      adminsCannotDeactivateLeaders: 'Administratorii nu pot dezactiva lideri',
       createUserSuccess: 'Utilizator creat cu succes',
       createUserError: 'Eroare la crearea utilizatorului',
       updateUserSuccess: 'Utilizator actualizat cu succes',
       updateUserError: 'Eroare la actualizarea utilizatorului',
       deleteUserSuccess: 'Utilizator șters cu succes',
-      deleteUserError: 'Eroare la ștergerea utilizatorului'
+      deleteUserError: 'Eroare la ștergerea utilizatorului',
+      deactivateUserSuccess: 'Utilizator dezactivat cu succes',
+      deactivateUserError: 'Eroare la dezactivarea utilizatorului',
+      reactivateUserSuccess: 'Utilizator reactivat cu succes',
+      reactivateUserError: 'Eroare la reactivarea utilizatorului'
     },
     cases: {
       searchPlaceholder: 'Caută cazuri după nume, status, tip...',
@@ -293,6 +342,7 @@ export const t = {
   issueTypes: {
     personal: 'Personal',
     family: 'Familie',
+    relational: 'Relațional',
     marriage: 'Căsătorie',
     emotional: 'Emoțional',
     spiritual: 'Spiritual',
@@ -312,7 +362,31 @@ export const t = {
   roles: {
     counselor: 'Consilier',
     admin: 'Administrator',
-    leader: 'Lider'
+    leader: 'Lider',
+    leaderDescription: {
+      createUsers: 'Creează utilizatori noi cu orice rol (lider, admin, consilier)',
+      editManageUsers: 'Editează și gestionează toți utilizatorii',
+      deactivateReactivateUsers: 'Dezactivează/reactivează orice utilizator',
+      deleteUsers: 'Șterge permanent orice utilizator',
+      manageCounselorsCases: 'Gestionează consilieri și cazuri',
+      fullSystemAccess: 'Acces complet la sistem',
+      cannotEditDeleteOwn: 'Nu poți edita sau șterge propriul cont'
+    },
+    adminDescription: {
+      viewAllUsers: 'Vizualizează toți utilizatorii',
+      editUsersExceptLeaders: 'Editează utilizatori (cu excepția liderilor)',
+      deactivateReactivateExceptLeaders: 'Dezactivează/reactivează utilizatori (cu excepția liderilor)',
+      manageCasesCounselors: 'Gestionează cazuri și consilieri',
+      accessAdminTools: 'Acces la unelte admin',
+      limitedCannotCreateUsers: 'Limitare: Nu poate crea utilizatori sau modifica conturile liderilor'
+    },
+    counselorDescription: {
+      viewOwnCasesOnly: 'Vizualizează doar cazurile alocate',
+      addMeetingNotes: 'Adaugă note de ședință pentru cazurile alocate',
+      manageOwnAppointments: 'Gestionează propriile programări',
+      updateOwnProfile: 'Actualizează propriul profil',
+      limitedCannotCreateCases: 'Limitare: Nu poate crea cazuri sau gestiona alți utilizatori'
+    }
   },
 
   // Meeting Notes
@@ -327,6 +401,11 @@ export const t = {
     noNotes: 'Nu există note',
     noNotesMessage: 'Nu există note de ședință încă. Adaugă prima notă pentru a urmări sesiunile de consiliere.',
     latestNote: 'Ultima Notă de Ședință',
+    latestMeetingNote: 'Ultima Notă de Ședință',
+    viewAllNotes: 'Vezi Toate Notele',
+    allMeetingNotes: 'Toate Notele de Ședință',
+    noMeetingNotesYet: 'Nu există note de ședință încă',
+    noMeetingNotesAdded: 'Nu există note de ședință adăugate pentru acest caz încă.',
     addNoteSuccess: 'Notă de ședință adăugată cu succes',
     addNoteError: 'Eroare la adăugarea notei de ședință',
     deleteNoteSuccess: 'Notă de ședință ștearsă cu succes',

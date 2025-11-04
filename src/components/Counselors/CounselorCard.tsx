@@ -32,11 +32,10 @@ import {
   TrendingUp,
   TrendingDown,
   Remove,
-  Visibility,
-  VisibilityOff,
   History
 } from '@mui/icons-material';
 import { Counselor, Case } from '../../types';
+import { t } from '../../utils/translations';
 
 interface CounselorCardProps {
   counselor: Counselor;
@@ -57,7 +56,6 @@ const CounselorCard: React.FC<CounselorCardProps> = ({
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [showRecentCases, setShowRecentCases] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -179,7 +177,7 @@ const CounselorCard: React.FC<CounselorCardProps> = ({
             {/* Specialties */}
             <Box textAlign="center">
               <Typography variant="subtitle2" gutterBottom>
-                Specialties
+                {t.counselors.specialtiesTitle}
               </Typography>
               <Box display="flex" flexWrap="wrap" gap={0.5} justifyContent="center">
                 {counselor.specialties.map((specialty) => (
@@ -197,7 +195,7 @@ const CounselorCard: React.FC<CounselorCardProps> = ({
             {/* Case Summary */}
             <Box textAlign="center" sx={{ width: '100%' }}>
               <Typography variant="subtitle2" gutterBottom>
-                Case Summary
+                {t.counselors.caseSummary}
               </Typography>
               <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center' }}>
                 <Box sx={{ flex: 1, textAlign: 'center', minWidth: '80px' }}>
@@ -205,7 +203,7 @@ const CounselorCard: React.FC<CounselorCardProps> = ({
                     {activeCases.length}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Active Cases
+                    {t.counselors.activeCasesTitle}
                   </Typography>
                 </Box>
                 <Box sx={{ flex: 1, textAlign: 'center', minWidth: '80px' }}>
@@ -213,7 +211,7 @@ const CounselorCard: React.FC<CounselorCardProps> = ({
                     {waitingCases.length}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Waiting Cases
+                    {t.counselors.waitingCases}
                   </Typography>
                 </Box>
               </Box>
@@ -222,84 +220,58 @@ const CounselorCard: React.FC<CounselorCardProps> = ({
             {/* Divider between Case Summary and Recent Cases */}
             <Divider sx={{ my: 2, width: '100%' }} />
 
-            {/* Recent Cases */}
+            {/* Recent Cases - Always show last 2 cases */}
             {assignedCases.length > 0 && (
               <Box textAlign="center" sx={{ width: '100%' }}>
-                {!showRecentCases ? (
-                  // When hidden: only show eye icon
-                  <Box display="flex" justifyContent="center" alignItems="center" mb={1}>
-                    <IconButton
-                      size="small"
-                      onClick={() => setShowRecentCases(!showRecentCases)}
-                      aria-label={showRecentCases ? 'hide recent cases' : 'show recent cases'}
+                <Typography variant="subtitle2" gutterBottom>
+                  {t.counselors.recentCases}
+                </Typography>
+                {/* Show last 2 cases */}
+                <Box sx={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(2, 1fr)', 
+                  gap: 1,
+                  width: '100%',
+                  mb: 2
+                }}>
+                  {assignedCases.slice(-2).map((caseItem) => (
+                    <Box 
+                      key={caseItem.id} 
+                      sx={{ 
+                        p: 1, 
+                        border: '1px solid', 
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        textAlign: 'left',
+                        backgroundColor: 'background.paper'
+                      }}
                     >
-                      {showRecentCases ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </Box>
-                ) : (
-                  // When visible: show title and eye icon below
-                  <Box>
-                    <Typography variant="subtitle2" gutterBottom>
-                      Recent Cases
-                    </Typography>
-                    <Box display="flex" justifyContent="center" alignItems="center" mb={1}>
-                      <IconButton
-                        size="small"
-                        onClick={() => setShowRecentCases(!showRecentCases)}
-                        aria-label={showRecentCases ? 'hide recent cases' : 'show recent cases'}
-                      >
-                        {showRecentCases ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
+                      <Typography variant="body2" sx={{ fontWeight: 'medium', mb: 0.5 }}>
+                        {caseItem.title}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {caseItem.status.charAt(0).toUpperCase() + caseItem.status.slice(1)} • {formatDate(caseItem.createdAt)}
+                      </Typography>
                     </Box>
-                    {/* Two per row grid layout */}
-                    <Box sx={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: 'repeat(2, 1fr)', 
-                      gap: 1,
-                      width: '100%'
-                    }}>
-                      {assignedCases.slice(0, 6).map((caseItem) => (
-                        <Box 
-                          key={caseItem.id} 
-                          sx={{ 
-                            p: 1, 
-                            border: '1px solid', 
-                            borderColor: 'divider',
-                            borderRadius: 1,
-                            textAlign: 'left',
-                            backgroundColor: 'background.paper'
-                          }}
-                        >
-                          <Typography variant="body2" sx={{ fontWeight: 'medium', mb: 0.5 }}>
-                            {caseItem.title}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {caseItem.status.charAt(0).toUpperCase() + caseItem.status.slice(1)} • {formatDate(caseItem.createdAt)}
-                          </Typography>
-                        </Box>
-                      ))}
-                    </Box>
-                    
-                    {/* See History Button */}
-                    {assignedCases.length > 0 && (
-                      <Box sx={{ mt: 2, textAlign: 'center' }}>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={<History />}
-                          onClick={() => setHistoryModalOpen(true)}
-                          sx={{ 
-                            fontSize: '0.75rem',
-                            px: 2,
-                            py: 0.5
-                          }}
-                        >
-                          See History ({assignedCases.length} cases)
-                        </Button>
-                      </Box>
-                    )}
-                  </Box>
-                )}
+                  ))}
+                </Box>
+                
+                {/* See History Button */}
+                <Box sx={{ textAlign: 'center' }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<History />}
+                    onClick={() => setHistoryModalOpen(true)}
+                    sx={{ 
+                      fontSize: '0.75rem',
+                      px: 2,
+                      py: 0.5
+                    }}
+                  >
+                    {t.counselors.seeHistory} ({assignedCases.length} cazuri)
+                  </Button>
+                </Box>
               </Box>
             )}
           </Box>
@@ -315,33 +287,33 @@ const CounselorCard: React.FC<CounselorCardProps> = ({
         {canEdit && (
           <MenuItem onClick={handleEdit}>
             <Edit sx={{ mr: 1 }} />
-            Edit
+            {t.common.edit}
           </MenuItem>
         )}
         {canDelete && (
           <MenuItem onClick={handleDeleteClick} sx={{ color: 'error.main' }}>
             <Delete sx={{ mr: 1 }} />
-            Delete
+            {t.common.delete}
           </MenuItem>
         )}
       </Menu>
 
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Delete Counselor</DialogTitle>
+        <DialogTitle>{t.deleteWarnings.deleteCounselor}</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete counselor "{counselor.fullName}"? This action cannot be undone.
+            {t.deleteWarnings.deleteCounselorConfirm.replace('{name}', counselor.fullName)}
           </Typography>
           {assignedCases.length > 0 && (
             <Alert severity="warning" sx={{ mt: 2 }}>
-              This counselor has {assignedCases.length} assigned cases. You may want to reassign these cases before deleting.
+              {t.deleteWarnings.deleteCounselorWarning.replace('{count}', assignedCases.length.toString())}
             </Alert>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setDeleteDialogOpen(false)}>{t.common.cancel}</Button>
           <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-            Delete
+            {t.common.delete}
           </Button>
         </DialogActions>
       </Dialog>
@@ -363,7 +335,7 @@ const CounselorCard: React.FC<CounselorCardProps> = ({
           fontSize: { xs: '1.25rem', sm: '1.5rem' },
           pb: { xs: 1, sm: 2 }
         }}>
-          Case History - {counselor.fullName}
+          {t.counselors.caseHistory} - {counselor.fullName}
         </DialogTitle>
         <DialogContent sx={{ 
           px: { xs: 1.5, sm: 3 },
@@ -376,7 +348,7 @@ const CounselorCard: React.FC<CounselorCardProps> = ({
             mt: 1 
           }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Total Cases: {assignedCases.length}
+              {t.counselors.totalCases}: {assignedCases.length}
             </Typography>
             
             {/* Cases List */}

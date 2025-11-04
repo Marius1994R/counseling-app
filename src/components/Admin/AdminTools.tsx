@@ -44,7 +44,8 @@ import {
   People,
   Person,
   Search,
-  Assignment
+  Assignment,
+  CalendarToday
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { User, UserRole, Counselor, Case, Appointment } from '../../types';
@@ -52,6 +53,7 @@ import CounselorForm from '../Counselors/CounselorForm';
 import CounselorCard from '../Counselors/CounselorCard';
 import CaseCard from '../Cases/CaseCard';
 import CaseForm from '../Cases/CaseForm';
+import SessionReport from '../Cases/SessionReport';
 import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy, where } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { logCaseAssigned } from '../../utils/activityLogger';
@@ -128,6 +130,8 @@ const AdminTools: React.FC = () => {
   const [caseFormOpen, setCaseFormOpen] = useState(false);
   const [editingCase, setEditingCase] = useState<Case | null>(null);
   const [caseNotes, setCaseNotes] = useState<Record<string, string>>({}); // caseId -> latest note content
+  const [sessionReportOpen, setSessionReportOpen] = useState(false);
+  const [selectedCaseForSessionReport, setSelectedCaseForSessionReport] = useState<Case | null>(null);
 
   // Read tab from URL on component mount
   useEffect(() => {
@@ -540,6 +544,16 @@ Link app: http://localhost:3000`;
     setEditingCase(null);
   };
 
+  const handleOpenSessionReport = (caseItem: Case) => {
+    setSelectedCaseForSessionReport(caseItem);
+    setSessionReportOpen(true);
+  };
+
+  const handleCloseSessionReport = () => {
+    setSessionReportOpen(false);
+    setSelectedCaseForSessionReport(null);
+  };
+
   const handleCreateUser = async () => {
     try {
       const newUserId = await createUser(createUserData.email, createUserData.password, createUserData.fullName, createUserData.role);
@@ -602,30 +616,30 @@ Link app: http://localhost:3000`;
   const handleDeleteUser = async (userId: string) => {
     const isDeletingSelf = userId === currentUser?.id;
     const confirmMessage = isDeletingSelf 
-      ? 'Are you sure you want to permanently delete YOURSELF? This action cannot be undone and you will be logged out immediately!'
-      : 'Are you sure you want to permanently delete this user? This action cannot be undone.';
+      ? t.admin.users.deleteUserSelfConfirm
+      : t.admin.users.deleteUserConfirm;
     
     if (window.confirm(confirmMessage)) {
       try {
         await deleteUser(userId);
-        showSnackbar('User deleted successfully', 'success');
+        showSnackbar(t.admin.users.deleteUserSuccess, 'success');
         loadUsers();
       } catch (error) {
         console.error('Error deleting user:', error);
-        showSnackbar('Error deleting user', 'error');
+        showSnackbar(t.admin.users.deleteUserError, 'error');
       }
     }
   };
 
   const handleDeactivateUser = async (userId: string) => {
-    if (window.confirm('Are you sure you want to deactivate this user? They will not be able to log in until reactivated.')) {
+    if (window.confirm(t.admin.users.deactivateUserConfirm)) {
       try {
         await deactivateUser(userId);
-        showSnackbar('User deactivated successfully', 'success');
+        showSnackbar(t.admin.users.deactivateUserSuccess, 'success');
         loadUsers();
       } catch (error) {
         console.error('Error deactivating user:', error);
-        showSnackbar('Error deactivating user', 'error');
+        showSnackbar(t.admin.users.deactivateUserError, 'error');
       }
     }
   };
@@ -633,11 +647,11 @@ Link app: http://localhost:3000`;
   const handleReactivateUser = async (userId: string) => {
     try {
       await reactivateUser(userId);
-      showSnackbar('User reactivated successfully', 'success');
+      showSnackbar(t.admin.users.reactivateUserSuccess, 'success');
       loadUsers();
     } catch (error) {
       console.error('Error reactivating user:', error);
-      showSnackbar('Error reactivating user', 'error');
+      showSnackbar(t.admin.users.reactivateUserError, 'error');
     }
   };
 
@@ -752,7 +766,7 @@ Link app: http://localhost:3000`;
                         onClick={() => setCreateDialogOpen(true)}
                         sx={{ backgroundColor: '#ffc700', '&:hover': { backgroundColor: '#e6b300' } }}
                       >
-                        Create User
+                        {t.admin.users.createUser}
                       </Button>
                     )}
                   </Box>
@@ -767,12 +781,12 @@ Link app: http://localhost:3000`;
                   <Table>
                     <TableHead>
                       <TableRow>
-                        <TableCell>Name</TableCell>
-                        <TableCell>Email</TableCell>
-                        <TableCell>Role</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Created</TableCell>
-                        <TableCell>Actions</TableCell>
+                        <TableCell>{t.admin.users.name}</TableCell>
+                        <TableCell>{t.admin.users.email}</TableCell>
+                        <TableCell>{t.admin.users.role}</TableCell>
+                        <TableCell>{t.admin.users.status}</TableCell>
+                        <TableCell>{t.admin.users.created}</TableCell>
+                        <TableCell>{t.admin.users.actions}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -838,10 +852,10 @@ Link app: http://localhost:3000`;
                                   color="warning"
                                   title={
                                     user.id === currentUser?.id && !isSupremeLeader 
-                                      ? 'Cannot deactivate yourself' 
+                                      ? t.admin.users.cannotDeactivateSelf 
                                       : currentUser?.role === 'admin' && user.role === 'leader'
-                                      ? 'Admins cannot deactivate leaders'
-                                      : 'Deactivate user'
+                                      ? t.admin.users.adminsCannotDeactivateLeaders
+                                      : t.admin.users.deactivateUser
                                   }
                                 >
                                   <Block fontSize="small" />
@@ -898,15 +912,12 @@ Link app: http://localhost:3000`;
                 </Box>
                 
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  • Create new users with any role (leader, admin, counselor)<br/>
-                  • Edit and manage all users<br/>
-                  • Deactivate/reactivate any user<br/>
-                  • Permanently delete any user<br/>
-                  • Manage counselors and cases<br/>
-                  • Full system access<br/>
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    ⚠️ Cannot edit or delete own account
-                  </Typography>
+                  • {t.roles.leaderDescription.createUsers}<br/>
+                  • {t.roles.leaderDescription.editManageUsers}<br/>
+                  • {t.roles.leaderDescription.deactivateReactivateUsers}<br/>
+                  • {t.roles.leaderDescription.deleteUsers}<br/>
+                  • {t.roles.leaderDescription.manageCounselorsCases}<br/>
+                  • {t.roles.leaderDescription.fullSystemAccess}<br/>
                 </Typography>
               </CardContent>
             </Card>
@@ -921,13 +932,13 @@ Link app: http://localhost:3000`;
                 </Box>
                 
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  • View all users<br/>
-                  • Edit users (except leaders)<br/>
-                  • Deactivate/reactivate users (except leaders)<br/>
-                  • Manage cases and counselors<br/>
-                  • Access admin tools<br/>
+                  • {t.roles.adminDescription.viewAllUsers}<br/>
+                  • {t.roles.adminDescription.editUsersExceptLeaders}<br/>
+                  • {t.roles.adminDescription.deactivateReactivateExceptLeaders}<br/>
+                  • {t.roles.adminDescription.manageCasesCounselors}<br/>
+                  • {t.roles.adminDescription.accessAdminTools}<br/>
                   <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    ⚠️ Limited: Cannot create users or modify leader accounts
+                    ⚠️ {t.roles.adminDescription.limitedCannotCreateUsers}
                   </Typography>
                 </Typography>
               </CardContent>
@@ -943,12 +954,12 @@ Link app: http://localhost:3000`;
                 </Box>
                 
                 <Typography variant="body2" color="text.secondary">
-                  • View own assigned cases only<br/>
-                  • Add meeting notes for assigned cases<br/>
-                  • Manage own appointments<br/>
-                  • Update own profile<br/>
+                  • {t.roles.counselorDescription.viewOwnCasesOnly}<br/>
+                  • {t.roles.counselorDescription.addMeetingNotes}<br/>
+                  • {t.roles.counselorDescription.manageOwnAppointments}<br/>
+                  • {t.roles.counselorDescription.updateOwnProfile}<br/>
                   <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    ⚠️ Limited: Cannot create cases or manage other users
+                    ⚠️ {t.roles.counselorDescription.limitedCannotCreateCases}
                   </Typography>
                 </Typography>
               </CardContent>
@@ -1150,8 +1161,11 @@ Link app: http://localhost:3000`;
                       onDelete={handleDeleteCase}
                       canEdit={true}
                       canDelete={true}
-                      latestNote={caseNotes[caseItem.id]}
-                      showViewAllNotes={true}
+                      latestNote={currentUser?.role === 'leader' ? caseNotes[caseItem.id] : undefined}
+                      showViewAllNotes={currentUser?.role === 'leader'}
+                      showLatestNote={currentUser?.role === 'leader'}
+                      showSessionReports={currentUser?.role === 'leader'}
+                      onSessionReportClick={() => handleOpenSessionReport(caseItem)}
                     />
                   ))}
                 </Box>
@@ -1178,12 +1192,12 @@ Link app: http://localhost:3000`;
         setCreateDialogOpen(false);
         setCreateUserData({ email: '', password: '', fullName: '', role: 'counselor' });
       }} maxWidth="sm" fullWidth>
-        <DialogTitle>Create New User</DialogTitle>
+        <DialogTitle>{t.admin.users.createNewUser}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <TextField
               fullWidth
-              label="Full Name"
+              label={t.admin.users.fullName}
               value={createUserData.fullName}
               onChange={(e) => {
                 const fullName = e.target.value;
@@ -1199,7 +1213,7 @@ Link app: http://localhost:3000`;
             />
             <TextField
               fullWidth
-              label="Email"
+              label={t.admin.users.email}
               type="email"
               value={createUserData.email}
               onChange={(e) => setCreateUserData({ ...createUserData, email: e.target.value })}
@@ -1208,25 +1222,25 @@ Link app: http://localhost:3000`;
             />
             <TextField
               fullWidth
-              label="Generated Password"
+              label={t.admin.users.generatedPassword}
               type="text"
               value={createUserData.password}
               margin="normal"
               InputProps={{
                 readOnly: true,
               }}
-              helperText="Password is automatically generated based on the full name"
+              helperText={t.admin.users.passwordHelperText}
             />
             <FormControl fullWidth margin="normal" required>
-              <InputLabel>Role</InputLabel>
+              <InputLabel>{t.admin.users.role}</InputLabel>
               <Select
                 value={createUserData.role}
                 onChange={(e) => setCreateUserData({ ...createUserData, role: e.target.value as UserRole })}
-                label="Role"
+                label={t.admin.users.role}
               >
-                <MenuItem value="counselor">Counselor</MenuItem>
-                <MenuItem value="admin">Admin</MenuItem>
-                <MenuItem value="leader">Leader</MenuItem>
+                <MenuItem value="counselor">{t.roles.counselor}</MenuItem>
+                <MenuItem value="admin">{t.roles.admin}</MenuItem>
+                <MenuItem value="leader">{t.roles.leader}</MenuItem>
               </Select>
             </FormControl>
           </Box>
@@ -1235,7 +1249,7 @@ Link app: http://localhost:3000`;
           <Button onClick={() => {
             setCreateDialogOpen(false);
             setCreateUserData({ email: '', password: '', fullName: '', role: 'counselor' });
-          }}>Cancel</Button>
+          }}>{t.common.cancel}</Button>
           <Button
             onClick={copyUserCredentials}
             variant="outlined"
@@ -1243,7 +1257,7 @@ Link app: http://localhost:3000`;
             disabled={!createUserData.email || !createUserData.password}
             sx={{ mr: 1 }}
           >
-            Copy Credentials
+            {t.admin.users.copyCredentials}
           </Button>
           <Button
             onClick={handleCreateUser}
@@ -1251,42 +1265,42 @@ Link app: http://localhost:3000`;
             disabled={!createUserData.email || !createUserData.fullName || !createUserData.password}
             sx={{ backgroundColor: '#ffc700', '&:hover': { backgroundColor: '#e6b300' } }}
           >
-            Create User
+            {t.admin.users.createUser}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Edit User Dialog */}
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Edit User</DialogTitle>
+        <DialogTitle>{t.admin.users.editUser}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <TextField
               fullWidth
-              label="Full Name"
+              label={t.admin.users.fullName}
               value={editUserData.fullName}
               onChange={(e) => setEditUserData({ ...editUserData, fullName: e.target.value })}
               margin="normal"
               required
             />
             <FormControl fullWidth margin="normal" required>
-              <InputLabel>Role</InputLabel>
+              <InputLabel>{t.admin.users.role}</InputLabel>
               <Select
                 value={editUserData.role}
                 onChange={(e) => setEditUserData({ ...editUserData, role: e.target.value as UserRole })}
-                label="Role"
+                label={t.admin.users.role}
                 disabled={currentUser?.role === 'admin' && selectedUser?.role === 'leader'}
               >
-                <MenuItem value="counselor">Counselor</MenuItem>
-                <MenuItem value="admin">Admin</MenuItem>
+                <MenuItem value="counselor">{t.roles.counselor}</MenuItem>
+                <MenuItem value="admin">{t.roles.admin}</MenuItem>
                 {currentUser?.role === 'leader' && (
-                  <MenuItem value="leader">Leader</MenuItem>
+                  <MenuItem value="leader">{t.roles.leader}</MenuItem>
                 )}
               </Select>
             </FormControl>
             {currentUser?.role === 'admin' && selectedUser?.role === 'leader' && (
               <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
-                Admins cannot modify leader accounts
+                {t.admin.users.adminsCannotModifyLeaders}
               </Typography>
             )}
           </Box>
@@ -1299,7 +1313,7 @@ Link app: http://localhost:3000`;
             disabled={!editUserData.fullName || !editUserData.role}
             sx={{ backgroundColor: '#ffc700', '&:hover': { backgroundColor: '#e6b300' } }}
           >
-            Update User
+            {t.admin.users.updateUser}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1352,6 +1366,18 @@ Link app: http://localhost:3000`;
         onSubmit={handleCaseSubmit}
         caseData={editingCase}
         counselors={counselors.map(c => ({ id: c.id, fullName: c.fullName }))}
+      />
+
+      {/* Session Report Dialog */}
+      <SessionReport
+        open={sessionReportOpen}
+        onClose={handleCloseSessionReport}
+        caseId={selectedCaseForSessionReport?.id || ''}
+        caseTitle={selectedCaseForSessionReport?.title || ''}
+        onReportAdded={() => {
+          // Optionally reload cases or refresh data if needed
+        }}
+        hideAddButton={true}
       />
 
       {/* Snackbar */}

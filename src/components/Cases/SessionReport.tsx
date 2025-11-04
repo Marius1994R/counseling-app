@@ -53,6 +53,7 @@ interface SessionReportProps {
   caseId: string;
   caseTitle: string;
   onReportAdded?: () => void;
+  hideAddButton?: boolean; // Hide the "Adaugă Raport Post-Sesiune" button
 }
 
 const SessionReport: React.FC<SessionReportProps> = ({
@@ -60,7 +61,8 @@ const SessionReport: React.FC<SessionReportProps> = ({
   onClose,
   caseId,
   caseTitle,
-  onReportAdded
+  onReportAdded,
+  hideAddButton = false
 }) => {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -204,16 +206,18 @@ const SessionReport: React.FC<SessionReportProps> = ({
           </Box>
         </DialogTitle>
         <DialogContent>
-          <Box sx={{ mb: 3 }}>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => setAddReportOpen(true)}
-              sx={{ backgroundColor: '#ffc700', '&:hover': { backgroundColor: '#e6b300' } }}
-            >
-              Adaugă Raport Post-Sesiune
-            </Button>
-          </Box>
+          {!hideAddButton && (
+            <Box sx={{ mb: 3 }}>
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={() => setAddReportOpen(true)}
+                sx={{ backgroundColor: '#ffc700', '&:hover': { backgroundColor: '#e6b300' } }}
+              >
+                Adaugă Raport Post-Sesiune
+              </Button>
+            </Box>
+          )}
 
           {/* Info message about session reports */}
           <Alert severity="info" sx={{ mb: 3 }}>
@@ -469,7 +473,14 @@ const SessionReport: React.FC<SessionReportProps> = ({
           <Button 
             onClick={handleAddReport} 
             variant="contained" 
-            disabled={loading}
+            disabled={
+              loading ||
+              !mainTheme.trim() ||
+              !personResponse.trim() ||
+              !progressNoted.trim() ||
+              (nextCommitments === 'yes' && !nextCommitmentsDetails.trim()) ||
+              (nextCommitments === 'no' && !noCommitmentsReason.trim())
+            }
             sx={{ backgroundColor: '#ffc700', '&:hover': { backgroundColor: '#e6b300' } }}
           >
             Salvează Raport

@@ -23,8 +23,6 @@ import {
   MoreVert,
   Edit,
   Delete,
-  Visibility,
-  VisibilityOff,
   Person,
   Phone,
   CalendarToday,
@@ -33,6 +31,7 @@ import {
 import { Case, CaseStatus, IssueType } from '../../types';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { t } from '../../utils/translations';
 
 interface CaseCardProps {
   caseData: Case;
@@ -42,6 +41,9 @@ interface CaseCardProps {
   canDelete: boolean;
   latestNote?: string; // Optional latest note content for preview
   showViewAllNotes?: boolean; // Show "View All Notes" button
+  showLatestNote?: boolean; // Show "Latest Meeting Note" section
+  showSessionReports?: boolean; // Show "Gestionează Rapoartele" button
+  onSessionReportClick?: () => void; // Callback for session report button
 }
 
 const CaseCard: React.FC<CaseCardProps> = ({
@@ -51,10 +53,12 @@ const CaseCard: React.FC<CaseCardProps> = ({
   canEdit,
   canDelete,
   latestNote,
-  showViewAllNotes = false
+  showViewAllNotes = false,
+  showLatestNote = true, // Default to true to maintain backward compatibility
+  showSessionReports = false,
+  onSessionReportClick
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [showDescription, setShowDescription] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
@@ -138,6 +142,25 @@ const CaseCard: React.FC<CaseCardProps> = ({
     }
   };
 
+  const translateIssueType = (issueType: IssueType): string => {
+    const translations: Record<IssueType, string> = {
+      spiritual: t.issueTypes.spiritual,
+      relational: t.issueTypes.relational || t.issueTypes.family,
+      personal: t.issueTypes.personal
+    };
+    return translations[issueType] || issueType;
+  };
+
+  const translateCivilStatus = (status: string): string => {
+    const translations: Record<string, string> = {
+      single: t.civilStatus.single,
+      married: t.civilStatus.married,
+      divorced: t.civilStatus.divorced,
+      widowed: t.civilStatus.widowed
+    };
+    return translations[status.toLowerCase()] || status;
+  };
+
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
@@ -213,7 +236,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   color="text.secondary"
                   sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                 >
-                  {caseData.counseledName}, {caseData.age} years
+                  {caseData.counseledName}, {caseData.age} {t.cases.years}
                 </Typography>
               </Box>
               <Box display="flex" alignItems="center" gap={1}>
@@ -234,7 +257,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 color="text.secondary"
                 sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
               >
-                Created: {formatDate(caseData.createdAt)}
+                {t.cases.createdLabel}: {formatDate(caseData.createdAt)}
               </Typography>
             </Box>
           </Box>
@@ -245,13 +268,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
               gutterBottom
               sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
             >
-              Issue Types:
+              {t.cases.issueTypesTitle}:
             </Typography>
             <Box display="flex" flexWrap="wrap" gap={0.5}>
               {caseData.issueTypes.map((issueType) => (
                 <Chip
                   key={issueType}
-                  label={issueType.charAt(0).toUpperCase() + issueType.slice(1)}
+                  label={translateIssueType(issueType)}
                   color={getIssueTypeColor(issueType)}
                   size="small"
                   variant="outlined"
@@ -267,14 +290,14 @@ const CaseCard: React.FC<CaseCardProps> = ({
               gutterBottom
               sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
             >
-              Civil Status:
+              {t.cases.civilStatusTitle}:
             </Typography>
             <Typography 
               variant="body2" 
               color="text.secondary"
               sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
             >
-              {caseData.civilStatus.charAt(0).toUpperCase() + caseData.civilStatus.slice(1)}
+              {translateCivilStatus(caseData.civilStatus)}
             </Typography>
           </Box>
 
@@ -285,7 +308,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 gutterBottom
                 sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
               >
-                Assigned Counselor:
+                {t.cases.assignedCounselorTitle}:
               </Typography>
               <Typography 
                 variant="body2" 
@@ -300,41 +323,31 @@ const CaseCard: React.FC<CaseCardProps> = ({
           <Divider sx={{ my: { xs: 1.5, sm: 2 } }} />
 
           <Box>
-            <Box display="flex" justifyContent="center" alignItems="center" mb={1}>
-              <IconButton
+            <Typography variant="subtitle2" gutterBottom>
+              {t.cases.problemDescription}:
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', mb: 2 }}>
+              {caseData.description && caseData.description.length > 150 
+                ? `${caseData.description.substring(0, 150)}...` 
+                : (caseData.description || t.cases.noDescriptionProvided)}
+            </Typography>
+            {caseData.description && caseData.description.length > 150 && (
+              <Button
                 size="small"
-                onClick={() => setShowDescription(!showDescription)}
-                aria-label={showDescription ? 'hide description' : 'show description'}
+                onClick={() => setDescriptionModalOpen(true)}
+                sx={{ 
+                  color: '#ffc700',
+                  textTransform: 'none',
+                  mt: 1
+                }}
               >
-                {showDescription ? <VisibilityOff /> : <Visibility />}
-              </IconButton>
-            </Box>
+                Vezi Descrierea Completă
+              </Button>
+            )}
             
-            {showDescription && (
-              <Box>
-                <Typography variant="subtitle2" gutterBottom>
-                  Problem Description:
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', mb: 2 }}>
-                  {caseData.description && caseData.description.length > 150 
-                    ? `${caseData.description.substring(0, 150)}...` 
-                    : (caseData.description || 'No description provided')}
-                </Typography>
-                {caseData.description && caseData.description.length > 150 && (
-                  <Button
-                    size="small"
-                    onClick={() => setDescriptionModalOpen(true)}
-                    sx={{ 
-                      color: '#ffc700',
-                      textTransform: 'none',
-                      mt: 1
-                    }}
-                  >
-                    Vezi Descrierea Completă
-                  </Button>
-                )}
-                
-                {/* Latest Meeting Note in Description Section */}
+            {/* Latest Meeting Note in Description Section - Only for leaders */}
+            {showLatestNote && (
+              <>
                 <Divider sx={{ my: 2 }} />
                 <Typography 
                   variant="subtitle2" 
@@ -348,9 +361,9 @@ const CaseCard: React.FC<CaseCardProps> = ({
                     fontWeight: 'bold'
                   }}
                 >
-                  <Note fontSize="small" />
-                  Latest Meeting Note:
-                </Typography>
+              <Note fontSize="small" />
+              {t.meetingNotes.latestMeetingNote}:
+            </Typography>
                 
                 {latestNote ? (
                   <Box>
@@ -385,7 +398,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                           fontSize: { xs: '0.7rem', sm: '0.75rem' }
                         }}
                       >
-                        View All Notes
+                        {t.meetingNotes.viewAllNotes}
                       </Button>
                     )}
                   </Box>
@@ -404,7 +417,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                         mb: 1
                       }}
                     >
-                      No meeting notes yet
+                      {t.meetingNotes.noMeetingNotesYet}
                     </Typography>
                     {showViewAllNotes && (
                       <Button
@@ -416,12 +429,45 @@ const CaseCard: React.FC<CaseCardProps> = ({
                           fontSize: { xs: '0.7rem', sm: '0.75rem' }
                         }}
                       >
-                        View All Notes
+                        {t.meetingNotes.viewAllNotes}
                       </Button>
                     )}
                   </Box>
                 )}
-              </Box>
+              </>
+            )}
+            
+            {/* Gestionează Rapoartele Button - Only for leaders */}
+            {showSessionReports && onSessionReportClick && (
+              <>
+                <Divider sx={{ my: 2 }} />
+                <Typography 
+                  variant="subtitle2" 
+                  gutterBottom
+                  sx={{ 
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    color: '#ffc700',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  <CalendarToday fontSize="small" />
+                  {t.adminTools.manageReports}:
+                </Typography>
+                <Button
+                  size="small"
+                  onClick={onSessionReportClick}
+                  sx={{ 
+                    color: '#ffc700',
+                    textTransform: 'none',
+                    fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                  }}
+                  >
+                  {t.adminTools.openReports}
+                </Button>
+              </>
             )}
           </Box>
 
@@ -436,28 +482,28 @@ const CaseCard: React.FC<CaseCardProps> = ({
         {canEdit && (
           <MenuItem onClick={handleEdit}>
             <Edit sx={{ mr: 1 }} />
-            Edit
+            {t.common.edit}
           </MenuItem>
         )}
         {canDelete && (
           <MenuItem onClick={handleDeleteClick} sx={{ color: 'error.main' }}>
             <Delete sx={{ mr: 1 }} />
-            Delete
+            {t.common.delete}
           </MenuItem>
         )}
       </Menu>
 
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Delete Case</DialogTitle>
+        <DialogTitle>{t.deleteWarnings.deleteCase}</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete the case "{caseData.title}"? This action cannot be undone.
+            {t.deleteWarnings.deleteCaseConfirm.replace('{title}', caseData.title)}
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setDeleteDialogOpen(false)}>{t.common.cancel}</Button>
           <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-            Delete
+            {t.common.delete}
           </Button>
         </DialogActions>
       </Dialog>
@@ -472,7 +518,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Note />
-            All Meeting Notes - {caseData.title}
+            {t.meetingNotes.allMeetingNotes} - {caseData.title}
           </Box>
         </DialogTitle>
         <DialogContent>
@@ -518,17 +564,17 @@ const CaseCard: React.FC<CaseCardProps> = ({
             <Box sx={{ textAlign: 'center', py: 4 }}>
               <Note sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
               <Typography variant="h6" color="text.secondary" gutterBottom>
-                No meeting notes found
+                {t.meetingNotes.noNotes}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                No meeting notes have been added for this case yet.
+                {t.meetingNotes.noMeetingNotesAdded}
               </Typography>
             </Box>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseNotesDialog}>
-            Close
+            {t.common.close}
           </Button>
         </DialogActions>
       </Dialog>

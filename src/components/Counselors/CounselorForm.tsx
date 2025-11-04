@@ -459,6 +459,14 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
             type="submit" 
             variant="contained"
             fullWidth={false}
+            disabled={
+              !formData.linkedUserId ||
+              !formData.fullName.trim() ||
+              !formData.email.trim() ||
+              !formData.phoneNumber.trim() ||
+              formData.specialties.length === 0 ||
+              (formData.phoneNumber.replace(/\D/g, '').length !== 9)
+            }
             sx={{ 
               width: { xs: '100%', sm: 'auto' },
               order: { xs: 1, sm: 2 }

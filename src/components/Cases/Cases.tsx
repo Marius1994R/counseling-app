@@ -162,14 +162,8 @@ const Cases: React.FC = () => {
       filtered = filtered.filter(caseItem => caseItem.status === statusFilter);
     }
 
-    if (issueTypeFilter !== 'all') {
-      filtered = filtered.filter(caseItem => 
-        caseItem.issueTypes.includes(issueTypeFilter)
-      );
-    }
-
     setFilteredCases(filtered);
-  }, [cases, searchTerm, statusFilter, issueTypeFilter]);
+  }, [cases, searchTerm, statusFilter]);
 
   const handleEditCase = (caseItem: Case) => {
     setSelectedCase(caseItem);
@@ -378,21 +372,6 @@ const Cases: React.FC = () => {
               </Select>
             </FormControl>
           </Box>
-          <Box sx={{ flex: "1 1 300px", minWidth: "250px" }}>
-            <FormControl fullWidth>
-              <InputLabel>Issue Type</InputLabel>
-              <Select
-                value={issueTypeFilter}
-                onChange={(e) => setIssueTypeFilter(e.target.value as IssueType | 'all')}
-                label="Issue Type"
-              >
-                <MenuItem value="all">All Types</MenuItem>
-                {commonIssueTypes.map((type) => (
-                  <MenuItem key={type} value={type}>{type}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
           <Box sx={{ 
             flex: "1 1 300px", 
             minWidth: "250px",
@@ -431,7 +410,7 @@ const Cases: React.FC = () => {
             {t.cases.noCases}
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            {searchTerm || statusFilter !== 'all' || issueTypeFilter !== 'all' 
+            {searchTerm || statusFilter !== 'all' 
               ? t.cases.noCasesMessage
               : t.cases.noCasesMessage
             }
@@ -576,23 +555,6 @@ const Cases: React.FC = () => {
                 
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="subtitle2" gutterBottom>
-                    {t.cases.issueTypes}
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {caseItem.issueTypes.map((issueType) => (
-                      <Chip
-                        key={issueType}
-                        label={issueType}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                      />
-                    ))}
-                  </Box>
-                </Box>
-
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>
                     {t.cases.status}
                   </Typography>
                   <Chip
@@ -641,7 +603,7 @@ const Cases: React.FC = () => {
               {/* Meeting Notes Preview Section */}
               <Box sx={{ 
                 backgroundColor: 'rgba(255, 199, 0, 0.05)',
-                border: '1px solid rgba(255, 199, 0, 0.2)',
+                border: '1px solid rgba(255, 200, 0, 0)',
                 borderRadius: 1,
                 p: 2,
                 mb: 2

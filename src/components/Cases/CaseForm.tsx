@@ -428,6 +428,16 @@ const CaseForm: React.FC<CaseFormProps> = ({
             type="submit" 
             variant="contained"
             fullWidth={false}
+            disabled={
+              !formData.counseledName.trim() ||
+              !formData.age ||
+              Number(formData.age) < 1 ||
+              Number(formData.age) > 120 ||
+              formData.issueTypes.length === 0 ||
+              !formData.phoneNumber.trim() ||
+              !formData.description.trim() ||
+              ((formData.status === 'active' || formData.status === 'finished') && !formData.assignedCounselorId)
+            }
             sx={{ 
               width: { xs: '100%', sm: 'auto' },
               order: { xs: 1, sm: 2 }

@@ -502,23 +502,23 @@ const CalendarManagement: React.FC<CalendarManagementProps> = ({ isAdminView = t
           currentUser?.role === 'admin') && (
           <MenuItemComponent onClick={handleDeleteClick} sx={{ color: 'error.main' }}>
             <Delete sx={{ mr: 1 }} />
-            Delete
+            {t.common.delete}
           </MenuItemComponent>
         )}
       </Menu>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Delete Appointment</DialogTitle>
+        <DialogTitle>{t.deleteWarnings.deleteAppointment}</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete the appointment "{selectedAppointment?.title}"? This action cannot be undone.
+            {t.deleteWarnings.deleteAppointmentConfirm.replace('{title}', selectedAppointment?.title || '')}
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setDeleteDialogOpen(false)}>{t.common.cancel}</Button>
           <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-            Delete
+            {t.common.delete}
           </Button>
         </DialogActions>
       </Dialog>
