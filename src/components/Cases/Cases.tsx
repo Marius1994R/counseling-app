@@ -472,7 +472,8 @@ const Cases: React.FC = () => {
                 display: 'flex', 
                 gap: 1,
                 width: '100%',
-                justifyContent: { xs: 'center', sm: 'flex-start' }
+                justifyContent: { xs: 'center', sm: 'flex-start' },
+                flexWrap: 'wrap'
               }}>
                 <Button
                   size="small"
@@ -503,11 +504,20 @@ const Cases: React.FC = () => {
                         backgroundColor: 'rgba(255, 199, 0, 0.1)',
                         borderColor: '#e6b300'
                       },
-                      flex: { xs: 1, sm: 'none' }
+                      flex: { xs: 1, sm: 'none' },
+                      whiteSpace: 'normal',
+                      lineHeight: 1.2,
+                      textAlign: 'center',
+                      minWidth: { sm: 'auto' },
+                      maxWidth: { sm: '110px' },
+                      height: { sm: 'auto' },
+                      py: { sm: 1 }
                     }}
                     variant="outlined"
                   >
-                    Gestionează Rapoartele
+                    <Box component="span" sx={{ display: 'block', fontSize: { sm: '0.7rem' } }}>
+                      Gestionează<br />Rapoartele
+                    </Box>
                   </Button>
                 )}
                 <Button
@@ -516,10 +526,18 @@ const Cases: React.FC = () => {
                   onClick={() => handleEditCase(caseItem)}
                   sx={{ 
                     color: '#ffc700',
-                    flex: { xs: 1, sm: 'none' }
+                    flex: { xs: 1, sm: 'none' },
+                    minWidth: { sm: 'auto' },
+                    px: { sm: 1 },
+                    '& .MuiButton-startIcon': {
+                      marginRight: { xs: 1, sm: 0 }
+                    }
                   }}
+                  title={t.common.edit}
                 >
-                  {t.common.edit}
+                  <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
+                    {t.common.edit}
+                  </Box>
                 </Button>
               </Box>
             </Box>

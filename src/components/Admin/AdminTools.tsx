@@ -280,15 +280,13 @@ const AdminTools: React.FC = () => {
   };
 
   const handleDeleteCounselor = async (counselorId: string) => {
-    if (window.confirm('Are you sure you want to delete this counselor?')) {
-      try {
-        await deleteDoc(doc(db, 'counselors', counselorId));
-        showSnackbar('Counselor deleted successfully', 'success');
-        loadCounselors();
-      } catch (error) {
-        console.error('Error deleting counselor:', error);
-        showSnackbar('Error deleting counselor', 'error');
-      }
+    try {
+      await deleteDoc(doc(db, 'counselors', counselorId));
+      showSnackbar('Counselor deleted successfully', 'success');
+      loadCounselors();
+    } catch (error) {
+      console.error('Error deleting counselor:', error);
+      showSnackbar('Error deleting counselor', 'error');
     }
   };
 
