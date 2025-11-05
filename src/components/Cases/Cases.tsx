@@ -53,7 +53,7 @@ const Cases: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<CaseStatus | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<CaseStatus | 'all'>('active');
   const [issueTypeFilter, setIssueTypeFilter] = useState<IssueType | 'all'>('all');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
@@ -358,6 +358,10 @@ const Cases: React.FC = () => {
     }
   };
 
+  // Calculate case counts for filter chips
+  const activeCasesCount = cases.filter(c => c.status === 'active').length;
+  const waitingCasesCount = cases.filter(c => c.status === 'waiting').length;
+
   const translateSex = (sex?: string, age?: number): string => {
     if (!sex) return '';
     const isAdult = age !== undefined && age > 17;
@@ -427,82 +431,263 @@ const Cases: React.FC = () => {
           <Assignment sx={{ fontSize: { xs: '1.75rem', sm: '2.25rem' } }} />
           {t.cases.title}
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-          {filteredCases.length} {filteredCases.length === 1 ? 'caz disponibil' : 'cazuri disponibile'}
-        </Typography>
       </Box>
 
       {/* Search and Filter Controls */}
       <Paper 
         elevation={2}
         sx={{ 
-          p: { xs: 2, sm: 3 }, 
+          p: { xs: 2.5, sm: 3.5 }, 
           mb: 3,
-          borderRadius: 2,
+          borderRadius: 3,
           background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-          border: '1px solid rgba(255, 199, 0, 0.1)'
+          border: '1px solid rgba(255, 199, 0, 0.15)',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
         }}
       >
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: { xs: 'stretch', sm: 'center' } }}>
-          <Box sx={{ flex: "1 1 300px", minWidth: { xs: "100%", sm: "250px" } }}>
-            <TextField
-              fullWidth
-              size="small"
-              label={t.cases.filters.searchPlaceholder || "Căutați cazuri"}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: <Search sx={{ mr: 1, color: '#ffc700' }} />
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  '&:hover fieldset': {
+        {/* Search Section */}
+        <Box sx={{ mb: 2.5 }}>
+          <Typography 
+            variant="subtitle2" 
+            sx={{ 
+              mb: 1.5, 
+              color: '#495057', 
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}
+          >
+            Căutare
+          </Typography>
+          <TextField
+            fullWidth
+            size="medium"
+            placeholder={t.cases.filters.searchPlaceholder || "Căutați cazuri"}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
+                  <Search sx={{ color: '#ffc700', fontSize: '1.25rem' }} />
+                </Box>
+              )
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                backgroundColor: '#fff',
+                '&:hover fieldset': {
+                  borderColor: '#ffc700',
+                  borderWidth: '2px',
+                },
+                '&.Mui-focused': {
+                  backgroundColor: '#fff',
+                  '& fieldset': {
                     borderColor: '#ffc700',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#ffc700',
+                    borderWidth: '2px',
                   },
                 },
+                '& fieldset': {
+                  borderColor: 'rgba(0, 0, 0, 0.15)',
+                },
+              },
+            }}
+          />
+        </Box>
+
+        {/* Filter Section */}
+        <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Typography 
+              variant="subtitle2" 
+              sx={{ 
+                color: '#495057', 
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
               }}
-            />
-          </Box>
-          <Box sx={{ flex: "1 1 200px", minWidth: { xs: "100%", sm: "200px" } }}>
-            <FormControl fullWidth size="small">
-              <InputLabel>{t.cases.status}</InputLabel>
-              <Select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as CaseStatus | 'all')}
-                label={t.cases.status}
-                sx={{
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#ffc700',
-                  },
-                }}
-              >
-                <MenuItem value="all">{t.status.all}</MenuItem>
-                <MenuItem value="waiting">{t.status.waiting}</MenuItem>
-                <MenuItem value="active">{t.status.active}</MenuItem>
-                <MenuItem value="unfinished">{t.status.unfinished}</MenuItem>
-                <MenuItem value="finished">{t.status.completed}</MenuItem>
-                <MenuItem value="cancelled">{t.status.cancelled}</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
-          <Box sx={{ 
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: { xs: 'flex-start', sm: 'center' }
-          }}>
+            >
+              Filtrează după status
+            </Typography>
             <Chip
-              label={`${filteredCases.length} ${filteredCases.length === 1 ? 'caz' : 'cazuri'}`}
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Box component="span" sx={{ fontWeight: 600 }}>
+                    {filteredCases.length}
+                  </Box>
+                  <Box component="span" sx={{ fontSize: '0.75rem', opacity: 0.8 }}>
+                    {filteredCases.length === 1 ? 'caz' : 'cazuri'}
+                  </Box>
+                </Box>
+              }
               sx={{
                 backgroundColor: '#ffc700',
                 color: '#000',
                 fontWeight: 'bold',
                 fontSize: '0.875rem',
                 height: '32px',
+                px: 1.5,
+                boxShadow: '0 2px 4px rgba(255, 199, 0, 0.3)',
                 '& .MuiChip-label': {
-                  px: 2
+                  px: 1
+                }
+              }}
+            />
+          </Box>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: 'flex-start' }}>
+            <Box sx={{ position: 'relative', display: 'inline-block' }}>
+              <Chip
+                label={t.status.active}
+                onClick={() => setStatusFilter('active')}
+                sx={{
+                  backgroundColor: statusFilter === 'active' ? '#ffc700' : '#fff',
+                  color: statusFilter === 'active' ? '#000' : '#495057',
+                  fontWeight: statusFilter === 'active' ? 700 : 500,
+                  border: statusFilter === 'active' ? '2px solid #ffc700' : '2px solid rgba(0, 0, 0, 0.12)',
+                  height: '40px',
+                  fontSize: '0.875rem',
+                  px: 1.5,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: statusFilter === 'active' ? '0 2px 8px rgba(255, 199, 0, 0.3)' : '0 1px 3px rgba(0, 0, 0, 0.1)',
+                  '&:hover': {
+                    backgroundColor: statusFilter === 'active' ? '#ffc700' : 'rgba(255, 199, 0, 0.15)',
+                    borderColor: '#ffc700',
+                    transform: 'translateY(-1px)',
+                    boxShadow: statusFilter === 'active' ? '0 4px 12px rgba(255, 199, 0, 0.4)' : '0 2px 6px rgba(255, 199, 0, 0.2)',
+                  },
+                  '&:active': {
+                    transform: 'translateY(0)',
+                  }
+                }}
+              />
+              {activeCasesCount > 0 && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: '-8px',
+                    right: '-8px',
+                    backgroundColor: '#ffc700',
+                    color: '#000',
+                    borderRadius: '12px',
+                    minWidth: '24px',
+                    height: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    px: 0.75,
+                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)',
+                    border: '2px solid #fff',
+                    zIndex: 1
+                  }}
+                >
+                  {activeCasesCount}
+                </Box>
+              )}
+            </Box>
+            <Box sx={{ position: 'relative', display: 'inline-block' }}>
+              <Chip
+                label={t.status.waiting}
+                onClick={() => setStatusFilter('waiting')}
+                sx={{
+                  backgroundColor: statusFilter === 'waiting' ? '#ffc700' : '#fff',
+                  color: statusFilter === 'waiting' ? '#000' : '#495057',
+                  fontWeight: statusFilter === 'waiting' ? 700 : 500,
+                  border: statusFilter === 'waiting' ? '2px solid #ffc700' : '2px solid rgba(0, 0, 0, 0.12)',
+                  height: '40px',
+                  fontSize: '0.875rem',
+                  px: 1.5,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: statusFilter === 'waiting' ? '0 2px 8px rgba(255, 199, 0, 0.3)' : '0 1px 3px rgba(0, 0, 0, 0.1)',
+                  '&:hover': {
+                    backgroundColor: statusFilter === 'waiting' ? '#ffc700' : 'rgba(255, 199, 0, 0.15)',
+                    borderColor: '#ffc700',
+                    transform: 'translateY(-1px)',
+                    boxShadow: statusFilter === 'waiting' ? '0 4px 12px rgba(255, 199, 0, 0.4)' : '0 2px 6px rgba(255, 199, 0, 0.2)',
+                  },
+                  '&:active': {
+                    transform: 'translateY(0)',
+                  }
+                }}
+              />
+              {waitingCasesCount > 0 && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: '-8px',
+                    right: '-8px',
+                    backgroundColor: '#ffc700',
+                    color: '#000',
+                    borderRadius: '12px',
+                    minWidth: '24px',
+                    height: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    px: 0.75,
+                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)',
+                    border: '2px solid #fff',
+                    zIndex: 1
+                  }}
+                >
+                  {waitingCasesCount}
+                </Box>
+              )}
+            </Box>
+            <Chip
+              label={t.status.completed}
+              onClick={() => setStatusFilter('finished')}
+              sx={{
+                backgroundColor: statusFilter === 'finished' ? '#ffc700' : '#fff',
+                color: statusFilter === 'finished' ? '#000' : '#495057',
+                fontWeight: statusFilter === 'finished' ? 700 : 500,
+                border: statusFilter === 'finished' ? '2px solid #ffc700' : '2px solid rgba(0, 0, 0, 0.12)',
+                height: '40px',
+                fontSize: '0.875rem',
+                px: 1.5,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: statusFilter === 'finished' ? '0 2px 8px rgba(255, 199, 0, 0.3)' : '0 1px 3px rgba(0, 0, 0, 0.1)',
+                '&:hover': {
+                  backgroundColor: statusFilter === 'finished' ? '#ffc700' : 'rgba(255, 199, 0, 0.15)',
+                  borderColor: '#ffc700',
+                  transform: 'translateY(-1px)',
+                  boxShadow: statusFilter === 'finished' ? '0 4px 12px rgba(255, 199, 0, 0.4)' : '0 2px 6px rgba(255, 199, 0, 0.2)',
+                },
+                '&:active': {
+                  transform: 'translateY(0)',
+                }
+              }}
+            />
+            <Chip
+              label={t.status.all}
+              onClick={() => setStatusFilter('all')}
+              sx={{
+                backgroundColor: statusFilter === 'all' ? '#ffc700' : '#fff',
+                color: statusFilter === 'all' ? '#000' : '#495057',
+                fontWeight: statusFilter === 'all' ? 700 : 500,
+                border: statusFilter === 'all' ? '2px solid #ffc700' : '2px solid rgba(0, 0, 0, 0.12)',
+                height: '40px',
+                fontSize: '0.875rem',
+                px: 1.5,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: statusFilter === 'all' ? '0 2px 8px rgba(255, 199, 0, 0.3)' : '0 1px 3px rgba(0, 0, 0, 0.1)',
+                '&:hover': {
+                  backgroundColor: statusFilter === 'all' ? '#ffc700' : 'rgba(255, 199, 0, 0.15)',
+                  borderColor: '#ffc700',
+                  transform: 'translateY(-1px)',
+                  boxShadow: statusFilter === 'all' ? '0 4px 12px rgba(255, 199, 0, 0.4)' : '0 2px 6px rgba(255, 199, 0, 0.2)',
+                },
+                '&:active': {
+                  transform: 'translateY(0)',
                 }
               }}
             />

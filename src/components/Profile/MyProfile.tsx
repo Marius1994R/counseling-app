@@ -292,9 +292,6 @@ const MyProfile: React.FC = () => {
           <Person sx={{ fontSize: { xs: '1.75rem', sm: '2.25rem' } }} />
           {t.profile.title || 'Profilul Meu'}
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-          {counselor ? `${counselor.fullName} - Informații despre profil` : 'Informații despre profil'}
-        </Typography>
       </Box>
 
       {/* Profile Header with Avatar, Basic Info and Contact */}

@@ -377,9 +377,6 @@ const CalendarManagement: React.FC<CalendarManagementProps> = ({ isAdminView = t
           <CalendarToday sx={{ fontSize: { xs: '1.75rem', sm: '2.25rem' } }} />
           {t.appointments.title || 'Calendar'}
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-          {filteredAppointments.length} {filteredAppointments.length === 1 ? 'programare disponibilă' : 'programări disponibile'}
-        </Typography>
       </Box>
 
       {error && (

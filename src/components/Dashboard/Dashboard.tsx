@@ -474,9 +474,6 @@ const Dashboard: React.FC = () => {
           <TrendingUp sx={{ fontSize: { xs: '1.75rem', sm: '2.25rem' } }} />
           {t.dashboard.title || 'Dashboard'}
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-          Prezentare generală a performanței tale
-        </Typography>
       </Box>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
