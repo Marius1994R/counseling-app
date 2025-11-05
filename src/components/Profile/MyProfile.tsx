@@ -97,6 +97,7 @@ const MyProfile: React.FC = () => {
               title: data.title,
               counseledName: data.counseledName,
               age: data.age,
+              sex: data.sex,
               civilStatus: data.civilStatus,
               issueTypes: data.issueTypes || [],
               phoneNumber: data.phoneNumber || '',

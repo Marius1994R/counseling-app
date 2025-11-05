@@ -217,6 +217,7 @@ const AdminTools: React.FC = () => {
           title: data.title,
           counseledName: data.counseledName,
           age: data.age,
+          sex: data.sex,
           civilStatus: data.civilStatus,
           issueTypes: data.issueTypes || [],
           phoneNumber: data.phoneNumber || '',
@@ -322,6 +323,7 @@ const AdminTools: React.FC = () => {
           title: data.title,
           counseledName: data.counseledName,
           age: data.age,
+          sex: data.sex,
           civilStatus: data.civilStatus,
           issueTypes: data.issueTypes || [],
           phoneNumber: data.phoneNumber || '',
@@ -1382,6 +1384,7 @@ Link app: http://localhost:3000`;
           // Optionally reload cases or refresh data if needed
         }}
         hideAddButton={true}
+        caseStatus={selectedCaseForSessionReport?.status}
       />
 
       {/* Snackbar */}

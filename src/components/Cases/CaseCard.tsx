@@ -151,14 +151,43 @@ const CaseCard: React.FC<CaseCardProps> = ({
     return translations[issueType] || issueType;
   };
 
-  const translateCivilStatus = (status: string): string => {
+  const translateSex = (sex?: string, age?: number): string => {
+    if (!sex) return '';
+    const isAdult = age !== undefined && age > 17;
+    if (sex === 'masculin') {
+      return isAdult ? t.cases.sexMasculinAdult : t.cases.sexMasculinMinor;
+    } else if (sex === 'feminin') {
+      return isAdult ? t.cases.sexFemininAdult : t.cases.sexFemininMinor;
+    }
+    return '';
+  };
+
+  const translateCivilStatus = (status: string, sex?: string): string => {
+    const isFeminin = sex === 'feminin';
+    const statusLower = status.toLowerCase();
+    
+    if (isFeminin && t.civilStatus.feminin) {
+      const femininTranslations = t.civilStatus.feminin as Record<string, string>;
+      if (femininTranslations[statusLower]) {
+        return femininTranslations[statusLower];
+      }
+    } else if (!isFeminin && t.civilStatus.masculin) {
+      const masculinTranslations = t.civilStatus.masculin as Record<string, string>;
+      if (masculinTranslations[statusLower]) {
+        return masculinTranslations[statusLower];
+      }
+    }
+    
+    // Fallback to generic translations
     const translations: Record<string, string> = {
+      unmarried: t.civilStatus.unmarried,
       single: t.civilStatus.single,
       married: t.civilStatus.married,
       divorced: t.civilStatus.divorced,
+      engaged: t.civilStatus.engaged,
       widowed: t.civilStatus.widowed
     };
-    return translations[status.toLowerCase()] || status;
+    return translations[statusLower] || status;
   };
 
   const formatDate = (date: Date) => {
@@ -236,7 +265,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   color="text.secondary"
                   sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                 >
-                  {caseData.counseledName}, {caseData.age} {t.cases.years}
+                  {caseData.counseledName}, {caseData.age} {t.cases.years}{caseData.sex && `, ${translateSex(caseData.sex, caseData.age)}`}
                 </Typography>
               </Box>
               <Box display="flex" alignItems="center" gap={1}>
@@ -297,7 +326,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
               color="text.secondary"
               sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
             >
-              {translateCivilStatus(caseData.civilStatus)}
+              {translateCivilStatus(caseData.civilStatus, caseData.sex)}
             </Typography>
           </Box>
 

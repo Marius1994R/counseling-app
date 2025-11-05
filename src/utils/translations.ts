@@ -107,6 +107,13 @@ export const t = {
     counseledName: 'Nume Persoană Consiliată',
     age: 'Vârstă',
     years: 'ani',
+    sex: 'Sex',
+    sexMasculin: 'Masculin',
+    sexFeminin: 'Feminin',
+    sexMasculinAdult: 'Bărbat',
+    sexFemininAdult: 'Femeie',
+    sexMasculinMinor: 'Băiat',
+    sexFemininMinor: 'Fată',
     civilStatus: 'Stare Civilă',
     civilStatusTitle: 'Stare Civilă',
     phoneNumber: 'Număr Telefon',
@@ -158,7 +165,7 @@ export const t = {
     specialty: 'Specialitate',
     cases: 'Cazuri',
     linkUserAccount: 'Leagă la Cont Utilizator *',
-    manageReports: 'Gestionează Rapoartele',
+    manageReports: 'Vezi Rapoartele',
     openReports: 'Deschide Rapoarte'
   },
 
@@ -352,10 +359,27 @@ export const t = {
 
   // Civil Status
   civilStatus: {
+    unmarried: 'Necăsătorit/ă',
     single: 'Necăsătorit/ă',
     married: 'Căsătorit/ă',
     divorced: 'Divorțat/ă',
-    widowed: 'Văduv/ă'
+    engaged: 'Logodit/ă',
+    widowed: 'Văduv/ă',
+    // Gender-specific translations
+    masculin: {
+      unmarried: 'Necăsătorit',
+      married: 'Căsătorit',
+      divorced: 'Divorțat',
+      engaged: 'Logodit',
+      widowed: 'Văduv'
+    },
+    feminin: {
+      unmarried: 'Necăsătorită',
+      married: 'Căsătorită',
+      divorced: 'Divorțată',
+      engaged: 'Logodită',
+      widowed: 'Văduvă'
+    }
   },
 
   // Roles

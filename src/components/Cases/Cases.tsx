@@ -34,7 +34,8 @@ import {
   CheckCircle,
   Note,
   Block,
-  Schedule
+  Schedule,
+  Phone
 } from '@mui/icons-material';
 import { collection, getDocs, query, where, orderBy, updateDoc, doc } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
@@ -65,6 +66,7 @@ const Cases: React.FC = () => {
   const [sessionReportOpen, setSessionReportOpen] = useState(false);
   const [selectedCaseForNotes, setSelectedCaseForNotes] = useState<Case | null>(null);
   const [caseNotes, setCaseNotes] = useState<Record<string, string>>({}); // caseId -> latest note content
+  const [caseReportsCount, setCaseReportsCount] = useState<Record<string, number>>({}); // caseId -> number of reports
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
   const [selectedCaseForDescription, setSelectedCaseForDescription] = useState<Case | null>(null);
@@ -107,6 +109,7 @@ const Cases: React.FC = () => {
             title: data.title,
             counseledName: data.counseledName,
             age: data.age,
+            sex: data.sex,
             civilStatus: data.civilStatus,
             issueTypes: data.issueTypes || [],
             phoneNumber: data.phoneNumber || '',
@@ -135,6 +138,8 @@ const Cases: React.FC = () => {
         
         // Load latest notes for all cases
         await loadLatestNotes(casesData);
+        // Load session reports count for all cases
+        await loadSessionReportsCount(casesData);
       } catch (error) {
         console.error('Error loading cases:', error);
         setError('Error loading cases');
@@ -243,6 +248,7 @@ const Cases: React.FC = () => {
     // Reload latest notes when a new note is added
     if (cases.length > 0) {
       await loadLatestNotes(cases);
+      await loadSessionReportsCount(cases);
     }
   };
 
@@ -295,6 +301,29 @@ const Cases: React.FC = () => {
     }
   };
 
+  // Load session reports count for each case
+  const loadSessionReportsCount = async (cases: Case[]) => {
+    try {
+      const reportsPromises = cases.map(async (caseItem) => {
+        const reportsRef = collection(db, 'sessionReports');
+        const reportsQuery = query(reportsRef, where('caseId', '==', caseItem.id));
+        const reportsSnapshot = await getDocs(reportsQuery);
+        
+        return { caseId: caseItem.id, count: reportsSnapshot.size };
+      });
+
+      const reportsResults = await Promise.all(reportsPromises);
+      const reportsMap: Record<string, number> = {};
+      reportsResults.forEach(({ caseId, count }) => {
+        reportsMap[caseId] = count;
+      });
+      
+      setCaseReportsCount(reportsMap);
+    } catch (error) {
+      console.error('Error loading session reports count:', error);
+    }
+  };
+
   const handleIssueTypeToggle = (issueType: IssueType) => {
     setEditData(prev => {
       const isSelected = prev.issueTypes.includes(issueType);
@@ -327,6 +356,45 @@ const Cases: React.FC = () => {
       case 'cancelled': return <Remove />;
       default: return <Remove />;
     }
+  };
+
+  const translateSex = (sex?: string, age?: number): string => {
+    if (!sex) return '';
+    const isAdult = age !== undefined && age > 17;
+    if (sex === 'masculin') {
+      return isAdult ? t.cases.sexMasculinAdult : t.cases.sexMasculinMinor;
+    } else if (sex === 'feminin') {
+      return isAdult ? t.cases.sexFemininAdult : t.cases.sexFemininMinor;
+    }
+    return '';
+  };
+
+  const translateCivilStatus = (status: string, sex?: string): string => {
+    const isFeminin = sex === 'feminin';
+    const statusLower = status.toLowerCase();
+    
+    if (isFeminin && t.civilStatus.feminin) {
+      const femininTranslations = t.civilStatus.feminin as Record<string, string>;
+      if (femininTranslations[statusLower]) {
+        return femininTranslations[statusLower];
+      }
+    } else if (!isFeminin && t.civilStatus.masculin) {
+      const masculinTranslations = t.civilStatus.masculin as Record<string, string>;
+      if (masculinTranslations[statusLower]) {
+        return masculinTranslations[statusLower];
+      }
+    }
+    
+    // Fallback to generic translations
+    const translations: Record<string, string> = {
+      unmarried: t.civilStatus.unmarried,
+      single: t.civilStatus.single,
+      married: t.civilStatus.married,
+      divorced: t.civilStatus.divorced,
+      engaged: t.civilStatus.engaged,
+      widowed: t.civilStatus.widowed
+    };
+    return translations[statusLower] || status;
   };
 
   if (loading) {
@@ -572,7 +640,7 @@ const Cases: React.FC = () => {
                 >
                   {t.meetingNotes.addNote}
                 </Button>
-                {caseItem.status === 'active' && (
+                {((caseReportsCount[caseItem.id] || 0) > 0 || caseItem.status === 'active') && (
                   <Button
                     size="small"
                     startIcon={<CalendarToday />}
@@ -594,7 +662,7 @@ const Cases: React.FC = () => {
                     variant="contained"
                   >
                     <Box component="span" sx={{ display: 'block', fontSize: '0.7rem' }}>
-                      Gestionează<br />Rapoartele
+                      Vezi<br />Rapoartele
                     </Box>
                   </Button>
                 )}
@@ -644,7 +712,7 @@ const Cases: React.FC = () => {
                     letterSpacing: '0.5px'
                   }}
                 >
-                  Informații Client
+                  Informații Consiliat
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -659,7 +727,7 @@ const Cases: React.FC = () => {
                       <Person fontSize="small" sx={{ color: '#000' }} />
                     </Box>
                     <Typography variant="body2" sx={{ fontWeight: 'medium', color: '#212529' }}>
-                      {caseItem.counseledName}, {caseItem.age} {t.cases.years}
+                       {caseItem.counseledName}, {caseItem.age} {t.cases.years}, {translateSex(caseItem.sex, caseItem.age)}
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -674,7 +742,22 @@ const Cases: React.FC = () => {
                       <Assignment fontSize="small" sx={{ color: '#000' }} />
                     </Box>
                     <Typography variant="body2" color="text.secondary">
-                      {t.cases.civilStatusTitle}: {caseItem.civilStatus.charAt(0).toUpperCase() + caseItem.civilStatus.slice(1)}
+                      {t.cases.civilStatusTitle}: {translateCivilStatus(caseItem.civilStatus, caseItem.sex)}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Box sx={{ 
+                      backgroundColor: '#ffc700',
+                      borderRadius: '50%',
+                      p: 0.75,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Phone fontSize="small" sx={{ color: '#000' }} />
+                    </Box>
+                    <Typography variant="body2" sx={{ fontWeight: 'medium', color: '#212529' }}>
+                      {caseItem.phoneNumber}
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -941,6 +1024,7 @@ const Cases: React.FC = () => {
         caseId={selectedCaseForNotes?.id || ''}
         caseTitle={selectedCaseForNotes?.title || ''}
         onReportAdded={handleNoteAdded}
+        caseStatus={selectedCaseForNotes?.status}
       />
 
       {/* Full Description Modal */}

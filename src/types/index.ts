@@ -36,12 +36,16 @@ export type IssueType = 'spiritual' | 'relational' | 'personal';
 // Civil status
 export type CivilStatus = 'unmarried' | 'married' | 'divorced' | 'engaged' | 'widowed';
 
+// Sex/Gender
+export type Sex = 'masculin' | 'feminin';
+
 // Case interface
 export interface Case {
   id: string;
   title: string;
   counseledName: string;
   age: number;
+  sex?: Sex; // Optional for backward compatibility
   civilStatus: CivilStatus;
   issueTypes: IssueType[];
   phoneNumber: string;

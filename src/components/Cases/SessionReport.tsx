@@ -54,6 +54,7 @@ interface SessionReportProps {
   caseTitle: string;
   onReportAdded?: () => void;
   hideAddButton?: boolean; // Hide the "Adaugă Raport Post-Sesiune" button
+  caseStatus?: string; // Case status to determine if add button should be shown
 }
 
 const SessionReport: React.FC<SessionReportProps> = ({
@@ -62,7 +63,8 @@ const SessionReport: React.FC<SessionReportProps> = ({
   caseId,
   caseTitle,
   onReportAdded,
-  hideAddButton = false
+  hideAddButton = false,
+  caseStatus
 }) => {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -205,7 +207,7 @@ const SessionReport: React.FC<SessionReportProps> = ({
           </Box>
         </DialogTitle>
         <DialogContent>
-          {!hideAddButton && (
+          {!hideAddButton && caseStatus === 'active' && (
             <Box sx={{ mb: 3 }}>
               <Button
                 variant="contained"

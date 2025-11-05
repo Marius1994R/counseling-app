@@ -17,7 +17,7 @@ import {
   FormControlLabel,
   Checkbox
 } from '@mui/material';
-import { Case, CaseStatus, IssueType, CivilStatus } from '../../types';
+import { Case, CaseStatus, IssueType, CivilStatus, Sex } from '../../types';
 import { t } from '../../utils/translations';
 
 interface CaseFormProps {
@@ -38,6 +38,7 @@ const CaseForm: React.FC<CaseFormProps> = ({
   const [formData, setFormData] = useState({
     counseledName: caseData?.counseledName || '',
     age: caseData?.age || '',
+    sex: caseData?.sex || 'masculin' as Sex,
     civilStatus: caseData?.civilStatus || 'unmarried',
     issueTypes: caseData?.issueTypes || [],
     phoneNumber: caseData?.phoneNumber || '',
@@ -52,16 +53,21 @@ const CaseForm: React.FC<CaseFormProps> = ({
   const civilStatusOptions: CivilStatus[] = ['unmarried', 'married', 'divorced', 'engaged', 'widowed'];
   const statusOptions: CaseStatus[] = ['waiting', 'active', 'unfinished', 'finished', 'cancelled'];
 
-  // Translation functions
-  const translateCivilStatus = (status: string) => {
-    const statusMap: Record<string, string> = {
-      'unmarried': 'Necăsătorit/ă', 
-      'married': 'Căsătorit/ă',
-      'divorced': 'Divorțat/ă',
-      'engaged': 'Logodit/ă',
-      'widowed': 'Văduv/ă'
+  // Translation functions - gender-aware
+  const translateCivilStatus = (status: string, sex?: Sex) => {
+    const isFeminin = sex === 'feminin';
+    const statusMap: Record<string, { masculin: string; feminin: string }> = {
+      'unmarried': { masculin: 'Necăsătorit', feminin: 'Necăsătorită' },
+      'married': { masculin: 'Căsătorit', feminin: 'Căsătorită' },
+      'divorced': { masculin: 'Divorțat', feminin: 'Divorțată' },
+      'engaged': { masculin: 'Logodit', feminin: 'Logodită' },
+      'widowed': { masculin: 'Văduv', feminin: 'Văduvă' }
     };
-    return statusMap[status] || status;
+    const translations = statusMap[status];
+    if (translations) {
+      return isFeminin ? translations.feminin : translations.masculin;
+    }
+    return status;
   };
 
   const translateStatus = (status: string) => {
@@ -106,6 +112,7 @@ const CaseForm: React.FC<CaseFormProps> = ({
       setFormData({
         counseledName: caseData.counseledName,
         age: caseData.age,
+        sex: caseData.sex || 'masculin',
         civilStatus: caseData.civilStatus,
         issueTypes: caseData.issueTypes,
         phoneNumber: caseData.phoneNumber,
@@ -118,6 +125,7 @@ const CaseForm: React.FC<CaseFormProps> = ({
       setFormData({
         counseledName: '',
         age: '',
+        sex: 'masculin',
         civilStatus: 'unmarried',
         issueTypes: [],
         phoneNumber: '',
@@ -159,6 +167,7 @@ const CaseForm: React.FC<CaseFormProps> = ({
       title: generatedTitle,
       counseledName: formData.counseledName.trim(),
       age: Number(formData.age),
+      sex: formData.sex,
       civilStatus: formData.civilStatus as CivilStatus,
       issueTypes: formData.issueTypes,
       phoneNumber: formData.phoneNumber.trim(),
@@ -176,6 +185,7 @@ const CaseForm: React.FC<CaseFormProps> = ({
   const handleClose = () => {
     setFormData({
       counseledName: '',
+      sex: 'masculin',
       age: '',
       civilStatus: 'unmarried',
       issueTypes: [],
@@ -256,6 +266,18 @@ const CaseForm: React.FC<CaseFormProps> = ({
               gap: { xs: 1.5, sm: 2 }
             }}>
               <FormControl fullWidth required size="small">
+                <InputLabel>{t.cases.sex || 'Sex'}</InputLabel>
+                <Select
+                  value={formData.sex}
+                  onChange={handleChange('sex')}
+                  label={t.cases.sex || 'Sex'}
+                >
+                  <MenuItem value="masculin">{t.cases.sexMasculin || 'Masculin'}</MenuItem>
+                  <MenuItem value="feminin">{t.cases.sexFeminin || 'Feminin'}</MenuItem>
+                </Select>
+              </FormControl>
+              
+              <FormControl fullWidth required size="small">
                 <InputLabel>{t.cases.civilStatus}</InputLabel>
                 <Select
                   value={formData.civilStatus}
@@ -264,7 +286,7 @@ const CaseForm: React.FC<CaseFormProps> = ({
                 >
                   {civilStatusOptions.map((status) => (
                     <MenuItem key={status} value={status}>
-                      {translateCivilStatus(status)}
+                      {translateCivilStatus(status, formData.sex)}
                     </MenuItem>
                   ))}
                 </Select>
