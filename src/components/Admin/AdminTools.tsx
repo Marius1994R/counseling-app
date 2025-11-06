@@ -432,7 +432,7 @@ const AdminTools: React.FC = () => {
   const copyUserCredentials = () => {
     const credentials = `Email: ${createUserData.email}
 Password: ${createUserData.password}
-Link app: http://localhost:3000`;
+Link app: https://consiliere360.vercel.app/`;
     
     navigator.clipboard.writeText(credentials).then(() => {
       showSnackbar('User credentials copied to clipboard!', 'success');
