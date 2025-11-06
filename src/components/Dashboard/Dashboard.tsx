@@ -49,6 +49,7 @@ const Dashboard: React.FC = () => {
   const [counselorRecordId, setCounselorRecordId] = useState<string | null>(null);
   const [newAssignmentModal, setNewAssignmentModal] = useState<any | null>(null);
   const [dismissedAssignments, setDismissedAssignments] = useState<Set<string>>(new Set());
+  const [dismissedAssignmentsLoaded, setDismissedAssignmentsLoaded] = useState(false);
 
   // Load dismissed assignments from Firebase
   const loadDismissedAssignments = async (userId: string) => {
@@ -66,6 +67,8 @@ const Dashboard: React.FC = () => {
     } catch (error) {
       console.error('Error loading dismissed assignments:', error);
       setDismissedAssignments(new Set());
+    } finally {
+      setDismissedAssignmentsLoaded(true);
     }
   };
 
@@ -299,8 +302,14 @@ const Dashboard: React.FC = () => {
 
   // Detect new case assignments and show modal
   // Includes counselors, admins, and leaders
+  // Only run after dismissed assignments are loaded to prevent modal flash
   useEffect(() => {
     if (!currentUser || (currentUser.role !== 'counselor' && currentUser.role !== 'admin' && currentUser.role !== 'leader')) {
+      return;
+    }
+
+    // Don't check for modals until dismissed assignments are loaded
+    if (!dismissedAssignmentsLoaded) {
       return;
     }
 
@@ -383,7 +392,7 @@ const Dashboard: React.FC = () => {
     };
 
     loadCaseAssignments();
-  }, [currentUser, counselorRecordId, dismissedAssignments]);
+  }, [currentUser, counselorRecordId, dismissedAssignments, dismissedAssignmentsLoaded]);
 
   const handleSeeCase = async () => {
     if (newAssignmentModal?.metadata?.caseId && currentUser?.id) {
@@ -679,15 +688,21 @@ const Dashboard: React.FC = () => {
                   </Box>
                 </Box>
                 
-                {/* Status Cards Grid */}
-                <Box sx={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(2, 1fr)', 
-                  gap: 2,
-                  mb: 3
-                }}>
-                  {/* Active Cases - Featured */}
-                  <Box sx={{ 
+                {loading ? (
+                  <Box display="flex" justifyContent="center" alignItems="center" sx={{ minHeight: '300px' }}>
+                    <CircularProgress sx={{ color: '#ffc700' }} />
+                  </Box>
+                ) : (
+                  <>
+                    {/* Status Cards Grid */}
+                    <Box sx={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(2, 1fr)', 
+                      gap: 2,
+                      mb: 3
+                    }}>
+                      {/* Active Cases - Featured */}
+                      <Box sx={{ 
                     gridColumn: { xs: '1 / -1', sm: '1 / -1' },
                     p: 3,
                     background: 'linear-gradient(135deg, #ffc700 0%, #ffb300 100%)',
@@ -814,11 +829,11 @@ const Dashboard: React.FC = () => {
                     }}>
                       În așteptare
                     </Typography>
-                  </Box>
-                </Box>
-                
-                {/* Additional Quick Stats */}
-                <Box sx={{ 
+                      </Box>
+                    </Box>
+                    
+                    {/* Additional Quick Stats */}
+                    <Box sx={{
                   display: 'flex', 
                   gap: 1.5,
                   mb: 3
@@ -889,34 +904,36 @@ const Dashboard: React.FC = () => {
                   />
                 </Box>
                 
-                {/* CTA Button */}
-                <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                  <Button
-                    variant="contained"
-                    onClick={() => navigate('/cases')}
-                    startIcon={<Assignment />}
-                    sx={{ 
-                      backgroundColor: '#ffc700',
-                      color: '#000',
-                      fontWeight: 700,
-                      py: 1,
-                      px: 3,
-                      fontSize: '0.875rem',
-                      borderRadius: 2,
-                      textTransform: 'none',
-                      boxShadow: '0 2px 8px rgba(255, 199, 0, 0.3)',
-                      minHeight: 'auto',
-                      '&:hover': { 
-                        backgroundColor: '#e6b300',
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 4px 12px rgba(255, 199, 0, 0.4)'
-                      },
-                      transition: 'all 0.2s ease-in-out'
-                    }}
-                  >
-                    {t.dashboard.viewAllCases}
-                  </Button>
-                </Box>
+                    {/* CTA Button */}
+                    <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                      <Button
+                        variant="contained"
+                        onClick={() => navigate('/cases')}
+                        startIcon={<Assignment />}
+                        sx={{ 
+                          backgroundColor: '#ffc700',
+                          color: '#000',
+                          fontWeight: 700,
+                          py: 1,
+                          px: 3,
+                          fontSize: '0.875rem',
+                          borderRadius: 2,
+                          textTransform: 'none',
+                          boxShadow: '0 2px 8px rgba(255, 199, 0, 0.3)',
+                          minHeight: 'auto',
+                          '&:hover': { 
+                            backgroundColor: '#e6b300',
+                            transform: 'translateY(-2px)',
+                            boxShadow: '0 4px 12px rgba(255, 199, 0, 0.4)'
+                          },
+                          transition: 'all 0.2s ease-in-out'
+                        }}
+                      >
+                        {t.dashboard.viewAllCases}
+                      </Button>
+                    </Box>
+                  </>
+                )}
               </Box>
             </Paper>
           </Box>
