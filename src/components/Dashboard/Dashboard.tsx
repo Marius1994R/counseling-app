@@ -14,7 +14,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  IconButton
+  IconButton,
+  Chip
 } from '@mui/material';
 import {
   Assignment,
@@ -24,7 +25,11 @@ import {
   Add,
   Update,
   Note,
-  Description
+  Description,
+  CheckCircle,
+  HourglassEmpty,
+  PlayCircle,
+  Cancel
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { Case, Appointment, CaseStatus } from '../../types';
@@ -211,18 +216,21 @@ const Dashboard: React.FC = () => {
         // Filter activities based on user role - user-specific for counselors and admins
         let userActivities = activitiesData;
         
-        if (currentUser?.role === 'counselor' || currentUser?.role === 'admin') {
+        if (currentUser?.role === 'counselor' || currentUser?.role === 'admin' || currentUser?.role === 'leader') {
           // Show activities created by this user OR where this user was assigned to a case
+          // Check both user ID and counselor record ID for case assignments
           userActivities = activitiesData.filter(activity => {
             const isUserCreated = activity.userId === currentUser.id;
-            const isCaseAssignedToUser = activity.type === 'case_assigned' && 
-              activity.metadata?.assignedToUserId === currentUser.id;
+            const isCaseAssignedToUser = activity.type === 'case_assigned' && (
+              activity.metadata?.assignedToUserId === currentUser.id ||
+              (counselorId && activity.metadata?.assignedToUserId === counselorId)
+            );
             
             
             return isUserCreated || isCaseAssignedToUser;
           });
         }
-        // For leaders: show all activities (no filtering by user)
+        // For other roles: show all activities (no filtering by user)
         
         // Take the 4 most recent activities
         const sortedActivities = userActivities
@@ -244,24 +252,92 @@ const Dashboard: React.FC = () => {
   }, []);
 
   // Detect new case assignments and show modal
+  // Includes counselors, admins, and leaders
   useEffect(() => {
-    if (!currentUser || (currentUser.role !== 'counselor' && currentUser.role !== 'admin')) {
+    if (!currentUser || (currentUser.role !== 'counselor' && currentUser.role !== 'admin' && currentUser.role !== 'leader')) {
       return;
     }
 
-    // Find the most recent case_assigned activity that hasn't been dismissed
-    const caseAssignedActivities = recentActivities.filter(
-      activity => 
-        activity.type === 'case_assigned' &&
-        activity.metadata?.assignedToUserId === currentUser.id &&
-        !dismissedAssignments.has(activity.id)
-    );
+    // Load all case_assigned activities separately to ensure we don't miss any
+    const loadCaseAssignments = async () => {
+      try {
+        const activitiesRef = collection(db, 'activities');
+        let allCaseAssignments: any[] = [];
+        
+        try {
+          // Try to query with where and orderBy (requires composite index)
+          const activitiesQuery = query(
+            activitiesRef, 
+            where('type', '==', 'case_assigned'),
+            orderBy('timestamp', 'desc')
+          );
+          const activitiesSnapshot = await getDocs(activitiesQuery);
+          
+          activitiesSnapshot.forEach((doc) => {
+            const data = doc.data();
+            allCaseAssignments.push({
+              id: doc.id,
+              type: data.type,
+              title: data.title,
+              description: data.description,
+              timestamp: data.timestamp.toDate(),
+              userId: data.userId,
+              userName: data.userName,
+              metadata: data.metadata
+            });
+          });
+        } catch (queryError: any) {
+          // Fallback: load all activities and filter in memory if index is missing
+          if (queryError.code === 'failed-precondition' || queryError.message?.includes('index')) {
+            console.warn('Firestore index missing, falling back to loading all activities');
+            const allActivitiesQuery = query(activitiesRef, orderBy('timestamp', 'desc'));
+            const allActivitiesSnapshot = await getDocs(allActivitiesQuery);
+            
+            allActivitiesSnapshot.forEach((doc) => {
+              const data = doc.data();
+              if (data.type === 'case_assigned') {
+                allCaseAssignments.push({
+                  id: doc.id,
+                  type: data.type,
+                  title: data.title,
+                  description: data.description,
+                  timestamp: data.timestamp.toDate(),
+                  userId: data.userId,
+                  userName: data.userName,
+                  metadata: data.metadata
+                });
+              }
+            });
+          } else {
+            throw queryError;
+          }
+        }
 
-    if (caseAssignedActivities.length > 0) {
-      const mostRecentAssignment = caseAssignedActivities[0];
-      setNewAssignmentModal(mostRecentAssignment);
-    }
-  }, [recentActivities, currentUser, dismissedAssignments]);
+        // Filter for assignments to this user (check both user ID and counselor record ID)
+        const caseAssignedActivities = allCaseAssignments.filter(activity => {
+          const matchesUser = activity.metadata?.assignedToUserId === currentUser.id;
+          const matchesCounselor = counselorRecordId && 
+            activity.metadata?.assignedToUserId === counselorRecordId;
+          const notDismissed = !dismissedAssignments.has(activity.id);
+          
+          return (matchesUser || matchesCounselor) && notDismissed;
+        });
+
+        if (caseAssignedActivities.length > 0) {
+          // Get the most recent assignment
+          const mostRecentAssignment = caseAssignedActivities[0];
+          setNewAssignmentModal(mostRecentAssignment);
+        } else {
+          // Clear modal if no assignments found
+          setNewAssignmentModal(null);
+        }
+      } catch (err) {
+        console.error('Error loading case assignments:', err);
+      }
+    };
+
+    loadCaseAssignments();
+  }, [currentUser, counselorRecordId, dismissedAssignments]);
 
   const handleSeeCase = () => {
     if (newAssignmentModal?.metadata?.caseId) {
@@ -479,228 +555,318 @@ const Dashboard: React.FC = () => {
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {/* Top Row */}
         <Box sx={{ display: 'flex', gap: { xs: 2, sm: 3 }, flexWrap: 'wrap' }}>
-          {/* User Performance Overview */}
+          {/* Status Cazuri - Rebranded */}
           <Box sx={{ flex: '1 1 400px', minWidth: { xs: '100%', sm: '400px' }, width: { xs: '100%', sm: 'auto' } }}>
             <Paper sx={{ 
-              p: { xs: 2, sm: 3, md: 4 }, 
+              p: { xs: 3, sm: 4 }, 
               height: '100%', 
               display: 'flex', 
               flexDirection: 'column',
-              background: 'linear-gradient(135deg, rgba(255, 199, 0, 0.1) 0%, rgba(255, 199, 0, 0.05) 100%)',
-              border: '1px solid rgba(255, 199, 0, 0.2)',
+              borderRadius: 3,
+              background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+              border: '1px solid rgba(255, 199, 0, 0.15)',
               position: 'relative',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                transform: 'translateY(-2px)'
+              }
             }}>
-              {/* Background decoration */}
+              {/* Decorative background elements */}
               <Box sx={{
                 position: 'absolute',
-                top: -20,
-                right: -20,
-                width: 120,
-                height: 120,
-                backgroundColor: 'rgba(255, 199, 0, 0.1)',
+                top: -40,
+                right: -40,
+                width: 160,
+                height: 160,
+                backgroundColor: 'rgba(255, 199, 0, 0.08)',
+                borderRadius: '50%',
+                zIndex: 0
+              }} />
+              <Box sx={{
+                position: 'absolute',
+                bottom: -30,
+                left: -30,
+                width: 100,
+                height: 100,
+                backgroundColor: 'rgba(255, 199, 0, 0.05)',
                 borderRadius: '50%',
                 zIndex: 0
               }} />
               
               <Box sx={{ position: 'relative', zIndex: 1 }}>
-                <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
-                  <Box display="flex" alignItems="center">
+                {/* Header */}
+                <Box sx={{ mb: 3 }}>
+                  <Box display="flex" alignItems="center" mb={1}>
                     <Box sx={{ 
                       p: 1.5, 
                       backgroundColor: '#ffc700', 
-                      borderRadius: '50%',
+                      borderRadius: '12px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      mr: 2
+                      mr: 2,
+                      boxShadow: '0 4px 12px rgba(255, 199, 0, 0.3)'
                     }}>
-                      <TrendingUp sx={{ color: 'white', fontSize: '1.5rem' }} />
+                      <Assignment sx={{ color: '#000', fontSize: '1.75rem' }} />
                     </Box>
                     <Box>
-                      <Typography variant="h5" component="h2" sx={{ fontWeight: 'bold', color: '#333' }}>
+                      <Typography variant="h5" component="h2" sx={{ 
+                        fontWeight: 700, 
+                        color: '#212529',
+                        fontSize: { xs: '1.25rem', sm: '1.5rem' }
+                      }}>
                         {t.dashboard.yourPerformance}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" sx={{ 
+                        color: '#6c757d',
+                        fontSize: '0.875rem',
+                        mt: 0.5
+                      }}>
                         {new Date().toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' })}
                       </Typography>
                     </Box>
                   </Box>
                 </Box>
                 
-                {/* Main metric */}
-                <Box sx={{ mb: { xs: 2, sm: 3 }, textAlign: 'center' }}>
-                  <Typography variant="h2" component="div" sx={{ 
-                    fontWeight: 'bold', 
-                    color: '#ffc700',
-                    fontSize: { xs: '2.5rem', sm: '3rem' },
-                    lineHeight: 1,
-                    mb: 1
-                  }}>
-                    {metrics.activeCases}
-                  </Typography>
-                  <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 'medium' }}>
-                    {t.dashboard.activeCases}
-                  </Typography>
-                </Box>
-                
-                {/* Performance metrics grid */}
+                {/* Status Cards Grid */}
                 <Box sx={{ 
                   display: 'grid', 
                   gridTemplateColumns: 'repeat(2, 1fr)', 
                   gap: 2,
                   mb: 3
                 }}>
+                  {/* Active Cases - Featured */}
                   <Box sx={{ 
-                    p: 2, 
-                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                    borderRadius: 2,
-                    border: '1px solid rgba(76, 175, 80, 0.2)',
-                    textAlign: 'center'
+                    gridColumn: { xs: '1 / -1', sm: '1 / -1' },
+                    p: 3,
+                    background: 'linear-gradient(135deg, #ffc700 0%, #ffb300 100%)',
+                    borderRadius: 3,
+                    boxShadow: '0 4px 16px rgba(255, 199, 0, 0.3)',
+                    position: 'relative',
+                    overflow: 'hidden'
                   }}>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#4caf50', mb: 0.5 }}>
+                    <Box sx={{ position: 'absolute', top: -20, right: -20, opacity: 0.2 }}>
+                      <PlayCircle sx={{ fontSize: 120, color: '#000' }} />
+                    </Box>
+                    <Box sx={{ position: 'relative', zIndex: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <PlayCircle sx={{ fontSize: '2rem', color: '#000', mr: 1.5 }} />
+                        <Typography variant="body2" sx={{ 
+                          color: '#000',
+                          fontWeight: 600,
+                          fontSize: '0.875rem',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}>
+                          {t.dashboard.activeCases}
+                        </Typography>
+                      </Box>
+                      <Typography variant="h2" sx={{ 
+                        fontWeight: 800, 
+                        color: '#000',
+                        fontSize: { xs: '3rem', sm: '4rem' },
+                        lineHeight: 1,
+                        mb: 1
+                      }}>
+                        {metrics.activeCases}
+                      </Typography>
+                      <Typography variant="body2" sx={{ 
+                        color: 'rgba(0, 0, 0, 0.7)',
+                        fontSize: '0.875rem'
+                      }}>
+                        Cazuri în desfășurare
+                      </Typography>
+                    </Box>
+                  </Box>
+                  
+                  {/* Completed Cases */}
+                  <Box sx={{ 
+                    p: 2.5,
+                    background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.05) 100%)',
+                    borderRadius: 2.5,
+                    border: '2px solid rgba(76, 175, 80, 0.2)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 4px 12px rgba(76, 175, 80, 0.2)',
+                      borderColor: 'rgba(76, 175, 80, 0.4)'
+                    }
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                      <CheckCircle sx={{ fontSize: '1.5rem', color: '#4caf50', mr: 1 }} />
+                      <Typography variant="body2" sx={{ 
+                        color: '#495057',
+                        fontWeight: 600,
+                        fontSize: '0.8rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        {t.dashboard.completedCases}
+                      </Typography>
+                    </Box>
+                    <Typography variant="h3" sx={{ 
+                      fontWeight: 700, 
+                      color: '#4caf50',
+                      mb: 0.5,
+                      fontSize: { xs: '2rem', sm: '2.5rem' }
+                    }}>
                       {metrics.completedCases}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                      {t.dashboard.completedCases}
+                    <Typography variant="caption" sx={{ 
+                      color: '#6c757d',
+                      fontSize: '0.75rem'
+                    }}>
+                      Finalizate cu succes
                     </Typography>
                   </Box>
                   
+                  {/* Pending Cases */}
                   <Box sx={{ 
-                    p: 2, 
-                    backgroundColor: 'rgba(255, 152, 0, 0.1)',
-                    borderRadius: 2,
-                    border: '1px solid rgba(255, 152, 0, 0.2)',
-                    textAlign: 'center'
+                    p: 2.5,
+                    background: 'linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 152, 0, 0.05) 100%)',
+                    borderRadius: 2.5,
+                    border: '2px solid rgba(255, 152, 0, 0.2)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 4px 12px rgba(255, 152, 0, 0.2)',
+                      borderColor: 'rgba(255, 152, 0, 0.4)'
+                    }
                   }}>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#ff9800', mb: 0.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                      <HourglassEmpty sx={{ fontSize: '1.5rem', color: '#ff9800', mr: 1 }} />
+                      <Typography variant="body2" sx={{ 
+                        color: '#495057',
+                        fontWeight: 600,
+                        fontSize: '0.8rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        {t.dashboard.pendingCases}
+                      </Typography>
+                    </Box>
+                    <Typography variant="h3" sx={{ 
+                      fontWeight: 700, 
+                      color: '#ff9800',
+                      mb: 0.5,
+                      fontSize: { xs: '2rem', sm: '2.5rem' }
+                    }}>
                       {metrics.pendingCases}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                      {t.dashboard.pendingCases}
+                    <Typography variant="caption" sx={{ 
+                      color: '#6c757d',
+                      fontSize: '0.75rem'
+                    }}>
+                      În așteptare
                     </Typography>
                   </Box>
                 </Box>
                 
-                {/* Additional metrics - Compact design */}
+                {/* Additional Quick Stats */}
                 <Box sx={{ 
                   display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  gap: 2,
-                  mb: 2
+                  gap: 1.5,
+                  mb: 3
                 }}>
-                  {/* Upcoming Appointments */}
-                  <Box sx={{ 
-                    flex: 1,
-                    p: 1.5,
-                    background: 'linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(33, 150, 243, 0.05) 100%)',
-                    borderRadius: 2,
-                    border: '1px solid rgba(33, 150, 243, 0.2)',
-                    textAlign: 'center',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}>
-                    {/* Decorative element */}
-                    <Box sx={{
-                      position: 'absolute',
-                      top: -8,
-                      right: -8,
-                      width: 30,
-                      height: 30,
+                  <Chip
+                    icon={<Schedule sx={{ color: '#2196f3' }} />}
+                    label={
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#2196f3' }}>
+                          {upcomingAppointments.length}
+                        </Typography>
+                        <Typography variant="caption" sx={{ 
+                          fontSize: '0.7rem',
+                          color: '#1976d2',
+                          display: 'block',
+                          mt: 0.25
+                        }}>
+                          {t.dashboard.upcoming}
+                        </Typography>
+                      </Box>
+                    }
+                    sx={{
+                      flex: 1,
+                      height: 'auto',
+                      py: 1.5,
                       backgroundColor: 'rgba(33, 150, 243, 0.1)',
-                      borderRadius: '50%',
-                      zIndex: 0
-                    }} />
-                    
-                    <Box sx={{ position: 'relative', zIndex: 1 }}>
-                      <Typography variant="h5" sx={{ 
-                        fontWeight: 'bold', 
-                        color: '#2196f3',
-                        mb: 0.5,
-                        lineHeight: 1
-                      }}>
-                        {upcomingAppointments.length}
-                      </Typography>
-                      <Typography variant="body2" sx={{ 
-                        color: '#1976d2',
-                        fontSize: '0.75rem',
-                        fontWeight: 'medium',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
-                      }}>
-                        {t.dashboard.upcoming}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  
-                  {/* Total Cases */}
-                  <Box sx={{ 
-                    flex: 1,
-                    p: 1.5,
-                    background: 'linear-gradient(135deg, rgba(156, 39, 176, 0.1) 0%, rgba(156, 39, 176, 0.05) 100%)',
-                    borderRadius: 2,
-                    border: '1px solid rgba(156, 39, 176, 0.2)',
-                    textAlign: 'center',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}>
-                    {/* Decorative element */}
-                    <Box sx={{
-                      position: 'absolute',
-                      top: -8,
-                      right: -8,
-                      width: 30,
-                      height: 30,
+                      border: '2px solid rgba(33, 150, 243, 0.2)',
+                      '& .MuiChip-icon': {
+                        marginLeft: 1.5
+                      },
+                      '& .MuiChip-label': {
+                        paddingLeft: 1,
+                        paddingRight: 1.5
+                      }
+                    }}
+                  />
+                  <Chip
+                    icon={<Assignment sx={{ color: '#9c27b0' }} />}
+                    label={
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#9c27b0' }}>
+                          {metrics.totalCases}
+                        </Typography>
+                        <Typography variant="caption" sx={{ 
+                          fontSize: '0.7rem',
+                          color: '#7b1fa2',
+                          display: 'block',
+                          mt: 0.25
+                        }}>
+                          {t.dashboard.totalCases}
+                        </Typography>
+                      </Box>
+                    }
+                    sx={{
+                      flex: 1,
+                      height: 'auto',
+                      py: 1.5,
                       backgroundColor: 'rgba(156, 39, 176, 0.1)',
-                      borderRadius: '50%',
-                      zIndex: 0
-                    }} />
-                    
-                    <Box sx={{ position: 'relative', zIndex: 1 }}>
-                      <Typography variant="h5" sx={{ 
-                        fontWeight: 'bold', 
-                        color: '#9c27b0',
-                        mb: 0.5,
-                        lineHeight: 1
-                      }}>
-                        {metrics.totalCases}
-                      </Typography>
-                      <Typography variant="body2" sx={{ 
-                        color: '#7b1fa2',
-                        fontSize: '0.75rem',
-                        fontWeight: 'medium',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
-                      }}>
-                        {t.dashboard.totalCases}
-                      </Typography>
-                    </Box>
-                  </Box>
+                      border: '2px solid rgba(156, 39, 176, 0.2)',
+                      '& .MuiChip-icon': {
+                        marginLeft: 1.5
+                      },
+                      '& .MuiChip-label': {
+                        paddingLeft: 1,
+                        paddingRight: 1.5
+                      }
+                    }}
+                  />
                 </Box>
                 
-                {/* Compact CTA Button */}
+                {/* CTA Button */}
                 <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                <Button
-                  variant="contained"
-                  onClick={() => navigate('/profile?edit=true')}
-                  sx={{ 
-                    backgroundColor: '#ffc700',
-                    color: '#000',
-                      fontWeight: 'bold',
+                  <Button
+                    variant="contained"
+                    onClick={() => navigate('/cases')}
+                    startIcon={<Assignment />}
+                    sx={{ 
+                      backgroundColor: '#ffc700',
+                      color: '#000',
+                      fontWeight: 700,
                       py: 1,
                       px: 3,
                       fontSize: '0.875rem',
-                      minWidth: 'auto',
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      boxShadow: '0 2px 8px rgba(255, 199, 0, 0.3)',
+                      minHeight: 'auto',
                       '&:hover': { 
                         backgroundColor: '#e6b300',
-                        transform: 'translateY(-1px)',
-                        boxShadow: '0 4px 12px rgba(255, 199, 0, 0.3)'
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 4px 12px rgba(255, 199, 0, 0.4)'
                       },
                       transition: 'all 0.2s ease-in-out'
                     }}
                   >
-                    {t.dashboard.viewFullProfile}
+                    {t.dashboard.viewAllCases}
                   </Button>
                 </Box>
               </Box>
@@ -929,37 +1095,68 @@ const Dashboard: React.FC = () => {
       <Dialog 
         open={!!newAssignmentModal} 
         disableEscapeKeyDown
+        maxWidth="sm"
+        fullWidth
         PaperProps={{
           sx: {
-            borderRadius: 2,
-            minWidth: '400px'
+            m: { xs: 1, sm: 2 },
+            maxWidth: { xs: 'calc(100% - 16px)', sm: '500px' },
+            width: { xs: '100%', sm: 'auto' },
+            borderRadius: { xs: 2, sm: 2 }
+          }
+        }}
+        sx={{
+          '& .MuiDialog-container': {
+            alignItems: { xs: 'center', sm: 'center' }
           }
         }}
       >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', pb: 2 }}>
+        <DialogTitle sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          pb: { xs: 1, sm: 2 },
+          fontSize: { xs: '1.25rem', sm: '1.5rem' },
+          px: { xs: 2, sm: 3 },
+          pt: { xs: 2, sm: 3 }
+        }}>
           <Assignment sx={{ mr: 1, color: 'primary.main' }} />
           {t.dashboard.newCaseAssigned}
         </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1">
+        <DialogContent sx={{ 
+          px: { xs: 2, sm: 3 },
+          pb: { xs: 1, sm: 2 }
+        }}>
+          <Typography variant="body1" sx={{ fontSize: { xs: '0.9375rem', sm: '1rem' } }}>
             {t.dashboard.newCaseAssignedMessage}
           </Typography>
           {newAssignmentModal?.metadata?.caseTitle && (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 2, fontStyle: 'italic' }}>
+            <Typography variant="body2" color="text.secondary" sx={{ 
+              mt: 2, 
+              fontStyle: 'italic',
+              fontSize: { xs: '0.875rem', sm: '0.875rem' }
+            }}>
               {t.cases.caseTitle}: {newAssignmentModal.metadata.caseTitle}
             </Typography>
           )}
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3 }}>
+        <DialogActions sx={{ 
+          px: { xs: 2, sm: 3 }, 
+          pb: { xs: 2, sm: 3 },
+          pt: { xs: 1, sm: 1 },
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 1, sm: 0 }
+        }}>
             <Button 
               variant="contained" 
               onClick={handleSeeCase}
               startIcon={<Assignment />}
+              fullWidth={false}
               sx={{ 
-                minWidth: 150,
+                minWidth: { xs: '100%', sm: 150 },
                 backgroundColor: '#ffc700',
                 color: '#000',
                 fontWeight: 'bold',
+                py: { xs: 1.5, sm: 1 },
                 '&:hover': {
                   backgroundColor: '#ffb700'
                 }

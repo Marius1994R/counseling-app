@@ -46,7 +46,7 @@ export const t = {
   // Login
   login: {
     title: 'Consiliere360',
-    subtitle: 'Sistem de Management Consiliere Biserică',
+    subtitle: 'Sistem de Management Consiliere - Biserica Lumina',
     emailLabel: 'Adresă Email',
     passwordLabel: 'Parolă',
     signInButton: 'Autentificare',

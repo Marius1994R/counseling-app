@@ -3,14 +3,19 @@
   "name": "Consiliere360 - Church Counseling Management System",
   "icons": [
     {
-      "src": "favicon.svg?v=1",
+      "src": "favicon.svg?v=3",
       "sizes": "any",
       "type": "image/svg+xml"
     },
     {
-      "src": "favicon.ico?v=1",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "favicon.svg?v=3",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "favicon.svg?v=3",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
     }
   ],
   "start_url": ".",
