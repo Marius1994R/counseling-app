@@ -33,7 +33,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { Case, Appointment, CaseStatus } from '../../types';
-import { collection, getDocs, query, orderBy, where, addDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, where, addDoc, doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useNavigate } from 'react-router-dom';
 import { t } from '../../utils/translations';
@@ -48,11 +48,52 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [counselorRecordId, setCounselorRecordId] = useState<string | null>(null);
   const [newAssignmentModal, setNewAssignmentModal] = useState<any | null>(null);
-  const [dismissedAssignments, setDismissedAssignments] = useState<Set<string>>(() => {
-    // Load dismissed assignments from localStorage
-    const stored = localStorage.getItem('dismissedAssignments');
-    return stored ? new Set(JSON.parse(stored)) : new Set();
-  });
+  const [dismissedAssignments, setDismissedAssignments] = useState<Set<string>>(new Set());
+
+  // Load dismissed assignments from Firebase
+  const loadDismissedAssignments = async (userId: string) => {
+    try {
+      const dismissedRef = doc(db, 'dismissedAssignments', userId);
+      const dismissedSnap = await getDoc(dismissedRef);
+      
+      if (dismissedSnap.exists()) {
+        const data = dismissedSnap.data();
+        const dismissedIds = data.activityIds || [];
+        setDismissedAssignments(new Set(dismissedIds));
+      } else {
+        setDismissedAssignments(new Set());
+      }
+    } catch (error) {
+      console.error('Error loading dismissed assignments:', error);
+      setDismissedAssignments(new Set());
+    }
+  };
+
+  // Save dismissed assignment to Firebase
+  const saveDismissedAssignment = async (userId: string, activityId: string) => {
+    try {
+      const dismissedRef = doc(db, 'dismissedAssignments', userId);
+      const dismissedSnap = await getDoc(dismissedRef);
+      
+      if (dismissedSnap.exists()) {
+        // Update existing document
+        await updateDoc(dismissedRef, {
+          activityIds: arrayUnion(activityId),
+          updatedAt: new Date()
+        });
+      } else {
+        // Create new document
+        await setDoc(dismissedRef, {
+          userId,
+          activityIds: [activityId],
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+      }
+    } catch (error) {
+      console.error('Error saving dismissed assignment:', error);
+    }
+  };
 
   // Function to ensure current user has a counselor record
   const ensureCounselorRecord = async (user: any) => {
@@ -249,7 +290,12 @@ const Dashboard: React.FC = () => {
     };
 
     loadData();
-  }, []);
+    
+    // Load dismissed assignments from Firebase
+    if (currentUser?.id) {
+      loadDismissedAssignments(currentUser.id);
+    }
+  }, [currentUser?.id]);
 
   // Detect new case assignments and show modal
   // Includes counselors, admins, and leaders
@@ -339,18 +385,20 @@ const Dashboard: React.FC = () => {
     loadCaseAssignments();
   }, [currentUser, counselorRecordId, dismissedAssignments]);
 
-  const handleSeeCase = () => {
-    if (newAssignmentModal?.metadata?.caseId) {
-      // Mark this assignment as dismissed
-      const newDismissed = new Set(Array.from(dismissedAssignments).concat(newAssignmentModal.id));
+  const handleSeeCase = async () => {
+    if (newAssignmentModal?.metadata?.caseId && currentUser?.id) {
+      const activityId = newAssignmentModal.id;
+      
+      // Mark this assignment as dismissed in state
+      const newDismissed = new Set(Array.from(dismissedAssignments).concat(activityId));
       setDismissedAssignments(newDismissed);
       
-      // Persist to localStorage
-      localStorage.setItem('dismissedAssignments', JSON.stringify(Array.from(newDismissed)));
+      // Save to Firebase
+      await saveDismissedAssignment(currentUser.id, activityId);
       
-      // Close modal and navigate to case
+      // Close modal and navigate to cases page with waiting filter applied
       setNewAssignmentModal(null);
-      navigate(`/cases`);
+      navigate(`/cases?status=waiting`);
       
       // Scroll to the specific case if needed
       setTimeout(() => {

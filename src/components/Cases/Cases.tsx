@@ -45,15 +45,24 @@ import MeetingNotes from './MeetingNotes';
 import SessionReport from './SessionReport';
 import { logCaseStatusChange, logCaseCreated } from '../../utils/activityLogger';
 import { t } from '../../utils/translations';
+import { useSearchParams } from 'react-router-dom';
 
 const Cases: React.FC = () => {
   const { currentUser } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [cases, setCases] = useState<Case[]>([]);
   const [filteredCases, setFilteredCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<CaseStatus | 'all'>('active');
+  
+  // Initialize statusFilter from URL parameter or default to 'active'
+  const statusFromUrl = searchParams.get('status') as CaseStatus | null;
+  const [statusFilter, setStatusFilter] = useState<CaseStatus | 'all'>(
+    statusFromUrl && ['waiting', 'active', 'unfinished', 'finished'].includes(statusFromUrl) 
+      ? statusFromUrl 
+      : 'active'
+  );
   const [issueTypeFilter, setIssueTypeFilter] = useState<IssueType | 'all'>('all');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
@@ -150,6 +159,24 @@ const Cases: React.FC = () => {
     
     loadCases();
   }, [currentUser?.id]); // Only depend on user ID, not entire user object
+
+  // Helper function to update status filter and URL
+  const handleStatusFilterChange = (status: CaseStatus | 'all') => {
+    setStatusFilter(status);
+    if (status === 'all') {
+      setSearchParams({}, { replace: true });
+    } else {
+      setSearchParams({ status }, { replace: true });
+    }
+  };
+
+  // Sync statusFilter with URL parameter on mount and URL change
+  useEffect(() => {
+    const statusFromUrl = searchParams.get('status') as CaseStatus | null;
+    if (statusFromUrl && ['waiting', 'active', 'unfinished', 'finished'].includes(statusFromUrl)) {
+      setStatusFilter(statusFromUrl);
+    }
+  }, [searchParams]);
 
   // Filter cases based on search and filters
   useEffect(() => {
@@ -540,7 +567,7 @@ const Cases: React.FC = () => {
             <Box sx={{ position: 'relative', display: 'inline-block' }}>
               <Chip
                 label={t.status.active}
-                onClick={() => setStatusFilter('active')}
+                onClick={() => handleStatusFilterChange('active')}
                 sx={{
                   backgroundColor: statusFilter === 'active' ? '#ffc700' : '#fff',
                   color: statusFilter === 'active' ? '#000' : '#495057',
@@ -592,7 +619,7 @@ const Cases: React.FC = () => {
             <Box sx={{ position: 'relative', display: 'inline-block' }}>
               <Chip
                 label={t.status.waiting}
-                onClick={() => setStatusFilter('waiting')}
+                onClick={() => handleStatusFilterChange('waiting')}
                 sx={{
                   backgroundColor: statusFilter === 'waiting' ? '#ffc700' : '#fff',
                   color: statusFilter === 'waiting' ? '#000' : '#495057',
@@ -643,7 +670,7 @@ const Cases: React.FC = () => {
             </Box>
             <Chip
               label={t.status.completed}
-              onClick={() => setStatusFilter('finished')}
+              onClick={() => handleStatusFilterChange('finished')}
               sx={{
                 backgroundColor: statusFilter === 'finished' ? '#ffc700' : '#fff',
                 color: statusFilter === 'finished' ? '#000' : '#495057',
@@ -668,7 +695,7 @@ const Cases: React.FC = () => {
             />
             <Chip
               label={t.status.all}
-              onClick={() => setStatusFilter('all')}
+              onClick={() => handleStatusFilterChange('all')}
               sx={{
                 backgroundColor: statusFilter === 'all' ? '#ffc700' : '#fff',
                 color: statusFilter === 'all' ? '#000' : '#495057',
