@@ -37,6 +37,7 @@ interface SessionReport {
   mainTheme: string;
   personResponse: string;
   previousTaskCompleted: 'yes' | 'no' | 'partial';
+  previousTaskNotCompletedReason?: string;
   progressNoted: string;
   progressType?: string; // spiritual, emotional, relational, attitude, action
   nextCommitments: 'yes' | 'no';
@@ -55,6 +56,8 @@ interface SessionReportProps {
   onReportAdded?: () => void;
   hideAddButton?: boolean; // Hide the "Adaugă Raport Post-Sesiune" button
   caseStatus?: string; // Case status to determine if add button should be shown
+  autoOpenAddForm?: boolean; // Automatically open the add report form when dialog opens
+  onCancelAddForm?: () => void; // Callback when add form is canceled
 }
 
 const SessionReport: React.FC<SessionReportProps> = ({
@@ -64,7 +67,9 @@ const SessionReport: React.FC<SessionReportProps> = ({
   caseTitle,
   onReportAdded,
   hideAddButton = false,
-  caseStatus
+  caseStatus,
+  autoOpenAddForm = false,
+  onCancelAddForm
 }) => {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -72,12 +77,14 @@ const SessionReport: React.FC<SessionReportProps> = ({
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [reports, setReports] = useState<SessionReport[]>([]);
   const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
+  const [hasAutoOpened, setHasAutoOpened] = useState(false);
 
   // Form state
   const [sessionNumber, setSessionNumber] = useState(1);
   const [mainTheme, setMainTheme] = useState('');
   const [personResponse, setPersonResponse] = useState('');
   const [previousTaskCompleted, setPreviousTaskCompleted] = useState<'yes' | 'no' | 'partial'>('yes');
+  const [previousTaskNotCompletedReason, setPreviousTaskNotCompletedReason] = useState('');
   const [progressNoted, setProgressNoted] = useState('');
   const [nextCommitments, setNextCommitments] = useState<'yes' | 'no'>('yes');
   const [nextCommitmentsDetails, setNextCommitmentsDetails] = useState('');
@@ -85,12 +92,25 @@ const SessionReport: React.FC<SessionReportProps> = ({
 
   useEffect(() => {
     if (open && caseId) {
-      loadReports();
+      setHasAutoOpened(false); // Reset flag when dialog opens or case changes
       resetForm();
+      
+      // If autoOpenAddForm is true, immediately open the form to avoid showing reports list
+      if (autoOpenAddForm && caseStatus === 'active') {
+        setAddReportOpen(true);
+        setHasAutoOpened(true);
+      }
+      
+      loadReports(true); // Pass true to indicate initial load
+    } else if (!open) {
+      // Reset flag when dialog closes
+      setHasAutoOpened(false);
+      setAddReportOpen(false);
+      setExpandedReportId(null); // Collapse all expanded reports
     }
-  }, [open, caseId]);
+  }, [open, caseId, autoOpenAddForm, caseStatus]);
 
-  const loadReports = async () => {
+  const loadReports = async (isInitialLoad: boolean = false) => {
     try {
       const reportsRef = collection(db, 'sessionReports');
       const reportsQuery = query(reportsRef, where('caseId', '==', caseId));
@@ -106,6 +126,7 @@ const SessionReport: React.FC<SessionReportProps> = ({
           mainTheme: data.mainTheme,
           personResponse: data.personResponse,
           previousTaskCompleted: data.previousTaskCompleted,
+          previousTaskNotCompletedReason: data.previousTaskNotCompletedReason || '',
           progressNoted: data.progressNoted,
           nextCommitments: data.nextCommitments,
           nextCommitmentsDetails: data.nextCommitmentsDetails,
@@ -120,6 +141,12 @@ const SessionReport: React.FC<SessionReportProps> = ({
       reportsData.sort((a, b) => a.sessionNumber - b.sessionNumber);
       
       setReports(reportsData);
+      
+      // Update session number once reports are loaded (for both autoOpenAddForm and manual opens)
+      if (isInitialLoad) {
+        const maxSession = reportsData.length > 0 ? Math.max(...reportsData.map(r => r.sessionNumber), 0) : 0;
+        setSessionNumber(maxSession + 1);
+      }
     } catch (error) {
       console.error('Error loading reports:', error);
     }
@@ -132,6 +159,7 @@ const SessionReport: React.FC<SessionReportProps> = ({
     setMainTheme('');
     setPersonResponse('');
     setPreviousTaskCompleted('yes');
+    setPreviousTaskNotCompletedReason('');
     setProgressNoted('');
     setNextCommitments('yes');
     setNextCommitmentsDetails('');
@@ -139,8 +167,15 @@ const SessionReport: React.FC<SessionReportProps> = ({
   };
 
   const handleAddReport = async () => {
+    // Validate required fields
     if (!mainTheme.trim() || !personResponse.trim() || !progressNoted.trim()) {
       setSnackbar({ open: true, message: 'Toate câmpurile sunt obligatorii', severity: 'error' });
+      return;
+    }
+    
+    // Validate reason field when previousTaskCompleted is 'partial' or 'no'
+    if ((previousTaskCompleted === 'partial' || previousTaskCompleted === 'no') && !previousTaskNotCompletedReason.trim()) {
+      setSnackbar({ open: true, message: 'Te rugăm să completezi motivul pentru care tema nu a fost împlinită', severity: 'error' });
       return;
     }
 
@@ -153,6 +188,7 @@ const SessionReport: React.FC<SessionReportProps> = ({
         mainTheme: mainTheme.trim(),
         personResponse: personResponse.trim(),
         previousTaskCompleted,
+        previousTaskNotCompletedReason: (previousTaskCompleted === 'partial' || previousTaskCompleted === 'no') ? previousTaskNotCompletedReason.trim() : '',
         progressNoted: progressNoted.trim(),
         nextCommitments,
         nextCommitmentsDetails: nextCommitments ? nextCommitmentsDetails : '',
@@ -178,10 +214,14 @@ const SessionReport: React.FC<SessionReportProps> = ({
       setSnackbar({ open: true, message: 'Raportul a fost adăugat cu succes', severity: 'success' });
       resetForm();
       setAddReportOpen(false);
-      loadReports(); // Reload reports
+      loadReports(false); // Reload reports without auto-opening form
       
+      // Close the dialog and trigger callback to close all modals
       if (onReportAdded) {
         onReportAdded();
+      } else {
+        // If no callback, just close the dialog
+        onClose();
       }
     } catch (error) {
       console.error('Error adding session report:', error);
@@ -194,6 +234,8 @@ const SessionReport: React.FC<SessionReportProps> = ({
   const handleClose = () => {
     resetForm();
     setAddReportOpen(false);
+    setHasAutoOpened(false); // Reset flag when dialog closes
+    setExpandedReportId(null); // Collapse all expanded reports
     onClose();
   };
 
@@ -207,32 +249,40 @@ const SessionReport: React.FC<SessionReportProps> = ({
           </Box>
         </DialogTitle>
         <DialogContent>
-          {!hideAddButton && caseStatus === 'active' && (
-            <Box sx={{ mb: 3 }}>
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={() => setAddReportOpen(true)}
-                sx={{ 
-                  backgroundColor: '#ffc700',
-                  color: '#000',
-                  fontWeight: 'bold',
-                  '&:hover': { backgroundColor: '#e6b300' }
-                }}
-              >
-                Adaugă Raport Post-Sesiune
-              </Button>
-            </Box>
-          )}
+          {/* Only show reports list and add button if add form is not open */}
+          {!addReportOpen && (
+            <>
+              {!hideAddButton && caseStatus === 'active' && (
+                <Box sx={{ mb: 3 }}>
+                  <Button
+                    variant="contained"
+                    startIcon={<Add />}
+                    onClick={() => {
+                      // Update session number before opening form
+                      const maxSession = reports.length > 0 ? Math.max(...reports.map(r => r.sessionNumber), 0) : 0;
+                      setSessionNumber(maxSession + 1);
+                      setAddReportOpen(true);
+                    }}
+                    sx={{ 
+                      backgroundColor: '#ffc700',
+                      color: '#000',
+                      fontWeight: 'bold',
+                      '&:hover': { backgroundColor: '#e6b300' }
+                    }}
+                  >
+                    Adaugă Raport Post-Sesiune
+                  </Button>
+                </Box>
+              )}
 
-          {/* Info message about session reports */}
-          <Alert severity="info" sx={{ mb: 3 }}>
-            Raportul post-sesiune este completat după fiecare întâlnire de consiliere pentru a urmări progresul 
-            și pentru a menține continuitatea între sesiuni.
-          </Alert>
+              {/* Info message about session reports */}
+              <Alert severity="info" sx={{ mb: 3 }}>
+                Raportul post-sesiune este completat după fiecare întâlnire de consiliere pentru a urmări progresul 
+                și pentru a menține continuitatea între sesiuni.
+              </Alert>
 
-          {/* Display existing reports */}
-          {reports.length > 0 && (
+              {/* Display existing reports */}
+              {reports.length > 0 && (
             <Box>
               <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
                 Rapoarte Post-Sesiune ({reports.length})
@@ -293,6 +343,11 @@ const SessionReport: React.FC<SessionReportProps> = ({
                               {report.previousTaskCompleted === 'yes' ? 'Da' : 
                                report.previousTaskCompleted === 'partial' ? 'Parțial' : 'Nu'}
                             </Typography>
+                            {(report.previousTaskCompleted === 'partial' || report.previousTaskCompleted === 'no') && report.previousTaskNotCompletedReason && (
+                              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontStyle: 'italic', pl: 2 }}>
+                                Motiv: {report.previousTaskNotCompletedReason}
+                              </Typography>
+                            )}
                           </Box>
 
                           <Box sx={{ mb: 1 }}>
@@ -328,6 +383,8 @@ const SessionReport: React.FC<SessionReportProps> = ({
               </Box>
             </Box>
           )}
+            </>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Închide</Button>
@@ -335,7 +392,14 @@ const SessionReport: React.FC<SessionReportProps> = ({
       </Dialog>
 
       {/* Add Report Dialog */}
-      <Dialog open={addReportOpen} onClose={() => setAddReportOpen(false)} maxWidth="md" fullWidth>
+      <Dialog open={addReportOpen} onClose={() => {
+        setAddReportOpen(false);
+        setHasAutoOpened(false); // Reset flag when closing add form
+        // If onCancelAddForm callback is provided, call it to show case selection
+        if (onCancelAddForm) {
+          onCancelAddForm();
+        }
+      }} maxWidth="md" fullWidth>
         <DialogTitle>Raport Post-Sesiune de Consiliere</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
@@ -398,7 +462,7 @@ const SessionReport: React.FC<SessionReportProps> = ({
                 3. A împlinit persoana consiliată tema sau pașii practici stabiliți la sesiunea anterioară? *
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                ex: da, parțial, nu – și eventual o scurtă observație despre motiv / rezultat
+                ex: da, parțial, nu – o scurtă observație despre motiv
               </Typography>
               <FormControl component="fieldset">
                 <RadioGroup
@@ -410,6 +474,22 @@ const SessionReport: React.FC<SessionReportProps> = ({
                   <FormControlLabel value="no" control={<Radio />} label="Nu" />
                 </RadioGroup>
               </FormControl>
+              {/* Show reason field when Partial or No is selected */}
+              {(previousTaskCompleted === 'partial' || previousTaskCompleted === 'no') && (
+                <TextField
+                  fullWidth
+                  required
+                  value={previousTaskNotCompletedReason}
+                  onChange={(e) => setPreviousTaskNotCompletedReason(e.target.value)}
+                  placeholder="Te rugăm să explici motivul pentru care tema nu a fost împlinită..."
+                  size="small"
+                  multiline
+                  rows={2}
+                  sx={{ mt: 2 }}
+                  error={!previousTaskNotCompletedReason.trim()}
+                  helperText={!previousTaskNotCompletedReason.trim() ? 'Acest câmp este obligatoriu' : ''}
+                />
+              )}
             </Box>
 
             {/* Q4: Progress noted */}
@@ -475,7 +555,14 @@ const SessionReport: React.FC<SessionReportProps> = ({
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAddReportOpen(false)}>Anulează</Button>
+          <Button onClick={() => {
+            setAddReportOpen(false);
+            setHasAutoOpened(false); // Reset flag when canceling add form
+            // If onCancelAddForm callback is provided, call it to show case selection
+            if (onCancelAddForm) {
+              onCancelAddForm();
+            }
+          }}>Anulează</Button>
           <Button 
             onClick={handleAddReport} 
             variant="contained" 
@@ -484,6 +571,7 @@ const SessionReport: React.FC<SessionReportProps> = ({
               !mainTheme.trim() ||
               !personResponse.trim() ||
               !progressNoted.trim() ||
+              ((previousTaskCompleted === 'partial' || previousTaskCompleted === 'no') && !previousTaskNotCompletedReason.trim()) ||
               (nextCommitments === 'yes' && !nextCommitmentsDetails.trim()) ||
               (nextCommitments === 'no' && !noCommitmentsReason.trim())
             }

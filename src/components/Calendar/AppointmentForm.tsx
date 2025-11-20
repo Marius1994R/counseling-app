@@ -437,15 +437,10 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
                       <MenuItem value="">
                         <em>Nicio sală selectată</em>
                       </MenuItem>
-                      <MenuItem value="Main Sanctuary">Sanctuar Principal</MenuItem>
-                      <MenuItem value="Conference Room 1">Sala de Conferințe 1</MenuItem>
-                      <MenuItem value="Conference Room 2">Sala de Conferințe 2</MenuItem>
-                      <MenuItem value="Pastor's Office">Biroul Pastorului</MenuItem>
-                      <MenuItem value="Prayer Room">Sala de Rugăciune</MenuItem>
-                      <MenuItem value="Youth Room">Sala Tinerilor</MenuItem>
-                      <MenuItem value="Library">Biblioteca</MenuItem>
-                      <MenuItem value="Fellowship Hall">Sala de Comunitate</MenuItem>
-                      <MenuItem value="Other">Altă</MenuItem>
+                      <MenuItem value="Grupa Școlarii Mari">Grupa Școlarii Mari</MenuItem>
+                      <MenuItem value="Grupa Școlarii Mici">Grupa Școlarii Mici</MenuItem>
+                      <MenuItem value="Consiliu">Consiliu</MenuItem>
+                      <MenuItem value="Multifuncțională">Multifuncțională</MenuItem>
                     </Select>
                     {errors.room && (
                       <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>

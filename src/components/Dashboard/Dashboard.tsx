@@ -6,6 +6,7 @@ import {
   Box,
   List,
   ListItem,
+  ListItemButton,
   ListItemText,
   CircularProgress,
   Alert,
@@ -37,6 +38,7 @@ import { collection, getDocs, query, orderBy, where, addDoc, doc, getDoc, setDoc
 import { db } from '../../firebase';
 import { useNavigate } from 'react-router-dom';
 import { t } from '../../utils/translations';
+import SessionReport from '../Cases/SessionReport';
 
 const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -50,6 +52,9 @@ const Dashboard: React.FC = () => {
   const [newAssignmentModal, setNewAssignmentModal] = useState<any | null>(null);
   const [dismissedAssignments, setDismissedAssignments] = useState<Set<string>>(new Set());
   const [dismissedAssignmentsLoaded, setDismissedAssignmentsLoaded] = useState(false);
+  const [caseSelectionModalOpen, setCaseSelectionModalOpen] = useState(false);
+  const [sessionReportOpen, setSessionReportOpen] = useState(false);
+  const [selectedCaseForReport, setSelectedCaseForReport] = useState<Case | null>(null);
 
   // Load dismissed assignments from Firebase
   const loadDismissedAssignments = async (userId: string) => {
@@ -417,6 +422,41 @@ const Dashboard: React.FC = () => {
         }
       }, 100);
     }
+  };
+
+  const handleOpenCaseSelection = () => {
+    setCaseSelectionModalOpen(true);
+  };
+
+  const handleCloseCaseSelection = () => {
+    setCaseSelectionModalOpen(false);
+  };
+
+  const handleSelectCaseForReport = (selectedCase: Case) => {
+    setSelectedCaseForReport(selectedCase);
+    setCaseSelectionModalOpen(false);
+    setSessionReportOpen(true);
+  };
+
+  const handleCloseSessionReport = () => {
+    setSessionReportOpen(false);
+    setSelectedCaseForReport(null);
+    // When canceling the main dialog, show the case selection modal again
+    setCaseSelectionModalOpen(true);
+  };
+
+  const handleReportSaved = () => {
+    // Close all modals when report is saved
+    setSessionReportOpen(false);
+    setCaseSelectionModalOpen(false);
+    setSelectedCaseForReport(null);
+  };
+
+  const handleCancelAddForm = () => {
+    // When canceling the add form, close the report dialog and show case selection
+    setSessionReportOpen(false);
+    setSelectedCaseForReport(null);
+    setCaseSelectionModalOpen(true);
   };
 
   const getStatusColor = (status: CaseStatus) => {
@@ -968,7 +1008,7 @@ const Dashboard: React.FC = () => {
                 <Button
                   variant="contained"
                   fullWidth
-                  onClick={() => navigate('/cases')}
+                  onClick={() => setCaseSelectionModalOpen(true)}
                   sx={{ 
                     backgroundColor: '#ffc700',
                     color: '#000',
@@ -977,7 +1017,7 @@ const Dashboard: React.FC = () => {
                     py: 1.5
                   }}
                   >
-                  {t.dashboard.viewAllCases}
+                  Adaugă Raport
                 </Button>
                 <Button
                   variant="outlined"
@@ -1231,6 +1271,116 @@ const Dashboard: React.FC = () => {
             </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Case Selection Modal for Reports */}
+      <Dialog
+        open={caseSelectionModalOpen}
+        onClose={handleCloseCaseSelection}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            m: { xs: 1, sm: 2 },
+            maxWidth: { xs: 'calc(100% - 16px)', sm: '500px' },
+            width: { xs: '100%', sm: 'auto' },
+            borderRadius: { xs: 2, sm: 2 }
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          pb: { xs: 1, sm: 2 },
+          fontSize: { xs: '1.25rem', sm: '1.5rem' },
+          px: { xs: 2, sm: 3 },
+          pt: { xs: 2, sm: 3 }
+        }}>
+          <Description sx={{ mr: 1, color: 'primary.main' }} />
+          Selectează Caz pentru Raport
+        </DialogTitle>
+        <DialogContent sx={{ 
+          px: { xs: 2, sm: 3 },
+          pb: { xs: 1, sm: 2 }
+        }}>
+          {loading ? (
+            <Box display="flex" justifyContent="center" p={3}>
+              <CircularProgress sx={{ color: '#ffc700' }} />
+            </Box>
+          ) : cases.filter(c => c.status === 'active').length === 0 ? (
+            <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+              Nu există cazuri active disponibile pentru raportare
+            </Typography>
+          ) : (
+            <List>
+              {cases
+                .filter(caseItem => caseItem.status === 'active') // Only show active cases
+                .map((caseItem) => (
+                  <ListItem
+                    key={caseItem.id}
+                    disablePadding
+                    sx={{ mb: 1 }}
+                  >
+                    <ListItemButton
+                      onClick={() => handleSelectCaseForReport(caseItem)}
+                      sx={{
+                        border: '1px solid rgba(0, 0, 0, 0.12)',
+                        borderRadius: 1,
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 199, 0, 0.1)',
+                          borderColor: '#ffc700'
+                        }
+                      }}
+                    >
+                      <ListItemText
+                        primary={caseItem.title}
+                        secondary={
+                          <Box sx={{ mt: 0.5 }}>
+                            <Typography variant="caption" display="block" color="text.secondary">
+                              {caseItem.counseledName}
+                            </Typography>
+                            <Chip
+                              label={caseItem.status}
+                              size="small"
+                              sx={{
+                                mt: 0.5,
+                                height: '20px',
+                                fontSize: '0.7rem',
+                                backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                                color: '#1976d2'
+                              }}
+                            />
+                          </Box>
+                        }
+                      />
+                      <ArrowForward sx={{ color: 'text.secondary' }} />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+            </List>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ 
+          px: { xs: 2, sm: 3 }, 
+          pb: { xs: 2, sm: 3 }
+        }}>
+          <Button onClick={handleCloseCaseSelection}>
+            Anulează
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Session Report Dialog */}
+      <SessionReport
+        open={sessionReportOpen}
+        onClose={handleCloseSessionReport}
+        caseId={selectedCaseForReport?.id || ''}
+        caseTitle={selectedCaseForReport?.title || ''}
+        onReportAdded={handleReportSaved}
+        onCancelAddForm={handleCancelAddForm}
+        hideAddButton={false}
+        caseStatus={selectedCaseForReport?.status}
+        autoOpenAddForm={true}
+      />
     </Container>
   );
 };
