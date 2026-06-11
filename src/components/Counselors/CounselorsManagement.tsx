@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Container,
   Typography,
@@ -119,21 +119,28 @@ const CounselorsManagement: React.FC = () => {
     loadData();
   }, []);
 
+  const recalculateCounselorWorkload = useCallback((counselorId: string): { activeCases: number; workloadLevel: 'low' | 'moderate' | 'high' } => {
+    const assignedCases = cases.filter(caseItem => caseItem.assignedCounselorId === counselorId);
+    const activeCases = assignedCases.filter(caseItem => caseItem.status === 'active').length;
+    const workloadLevel: 'low' | 'moderate' | 'high' = activeCases >= 3 ? 'high' : activeCases >= 2 ? 'moderate' : 'low';
+
+    return { activeCases, workloadLevel };
+  }, [cases]);
+
   // Recalculate counselor workload when cases change
   useEffect(() => {
-    if (counselors.length > 0 && cases.length >= 0) {
-      setCounselors(prevCounselors => 
-        prevCounselors.map(counselor => {
-          const { activeCases, workloadLevel } = recalculateCounselorWorkload(counselor.id);
-          return {
-            ...counselor,
-            activeCases,
-            workloadLevel
-          };
-        })
-      );
-    }
-  }, [cases]);
+    setCounselors(prevCounselors => {
+      if (prevCounselors.length === 0) return prevCounselors;
+      return prevCounselors.map(counselor => {
+        const { activeCases, workloadLevel } = recalculateCounselorWorkload(counselor.id);
+        return {
+          ...counselor,
+          activeCases,
+          workloadLevel
+        };
+      });
+    });
+  }, [cases, recalculateCounselorWorkload]);
 
   // Filter counselors based on search and filters
   useEffect(() => {
@@ -257,15 +264,6 @@ const CounselorsManagement: React.FC = () => {
 
   const getTabCount = (workload: 'low' | 'moderate' | 'high') => {
     return counselors.filter(counselor => counselor.workloadLevel === workload).length;
-  };
-
-  // Function to recalculate counselor workload based on current cases
-  const recalculateCounselorWorkload = (counselorId: string): { activeCases: number; workloadLevel: 'low' | 'moderate' | 'high' } => {
-    const assignedCases = cases.filter(caseItem => caseItem.assignedCounselorId === counselorId);
-    const activeCases = assignedCases.filter(caseItem => caseItem.status === 'active').length;
-    const workloadLevel: 'low' | 'moderate' | 'high' = activeCases >= 3 ? 'high' : activeCases >= 2 ? 'moderate' : 'low';
-    
-    return { activeCases, workloadLevel };
   };
 
   const getCounselorCases = (counselorId: string) => {

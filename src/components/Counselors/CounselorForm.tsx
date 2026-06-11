@@ -236,7 +236,7 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
     onSubmit({
       fullName: formData.fullName.trim(),
       email: formData.email.trim(),
-      phoneNumber: `+40${formData.phoneNumber.replace(/[\s\-\(\)]/g, '')}`,
+      phoneNumber: `+40${formData.phoneNumber.replace(/[\s\-()]/g, '')}`,
       specialties: formData.specialties,
       linkedUserId: formData.linkedUserId || undefined
     });

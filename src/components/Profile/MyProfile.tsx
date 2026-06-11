@@ -36,7 +36,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 
 const MyProfile: React.FC = () => {
   const { currentUser } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [counselor, setCounselor] = useState<Counselor | null>(null);
   const [cases, setCases] = useState<Case[]>([]);
@@ -153,18 +153,21 @@ const MyProfile: React.FC = () => {
     };
     
     loadData();
-  }, [currentUser?.id]); // Only depend on user ID, not entire user object
+  }, [currentUser]);
 
   // Handle edit query parameter
   useEffect(() => {
     const editParam = searchParams.get('edit');
     if (editParam === 'true' && counselor) {
-      handleEditClick();
-      // Remove the query parameter from URL
+      setEditData({
+        phoneNumber: counselor.phoneNumber.replace('+40', ''),
+        specialties: [...counselor.specialties]
+      });
+      setEditDialogOpen(true);
       searchParams.delete('edit');
       navigate(`/profile?${searchParams.toString()}`, { replace: true });
     }
-  }, [searchParams, counselor]);
+  }, [searchParams, counselor, navigate]);
 
   const showSnackbar = (message: string, severity: 'success' | 'error') => {
     setSnackbar({ open: true, message, severity });

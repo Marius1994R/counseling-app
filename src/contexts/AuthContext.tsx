@@ -4,8 +4,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  createUserWithEmailAndPassword,
-  deleteUser as firebaseDeleteUser
+  createUserWithEmailAndPassword
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db, getSecondaryAuth } from '../firebase';
@@ -275,8 +274,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Get user data first to get the Firebase Auth UID
       const userDoc = await getDoc(doc(db, 'users', userId));
       if (userDoc.exists()) {
-        const userData = userDoc.data();
-        
         // Delete user from Firebase Auth (if it's a real Firebase user, not demo)
         if (!userId.startsWith('demo-')) {
           try {
@@ -338,9 +335,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (currentUser?.role !== 'leader' && currentUser?.role !== 'admin') {
         throw new Error('Only leaders and admins can reactivate users');
       }
-
-      // Allow supreme leader to reactivate themselves
-      const isSupremeLeader = currentUser?.email === 'marius.rasbici@biserica-lumina.ro';
 
       // Get user data to check their role
       const userDoc = await getDoc(doc(db, 'users', userId));

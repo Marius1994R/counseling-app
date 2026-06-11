@@ -82,7 +82,7 @@ export function useDashboardData() {
     }
   };
 
-  const ensureCounselorRecord = async (user: NonNullable<typeof currentUser>) => {
+  const ensureCounselorRecord = useCallback(async (user: NonNullable<typeof currentUser>) => {
     if (user.role !== 'leader' && user.role !== 'admin' && user.role !== 'counselor') {
       return null;
     }
@@ -117,7 +117,7 @@ export function useDashboardData() {
       console.error('Error ensuring counselor record:', err);
     }
     return null;
-  };
+  }, []);
 
   const loadData = useCallback(async () => {
     if (!currentUser) return;
@@ -255,7 +255,7 @@ export function useDashboardData() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser]);
+  }, [currentUser, ensureCounselorRecord]);
 
   useEffect(() => {
     loadData();
