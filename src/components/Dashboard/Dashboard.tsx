@@ -109,6 +109,7 @@ const Dashboard: React.FC = () => {
         metrics={metrics}
         loading={loading}
         onActiveClick={() => navigate('/cases?status=active')}
+        onPendingClick={() => navigate('/cases?status=waiting')}
       />
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
@@ -127,7 +128,6 @@ const Dashboard: React.FC = () => {
           onRaportCaz={() => setCaseSelectionModalOpen(true)}
           onSchedule={() => navigate('/calendar?new=true')}
           onAddCase={() => navigate('/admin?tab=2')}
-          onAddNote={() => navigate('/cases')}
           onUpdateProfile={() => navigate('/profile?edit=true')}
         />
       </div>
@@ -156,7 +156,7 @@ const Dashboard: React.FC = () => {
             variant="contained"
             onClick={handleSeeCase}
             startIcon={<Assignment />}
-            sx={{ backgroundColor: '#4f46e5', '&:hover': { backgroundColor: '#4338ca' } }}
+            sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B8860B' } }}
           >
             {t.dashboard.seeCase}
           </Button>
@@ -171,7 +171,7 @@ const Dashboard: React.FC = () => {
         <DialogContent>
           {loading ? (
             <Box display="flex" justifyContent="center" p={3}>
-              <CircularProgress sx={{ color: '#4f46e5' }} />
+              <CircularProgress sx={{ color: '#C99700' }} />
             </Box>
           ) : cases.filter((c) => c.status === 'active').length === 0 ? (
             <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
@@ -190,7 +190,7 @@ const Dashboard: React.FC = () => {
                         borderRadius: 1,
                         '&:hover': {
                           backgroundColor: 'rgba(79, 70, 229, 0.08)',
-                          borderColor: '#4f46e5',
+                          borderColor: '#C99700',
                         },
                       }}
                     >

@@ -2,7 +2,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   HomeIcon,
-  FolderIcon,
+  ClockIcon,
   FolderOpenIcon,
   CalendarIcon,
   UserGroupIcon,
@@ -25,11 +25,14 @@ interface NavItem {
   roles?: Array<'counselor' | 'admin' | 'leader'>;
 }
 
+const WAITING_CASES_PATH = '/cases?status=waiting';
+const CALENDAR_PATH = '/calendar';
+
 const navItems: NavItem[] = [
   { label: 'Dashboard', path: '/', icon: HomeIcon },
-  { label: 'Cazuri în așteptare', path: '/cases?status=waiting', icon: FolderIcon },
+  { label: 'Cazuri în așteptare', path: WAITING_CASES_PATH, icon: ClockIcon },
   { label: 'Toate cazurile', path: '/cases?status=all', icon: FolderOpenIcon },
-  { label: t.navigation.calendar, path: '/calendar', icon: CalendarIcon },
+  { label: t.navigation.calendar, path: CALENDAR_PATH, icon: CalendarIcon },
   { label: 'Echipa', path: '/counselors', icon: UserGroupIcon, roles: ['admin', 'leader'] },
   { label: 'Rapoarte', path: '/activity', icon: ChartBarIcon },
 ];
@@ -44,7 +47,9 @@ function isActive(path: string, pathname: string, search: string): boolean {
 
 const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, mobileOpen = false, onMobileClose }) => {
   const { currentUser } = useAuth();
-  const { refetch } = useDashboardDataContext();
+  const { refetch, metrics } = useDashboardDataContext();
+  const waitingCasesCount = metrics.pendingCases;
+  const futureAppointmentsCount = metrics.futureAppointmentsCount;
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -83,27 +88,57 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, mobileOpen = false
         {visibleItems.map((item) => {
           const active = isActive(item.path, location.pathname, location.search);
           const Icon = item.icon;
+          const showWaitingBadge =
+            item.path === WAITING_CASES_PATH && waitingCasesCount > 0;
+          const showCalendarBadge =
+            item.path === CALENDAR_PATH && futureAppointmentsCount > 0;
+          const badgeCount = showWaitingBadge
+            ? waitingCasesCount
+            : showCalendarBadge
+              ? futureAppointmentsCount
+              : 0;
+          const showBadge = badgeCount > 0;
+          const badgeLabel = badgeCount > 9 ? '9+' : String(badgeCount);
+          const ariaBadgeSuffix = showWaitingBadge
+            ? `${waitingCasesCount} cazuri`
+            : showCalendarBadge
+              ? `${futureAppointmentsCount} programări viitoare`
+              : '';
+
           return (
             <button
               key={item.path}
               type="button"
               onClick={() => handleNav(item.path)}
               title={collapsed ? item.label : undefined}
+              aria-label={
+                showBadge ? `${item.label}, ${ariaBadgeSuffix}` : item.label
+              }
               className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition duration-200 ease-out ${
                 active
-                  ? 'bg-indigo-50 text-indigo-600'
+                  ? 'bg-brand-50 text-brand-600'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
               } ${collapsed ? 'justify-center' : ''}`}
             >
-              <Icon className="h-5 w-5 shrink-0" />
-              {!collapsed && <span>{item.label}</span>}
+              <span className="relative shrink-0">
+                <Icon className="h-5 w-5" />
+                {showBadge && (
+                  <span
+                    className="absolute -right-1.5 -top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full border-2 border-white bg-amber-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm"
+                    aria-hidden="true"
+                  >
+                    {badgeLabel}
+                  </span>
+                )}
+              </span>
+              {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
             </button>
           );
         })}
       </nav>
 
       {!collapsed && (
-        <div className="mx-3 mt-2 mb-6 rounded-xl bg-indigo-50/60 p-4">
+        <div className="mx-3 mt-2 mb-6 rounded-xl bg-brand-50/60 p-4">
           <p className="text-xs italic leading-relaxed text-slate-500">
             „Domnul este aproape de cei cu inima zdrobită.” — Psalm 34:18
           </p>

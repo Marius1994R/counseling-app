@@ -18,9 +18,9 @@ import MyProfile from './components/Profile/MyProfile';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#4f46e5',
-      light: '#818cf8',
-      dark: '#4338ca',
+      main: '#C99700',
+      light: '#FEF3C7',
+      dark: '#B8860B',
       contrastText: '#ffffff',
     },
     secondary: {

@@ -113,6 +113,11 @@ export const t = {
   // Cases
   cases: {
     title: 'Cazuri',
+    subtitle: 'Cazurile tale alocate',
+    searchLabel: 'Căutare',
+    filterByStatus: 'Filtrează după status',
+    singleCaseView: 'Vizualizare caz singular',
+    clientInfo: 'Informații Consiliat',
     createCase: 'Creează Caz',
     editCase: 'Editează Caz',
     deleteCase: 'Șterge Caz',
@@ -186,6 +191,8 @@ export const t = {
   // Appointments
   appointments: {
     title: 'Programări',
+    subtitle: 'Programările tale și ale echipei',
+    searchLabel: 'Căutare',
     scheduleAppointment: 'Programează Întâlnirea',
     editAppointment: 'Editează Programare',
     deleteAppointment: 'Șterge Programare',
@@ -212,13 +219,32 @@ export const t = {
       allCounselors: 'Toți Consilierii'
     },
     noAppointments: 'Nu există programări',
-    noAppointmentsMessage: 'Nu există programări disponibile momentan.'
+    noAppointmentsMessage: 'Nu există programări disponibile momentan.',
+    noAppointmentsDay: 'Nu există programări pentru această zi',
+    moreOnDay: 'în plus',
+    pastDateError: 'Nu poți programa în trecut',
+    pastStartTimeError: 'Ora de start trebuie să fie în viitor',
+    pastEndTimeError: 'Ora de final trebuie să fie în viitor'
   },
 
   // Counselors
   counselors: {
     title: 'Consilieri',
-    addCounselor: 'Creează Profil',
+    pageTitle: 'Echipa',
+    subtitle: 'Gestionează consilierii și sarcina de lucru',
+    searchLabel: 'Căutare',
+    searchPlaceholder: 'Caută consilieri...',
+    workloadLabel: 'Sarcină de lucru',
+    allLevels: 'Toate nivelurile',
+    countSingular: 'consilier',
+    countPlural: 'consilieri',
+    noCounselorsFound: 'Nu există consilieri',
+    adjustFilters: 'Încearcă să ajustezi filtrele',
+    addFirstCounselor: 'Adaugă primul consilier pentru a începe',
+    loadError: 'Eroare la încărcarea consilierilor',
+    saveError: 'Eroare la salvarea consilierului',
+    deleteError: 'Eroare la ștergerea consilierului',
+    addCounselor: 'Adaugă consilier',
     editCounselor: 'Editează Consilier',
     deleteCounselor: 'Șterge Consilier',
     fullName: 'Nume Complet',
@@ -253,6 +279,35 @@ export const t = {
   // Activity Timeline
   activity: {
     title: 'Cronologie Activitate',
+    subtitle: 'Istoricul acțiunilor din sistem',
+    searchLabel: 'Căutare',
+    searchPlaceholder: 'Caută activități...',
+    typeLabel: 'Tip',
+    counselorLabel: 'Consilier',
+    periodLabel: 'Perioadă',
+    allTypes: 'Toate tipurile',
+    allCounselors: 'Toți consilierii',
+    countSingular: 'activitate găsită',
+    countPlural: 'activități găsite',
+    byUser: 'De',
+    noResults: 'Nu există activități pentru filtrele selectate.',
+    loadError: 'Eroare la încărcarea activităților',
+    periods: {
+      threeMonths: 'Ultimele 3 luni',
+      sixMonths: 'Ultimele 6 luni',
+      nineMonths: 'Ultimele 9 luni',
+      allTime: 'Tot timpul',
+    },
+    types: {
+      caseCreated: 'Caz creat',
+      caseStatusChanged: 'Status schimbat',
+      caseAssigned: 'Caz alocat',
+      caseUpdated: 'Caz actualizat',
+      meetingNotesAdded: 'Note ședință',
+      sessionReportAdded: 'Raport post-sesiune',
+      appointmentCreated: 'Programare creată',
+      counselorAdded: 'Consilier adăugat',
+    },
     filters: {
       all: 'Toate',
       caseCreated: 'Caz Creat',
@@ -260,17 +315,18 @@ export const t = {
       meetingNotesAdded: 'Note Ședință Adăugate',
       appointmentCreated: 'Programare Creată',
       counselorAdded: 'Consilier Adăugat',
-      caseAssigned: 'Caz Alocat'
+      caseAssigned: 'Caz Alocat',
     },
     byCounselor: 'După Consilier',
     byPriority: 'După Prioritate',
     noActivities: 'Nu există activități',
-    noActivitiesMessage: 'Nu există activități disponibile momentan.'
+    noActivitiesMessage: 'Nu există activități disponibile momentan.',
   },
 
   // Profile
   profile: {
     title: 'Profilul Meu',
+    subtitle: 'Contul și activitatea ta de consiliere',
     personalInfo: 'Informații Personale',
     counselorInfo: 'Informații Consilier',
     fullName: 'Nume Complet',
@@ -288,7 +344,14 @@ export const t = {
     commonSpecialties: 'Specializări comune (click pentru a adăuga)',
     updateSuccess: 'Profil actualizat cu succes!',
     updateError: 'Eroare la actualizarea profilului',
-    loadError: 'Eroare la încărcarea datelor profilului'
+    loadError: 'Eroare la încărcarea datelor profilului',
+    phoneNotProvided: 'Nu este furnizat',
+    workloadLow: 'Sarcină scăzută',
+    workloadModerate: 'Sarcină moderată',
+    workloadHigh: 'Sarcină ridicată',
+    roleCounselor: 'Consilier',
+    roleAdmin: 'Administrator',
+    roleLeader: 'Coordonator'
   },
 
   // Admin Tools

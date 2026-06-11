@@ -10,13 +10,18 @@ interface KpiCardProps {
   trendText?: string;
   onClick?: () => void;
   loading?: boolean;
+  /** Shows an unread-style badge on the icon when greater than 0 */
+  badgeCount?: number;
 }
 
-const variantStyles: Record<KpiVariant, { iconBg: string; iconText: string }> = {
-  primary: { iconBg: 'bg-indigo-50', iconText: 'text-indigo-600' },
-  success: { iconBg: 'bg-green-50', iconText: 'text-green-500' },
-  warning: { iconBg: 'bg-amber-50', iconText: 'text-amber-500' },
-  info: { iconBg: 'bg-sky-50', iconText: 'text-sky-500' },
+const variantStyles: Record<
+  KpiVariant,
+  { iconBg: string; iconText: string; badgeBg: string }
+> = {
+  primary: { iconBg: 'bg-brand-50', iconText: 'text-brand-600', badgeBg: 'bg-brand-600' },
+  success: { iconBg: 'bg-green-50', iconText: 'text-green-500', badgeBg: 'bg-green-600' },
+  warning: { iconBg: 'bg-amber-50', iconText: 'text-amber-500', badgeBg: 'bg-amber-500' },
+  info: { iconBg: 'bg-sky-50', iconText: 'text-sky-500', badgeBg: 'bg-sky-600' },
 };
 
 const KpiCard: React.FC<KpiCardProps> = ({
@@ -27,9 +32,11 @@ const KpiCard: React.FC<KpiCardProps> = ({
   trendText,
   onClick,
   loading,
+  badgeCount = 0,
 }) => {
   const styles = variantStyles[variant];
   const Tag = onClick ? 'button' : 'div';
+  const showBadge = !loading && badgeCount > 0;
 
   return (
     <Tag
@@ -40,8 +47,20 @@ const KpiCard: React.FC<KpiCardProps> = ({
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${styles.iconBg} ${styles.iconText}`}>
-          {icon}
+        <div className="relative">
+          <div
+            className={`flex h-10 w-10 items-center justify-center rounded-lg ${styles.iconBg} ${styles.iconText}`}
+          >
+            {icon}
+          </div>
+          {showBadge && (
+            <span
+              className={`absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full border-2 border-white px-1 text-[10px] font-bold leading-none text-white shadow-sm ${styles.badgeBg}`}
+              aria-hidden="true"
+            >
+              {badgeCount > 9 ? '9+' : badgeCount}
+            </span>
+          )}
         </div>
       </div>
       <p className="mt-4 text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>

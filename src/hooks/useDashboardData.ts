@@ -16,6 +16,7 @@ import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Case, Appointment, CaseStatus } from '../types';
 import { ActivityRecord } from '../components/Dashboard/dashboardUtils';
+import { countFutureAppointments } from '../components/Calendar/calendarUtils';
 
 export interface DashboardMetricsComputed {
   totalCases: number;
@@ -23,6 +24,7 @@ export interface DashboardMetricsComputed {
   completedCases: number;
   pendingCases: number;
   totalAppointments: number;
+  futureAppointmentsCount: number;
   casesByStatus: Record<CaseStatus, number>;
 }
 
@@ -82,45 +84,45 @@ export function useDashboardData() {
     }
   };
 
-  const ensureCounselorRecord = useCallback(async (user: NonNullable<typeof currentUser>) => {
-    if (user.role !== 'leader' && user.role !== 'admin' && user.role !== 'counselor') {
-      return null;
-    }
-
-    try {
-      const counselorsRef = collection(db, 'counselors');
-      const q = query(counselorsRef, where('linkedUserId', '==', user.id));
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        return querySnapshot.docs[0].id;
-      }
-
-      if (user.role === 'leader' || user.role === 'admin') {
-        const counselorData = {
-          fullName: user.fullName || user.email,
-          email: user.email,
-          phoneNumber: '',
-          specialties: user.role === 'leader' ? ['Leadership', 'Administration'] : ['Administration'],
-          activeCases: 0,
-          workloadLevel: 'low',
-          linkedUserId: user.id,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-
-        const counselorRef = collection(db, 'counselors');
-        const docRef = await addDoc(counselorRef, counselorData);
-        return docRef.id;
-      }
-    } catch (err) {
-      console.error('Error ensuring counselor record:', err);
-    }
-    return null;
-  }, []);
-
   const loadData = useCallback(async () => {
     if (!currentUser) return;
+
+    const ensureCounselorRecord = async (user: NonNullable<typeof currentUser>) => {
+      if (user.role !== 'leader' && user.role !== 'admin' && user.role !== 'counselor') {
+        return null;
+      }
+
+      try {
+        const counselorsRef = collection(db, 'counselors');
+        const q = query(counselorsRef, where('linkedUserId', '==', user.id));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          return querySnapshot.docs[0].id;
+        }
+
+        if (user.role === 'leader' || user.role === 'admin') {
+          const counselorData = {
+            fullName: user.fullName || user.email,
+            email: user.email,
+            phoneNumber: '',
+            specialties: user.role === 'leader' ? ['Leadership', 'Administration'] : ['Administration'],
+            activeCases: 0,
+            workloadLevel: 'low',
+            linkedUserId: user.id,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+
+          const counselorRef = collection(db, 'counselors');
+          const docRef = await addDoc(counselorRef, counselorData);
+          return docRef.id;
+        }
+      } catch (err) {
+        console.error('Error ensuring counselor record:', err);
+      }
+      return null;
+    };
 
     try {
       setLoading(true);
@@ -255,7 +257,7 @@ export function useDashboardData() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, ensureCounselorRecord]);
+  }, [currentUser]);
 
   useEffect(() => {
     loadData();
@@ -377,9 +379,10 @@ export function useDashboardData() {
         completedCases: cases.filter((c) => c.status === 'finished').length,
         pendingCases: cases.filter((c) => c.status === 'waiting').length,
         totalAppointments: appointments.length,
+        futureAppointmentsCount: countFutureAppointments(appointments),
         casesByStatus,
       };
-    }, [cases, appointments.length]);
+    }, [cases, appointments]);
 
   const upcomingAppointments = useMemo(
     () =>

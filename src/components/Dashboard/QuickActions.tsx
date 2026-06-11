@@ -20,7 +20,6 @@ interface QuickActionsProps {
   onRaportCaz: () => void;
   onSchedule: () => void;
   onAddCase?: () => void;
-  onAddNote?: () => void;
   onUpdateProfile?: () => void;
 }
 
@@ -28,7 +27,6 @@ const QuickActions: React.FC<QuickActionsProps> = ({
   onRaportCaz,
   onSchedule,
   onAddCase,
-  onAddNote,
   onUpdateProfile,
 }) => {
   const { currentUser } = useAuth();
@@ -54,11 +52,6 @@ const QuickActions: React.FC<QuickActionsProps> = ({
       label: 'Raport caz',
       icon: DocumentTextIcon,
       onClick: onRaportCaz,
-    },
-    {
-      label: 'Adaugă notiță',
-      icon: DocumentTextIcon,
-      onClick: onAddNote,
     },
     {
       label: 'Actualizează profil',
@@ -87,7 +80,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
               className={`flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2.5 text-left text-sm font-medium transition duration-200 ease-out active:scale-[0.98] ${
                 action.disabled
                   ? 'cursor-not-allowed text-slate-400 opacity-60'
-                  : 'text-slate-700 hover:bg-indigo-50 hover:text-indigo-700'
+                  : 'text-slate-700 hover:bg-brand-50 hover:text-brand-700'
               }`}
             >
               <Icon className="h-4 w-4 shrink-0" />

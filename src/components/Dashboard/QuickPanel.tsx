@@ -14,7 +14,6 @@ interface QuickPanelProps {
   onRaportCaz: () => void;
   onSchedule: () => void;
   onAddCase?: () => void;
-  onAddNote?: () => void;
   onUpdateProfile?: () => void;
 }
 
@@ -32,7 +31,6 @@ const QuickPanel: React.FC<QuickPanelProps> = (props) => {
         onRaportCaz={props.onRaportCaz}
         onSchedule={props.onSchedule}
         onAddCase={props.onAddCase}
-        onAddNote={props.onAddNote}
         onUpdateProfile={props.onUpdateProfile}
       />
       <AlertsPanel cases={props.cases} sessionReportCounts={props.sessionReportCounts} />

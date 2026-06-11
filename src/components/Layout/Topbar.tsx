@@ -86,7 +86,7 @@ const Topbar: React.FC<TopbarProps> = ({
             <button
               type="button"
               onClick={openCaseReportModal}
-              className="hidden rounded-full bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition duration-200 ease-out hover:bg-indigo-700 active:scale-[0.98] sm:inline-flex"
+              className="hidden rounded-full bg-brand-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition duration-200 ease-out hover:bg-brand-700 active:scale-[0.98] sm:inline-flex"
             >
               + Raport caz
             </button>
@@ -100,7 +100,7 @@ const Topbar: React.FC<TopbarProps> = ({
         >
           <BellIcon className="h-5 w-5" />
           {notificationCount > 0 && (
-            <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-600 px-1 text-[10px] font-bold text-white">
+            <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-white">
               {notificationCount > 9 ? '9+' : notificationCount}
             </span>
           )}
@@ -112,7 +112,7 @@ const Topbar: React.FC<TopbarProps> = ({
             onClick={() => setMenuOpen((o) => !o)}
             className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 hover:bg-slate-50"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-600">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-600">
               {currentUser?.fullName
                 ?.split(' ')
                 .map((n) => n[0])

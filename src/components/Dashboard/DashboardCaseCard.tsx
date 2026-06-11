@@ -1,5 +1,4 @@
 import React from 'react';
-import { EllipsisVerticalIcon } from '@heroicons/react/24/outline';
 import { Case } from '../../types';
 import { getCaseDisplayId, getInitials, getStatusLabel } from './dashboardUtils';
 
@@ -21,7 +20,7 @@ const statusBadgeClass: Record<string, string> = {
 };
 
 const avatarColors = [
-  'bg-indigo-100 text-indigo-600',
+  'bg-brand-100 text-brand-600',
   'bg-amber-100 text-amber-700',
   'bg-green-100 text-green-700',
   'bg-sky-100 text-sky-700',
@@ -47,7 +46,7 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start gap-2">
             <div>
               <p className="text-xs text-slate-400">{getCaseDisplayId(caseItem)}</p>
               <p className="font-semibold text-slate-900">{caseItem.counseledName}</p>
@@ -55,13 +54,6 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
                 {caseItem.assignedCounselorName ?? 'Nealocat'}
               </p>
             </div>
-            <button
-              type="button"
-              className="rounded p-1 text-slate-400 hover:bg-slate-100"
-              aria-label="Opțiuni"
-            >
-              <EllipsisVerticalIcon className="h-5 w-5" />
-            </button>
           </div>
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -82,7 +74,7 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
               <div
-                className="h-full rounded-full bg-indigo-600 transition-all duration-300"
+                className="h-full rounded-full bg-brand-600 transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>

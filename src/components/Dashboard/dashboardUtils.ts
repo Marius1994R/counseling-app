@@ -99,7 +99,7 @@ export function getActivityColor(type: string): string {
     case 'session_report_added':
       return 'bg-purple-500';
     case 'case_assigned':
-      return 'bg-indigo-500';
+      return 'bg-brand-500';
     case 'meeting_notes_added':
       return 'bg-sky-500';
     case 'case_status_changed':
@@ -121,6 +121,9 @@ export function translateActivityTitle(title: string): string {
     'Case Updated': 'Caz Actualizat',
     'Appointment Updated': 'Programare Actualizată',
     'Appointment Deleted': 'Programare Ștearsă',
+    'Counselor Added': 'Consilier Adăugat',
+    'Counselor Updated': 'Consilier Actualizat',
+    'Raport Post-Sesiune Adăugat': 'Raport Post-Sesiune Adăugat',
   };
   return titleMap[title] ?? title;
 }

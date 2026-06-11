@@ -27,7 +27,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
         <button
           type="button"
           onClick={onViewCalendar}
-          className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
+          className="text-xs font-medium text-brand-600 hover:text-brand-700"
         >
           Vezi calendar
         </button>

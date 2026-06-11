@@ -1,0 +1,191 @@
+import React from 'react';
+import { MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { Alert } from '@mui/material';
+import { Case, Counselor } from '../../types';
+import { CaseStatusFilter } from './adminUtils';
+import { t } from '../../utils/translations';
+import CasesGrid from '../Cases/CasesGrid';
+import AdminSkeleton from './AdminSkeleton';
+
+interface AdminCasesPanelProps {
+  loading: boolean;
+  error: string;
+  cases: Case[];
+  counselors: Counselor[];
+  caseNotes: Record<string, string>;
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+  statusFilter: CaseStatusFilter;
+  onStatusFilterChange: (value: CaseStatusFilter) => void;
+  counselorFilter: string;
+  onCounselorFilterChange: (value: string) => void;
+  onAdd: () => void;
+  onEdit: (caseItem: Case) => void;
+  onDelete: (caseId: string) => void;
+  onOpenSessionReport: (caseItem: Case) => void;
+  isLeader: boolean;
+}
+
+const STATUS_OPTIONS: { value: CaseStatusFilter; label: string }[] = [
+  { value: 'all', label: t.adminTools.allStatuses },
+  { value: 'waiting', label: t.status.waiting },
+  { value: 'active', label: t.status.active },
+  { value: 'unfinished', label: t.status.unfinished },
+  { value: 'finished', label: t.status.completed },
+  { value: 'cancelled', label: t.status.cancelled },
+];
+
+const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
+  loading,
+  error,
+  cases,
+  counselors,
+  caseNotes,
+  searchTerm,
+  onSearchChange,
+  statusFilter,
+  onStatusFilterChange,
+  counselorFilter,
+  onCounselorFilterChange,
+  onAdd,
+  onEdit,
+  onDelete,
+  onOpenSessionReport,
+  isLeader,
+}) => {
+  const hasFilters =
+    searchTerm.trim() !== '' || statusFilter !== 'all' || counselorFilter !== 'all';
+  const countLabel = cases.length === 1 ? 'caz' : 'cazuri';
+
+  if (loading) {
+    return <AdminSkeleton />;
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-base font-semibold text-slate-900">
+          {t.adminTools.allCasesManagement}
+        </h2>
+        <button
+          type="button"
+          onClick={onAdd}
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-700 active:scale-[0.98]"
+        >
+          <PlusIcon className="h-4 w-4" />
+          {t.adminTools.addCase}
+        </button>
+      </div>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} className="rounded-xl">
+          {error}
+        </Alert>
+      )}
+
+      <div className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-1">
+            <label
+              htmlFor="admin-cases-search"
+              className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500"
+            >
+              {t.cases.searchLabel}
+            </label>
+            <div className="relative">
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+              <input
+                id="admin-cases-search"
+                type="search"
+                value={searchTerm}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder={t.adminTools.searchCases}
+                className="w-full rounded-lg border border-slate-200 py-2.5 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              htmlFor="admin-cases-status"
+              className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500"
+            >
+              {t.cases.status}
+            </label>
+            <select
+              id="admin-cases-status"
+              value={statusFilter}
+              onChange={(e) => onStatusFilterChange(e.target.value as CaseStatusFilter)}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            >
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label
+              htmlFor="admin-cases-counselor"
+              className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500"
+            >
+              {t.cases.assignedCounselor}
+            </label>
+            <select
+              id="admin-cases-counselor"
+              value={counselorFilter}
+              onChange={(e) => onCounselorFilterChange(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            >
+              <option value="all">{t.adminTools.allCounselors}</option>
+              {counselors.map((counselor) => (
+                <option key={counselor.id} value={counselor.id}>
+                  {counselor.fullName}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-4 flex justify-end">
+          <span className="rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-700">
+            {cases.length} {countLabel}
+          </span>
+        </div>
+      </div>
+
+      {cases.length === 0 ? (
+        <div className="rounded-xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
+          <p className="text-base font-medium text-slate-700">
+            {hasFilters ? t.adminTools.noMatchFound : t.adminTools.noCasesFound}
+          </p>
+        </div>
+      ) : (
+        <CasesGrid
+          cases={cases}
+          loading={false}
+          caseNotes={isLeader ? caseNotes : {}}
+          caseReportsCount={{}}
+          hasActiveFilters={hasFilters}
+          onOpenNotes={onEdit}
+          onOpenReports={onOpenSessionReport}
+          onEdit={onEdit}
+          onOpenDescription={onEdit}
+          onDelete={(caseItem) => {
+            if (
+              window.confirm(
+                t.deleteWarnings.deleteCaseConfirm.replace('{title}', caseItem.title)
+              )
+            ) {
+              onDelete(caseItem.id);
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+export default AdminCasesPanel;

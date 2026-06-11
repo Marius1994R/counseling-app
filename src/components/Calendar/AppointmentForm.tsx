@@ -20,6 +20,31 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
 import { Appointment, Counselor, Case } from '../../types';
 import { t } from '../../utils/translations';
+import { filterSchedulableCases, isSchedulableCase } from './calendarUtils';
+
+const combineDateAndTime = (date: Dayjs, time: Dayjs): Dayjs =>
+  date.hour(time.hour()).minute(time.minute()).second(0).millisecond(0);
+
+const maxDayjs = (a: Dayjs, b: Dayjs): Dayjs => (a.isAfter(b) ? a : b);
+
+const isDateTimeInPast = (date: Dayjs | null, time: Dayjs | null): boolean => {
+  if (!date || !time) return false;
+  return combineDateAndTime(date, time).isBefore(dayjs());
+};
+
+const isSameScheduledDateTime = (
+  date: Dayjs | null,
+  startTime: Dayjs | null,
+  endTime: Dayjs | null,
+  original: Appointment
+): boolean => {
+  if (!date || !startTime || !endTime) return false;
+  return (
+    date.isSame(dayjs(original.date), 'day') &&
+    startTime.format('HH:mm') === original.startTime &&
+    endTime.format('HH:mm') === original.endTime
+  );
+};
 
 interface AppointmentFormProps {
   open: boolean;
@@ -60,6 +85,44 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
   const [startTimePickerOpen, setStartTimePickerOpen] = useState(false);
   const [endTimePickerOpen, setEndTimePickerOpen] = useState(false);
 
+  const isToday = formData.date?.isSame(dayjs(), 'day') ?? false;
+  const preserveOriginalDateTime =
+    appointmentData &&
+    isSameScheduledDateTime(formData.date, formData.startTime, formData.endTime, appointmentData);
+  const restrictPastTimes = isToday && !preserveOriginalDateTime;
+  const minStartTime = restrictPastTimes ? dayjs().startOf('minute') : undefined;
+  const minEndTime =
+    formData.startTime && formData.date
+      ? restrictPastTimes
+        ? maxDayjs(dayjs().startOf('minute'), formData.startTime.add(15, 'minute'))
+        : formData.startTime.add(15, 'minute')
+      : restrictPastTimes
+        ? dayjs().startOf('minute')
+        : undefined;
+
+  const validatePastDateTime = (
+    data: typeof formData,
+    newErrors: Record<string, string>
+  ): void => {
+    const skipPastCheck =
+      appointmentData &&
+      isSameScheduledDateTime(data.date, data.startTime, data.endTime, appointmentData);
+
+    if (skipPastCheck) return;
+
+    if (data.date && data.date.isBefore(dayjs().startOf('day'))) {
+      newErrors.date = t.appointments.pastDateError;
+    }
+
+    if (isDateTimeInPast(data.date, data.startTime)) {
+      newErrors.startTime = t.appointments.pastStartTimeError;
+    }
+
+    if (isDateTimeInPast(data.date, data.endTime)) {
+      newErrors.endTime = t.appointments.pastEndTimeError;
+    }
+  };
+
   // Function to check for room conflicts
   const checkRoomConflict = (room: string, date: Dayjs, startTime: string, endTime: string, excludeId?: string) => {
     if (!room || !date) return false;
@@ -90,13 +153,16 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
     if (appointmentData) {
       // For counselor users editing appointments, check if they have access to the case
       let caseId = appointmentData.caseId || '';
-      if (currentUser?.role === 'counselor' && appointmentData.caseId) {
-        const userCounselor = counselors.find(c => c.email === currentUser.email);
-        if (userCounselor) {
-          const caseItem = cases.find(c => c.id === appointmentData.caseId);
-          // If the case is not assigned to this counselor, clear the case selection
-          if (caseItem && caseItem.assignedCounselorId !== userCounselor.id) {
+      if (appointmentData.caseId) {
+        const caseItem = cases.find((c) => c.id === appointmentData.caseId);
+        if (caseItem) {
+          if (!isSchedulableCase(caseItem)) {
             caseId = '';
+          } else if (currentUser?.role === 'counselor') {
+            const userCounselor = counselors.find((c) => c.email === currentUser.email);
+            if (userCounselor && caseItem.assignedCounselorId !== userCounselor.id) {
+              caseId = '';
+            }
           }
         }
       }
@@ -122,14 +188,18 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
       }
       
       const validPreselectedCase =
-        preSelectedCaseId && cases.some((c) => c.id === preSelectedCaseId)
+        preSelectedCaseId &&
+        cases.some((c) => c.id === preSelectedCaseId && isSchedulableCase(c))
           ? preSelectedCaseId
           : '';
 
       setFormData({
         counselorId: defaultCounselorId,
         caseId: validPreselectedCase,
-        date: preSelectedDate ? dayjs(preSelectedDate) : dayjs(),
+        date: (() => {
+          const initial = preSelectedDate ? dayjs(preSelectedDate) : dayjs();
+          return initial.isBefore(dayjs().startOf('day')) ? dayjs() : initial;
+        })(),
         startTime: null,
         endTime: null,
         room: '',
@@ -171,6 +241,8 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
         newErrors.endTime = 'Appointment must be at least 15 minutes long';
       }
     }
+
+    validatePastDateTime(formData, newErrors);
 
     // Check for room conflicts
     if (formData.room && formData.date && formData.startTime && formData.endTime) {
@@ -222,6 +294,19 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
   const handleChange = (field: string, value: any) => {
     setFormData(prev => {
       const newFormData = { ...prev, [field]: value };
+
+      if (field === 'date' && value?.isSame(dayjs(), 'day')) {
+        const now = dayjs().startOf('minute');
+        if (newFormData.startTime && combineDateAndTime(value, newFormData.startTime).isBefore(now)) {
+          newFormData.startTime = null;
+          newFormData.endTime = null;
+        } else if (
+          newFormData.endTime &&
+          combineDateAndTime(value, newFormData.endTime).isBefore(now)
+        ) {
+          newFormData.endTime = null;
+        }
+      }
       
       // Auto-suggest end time when start time changes
       if (field === 'startTime' && value && !prev.endTime) {
@@ -246,10 +331,24 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
 
+    const updatedFormData = { ...formData, [field]: value };
+
+    if (field === 'date' || field === 'startTime' || field === 'endTime') {
+      const pastErrors: Record<string, string> = {};
+      validatePastDateTime(updatedFormData, pastErrors);
+      setErrors(prev => ({
+        ...prev,
+        date: field === 'date' ? pastErrors.date || '' : prev.date,
+        startTime: field === 'startTime' || field === 'date' ? pastErrors.startTime || '' : prev.startTime,
+        endTime:
+          field === 'endTime' || field === 'startTime' || field === 'date'
+            ? pastErrors.endTime || ''
+            : prev.endTime,
+      }));
+    }
+
     // Real-time room conflict validation
     if (field === 'room' || field === 'date' || field === 'startTime' || field === 'endTime') {
-      const updatedFormData = { ...formData, [field]: value };
-      
       if (updatedFormData.room && updatedFormData.date && updatedFormData.startTime && updatedFormData.endTime) {
         const startTimeStr = updatedFormData.startTime.format('HH:mm');
         const endTimeStr = updatedFormData.endTime.format('HH:mm');
@@ -333,18 +432,18 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
                       </MenuItem>
                       {/* Filter cases based on user role */}
                       {(() => {
-                        let filteredCases = cases;
-                        
+                        let filteredCases = filterSchedulableCases(cases);
+
                         // For counselor users, only show cases assigned to them
                         if (currentUser?.role === 'counselor') {
                           const userCounselor = counselors.find(c => c.email === currentUser.email);
                           if (userCounselor) {
-                            filteredCases = cases.filter(caseItem => 
-                              caseItem.assignedCounselorId === userCounselor.id
+                            filteredCases = filteredCases.filter(
+                              (caseItem) => caseItem.assignedCounselorId === userCounselor.id
                             );
                           }
                         }
-                        
+
                         return filteredCases.map((caseItem) => (
                           <MenuItem key={caseItem.id} value={caseItem.id}>
                             {caseItem.title} - {caseItem.counseledName}
@@ -368,6 +467,7 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
                     label={t.appointments.date}
                     value={formData.date}
                     onChange={(newValue) => handleChange('date', newValue)}
+                    minDate={appointmentData ? undefined : dayjs().startOf('day')}
                     slotProps={{
                       textField: {
                         fullWidth: true,
@@ -384,6 +484,8 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
                     value={formData.startTime}
                     onChange={(newValue) => handleChange('startTime', newValue)}
                     ampm={false}
+                    minTime={minStartTime}
+                    referenceDate={formData.date ?? undefined}
                     open={startTimePickerOpen}
                     onOpen={() => setStartTimePickerOpen(true)}
                     onClose={() => setStartTimePickerOpen(false)}
@@ -411,6 +513,8 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
                     onChange={(newValue) => handleChange('endTime', newValue)}
                     disabled={!formData.startTime}
                     ampm={false}
+                    minTime={minEndTime}
+                    referenceDate={formData.date ?? undefined}
                     open={endTimePickerOpen}
                     onOpen={() => setEndTimePickerOpen(true)}
                     onClose={() => setEndTimePickerOpen(false)}

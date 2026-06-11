@@ -17,9 +17,10 @@ interface KpiRowProps {
   };
   loading?: boolean;
   onActiveClick?: () => void;
+  onPendingClick?: () => void;
 }
 
-const KpiRow: React.FC<KpiRowProps> = ({ metrics, loading, onActiveClick }) => (
+const KpiRow: React.FC<KpiRowProps> = ({ metrics, loading, onActiveClick, onPendingClick }) => (
   <div className="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-4">
     <KpiCard
       label={t.dashboard.activeCases}
@@ -44,6 +45,8 @@ const KpiRow: React.FC<KpiRowProps> = ({ metrics, loading, onActiveClick }) => (
       icon={<ClockIcon className="h-5 w-5" />}
       variant="warning"
       trendText={metrics.pendingCases === 0 ? 'Nicio așteptare' : 'În așteptare'}
+      badgeCount={metrics.pendingCases}
+      onClick={onPendingClick}
       loading={loading}
     />
     <KpiCard

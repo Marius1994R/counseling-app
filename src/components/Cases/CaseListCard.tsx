@@ -1,0 +1,204 @@
+import React from 'react';
+import {
+  UserIcon,
+  IdentificationIcon,
+  PhoneIcon,
+  CalendarDaysIcon,
+  PencilSquareIcon,
+  DocumentTextIcon,
+  ClipboardDocumentListIcon,
+  TrashIcon,
+} from '@heroicons/react/24/outline';
+import { Case } from '../../types';
+import { t } from '../../utils/translations';
+import {
+  getCaseDisplayId,
+  getInitials,
+  getStatusLabel,
+  getStatusBadgeClass,
+  getAvatarColorClass,
+  translateSex,
+  translateCivilStatus,
+} from './casesUtils';
+
+interface CaseListCardProps {
+  caseItem: Case;
+  latestNote: string;
+  reportsCount: number;
+  onOpenNotes: () => void;
+  onOpenReports: () => void;
+  onEdit: () => void;
+  onOpenDescription: () => void;
+  onDelete?: () => void;
+}
+
+const CaseListCard: React.FC<CaseListCardProps> = ({
+  caseItem,
+  latestNote,
+  reportsCount,
+  onOpenNotes,
+  onOpenReports,
+  onEdit,
+  onOpenDescription,
+  onDelete,
+}) => {
+  const showReports = reportsCount > 0 || caseItem.status === 'active';
+  const description = caseItem.description || '';
+  const isTruncated = description.length > 150;
+
+  return (
+    <article
+      id={`case-${caseItem.id}`}
+      className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md"
+    >
+      <div className="border-b border-slate-100 p-5">
+        <div className="flex items-start gap-3">
+          <div
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${getAvatarColorClass(caseItem.counseledName)}`}
+          >
+            {getInitials(caseItem.counseledName)}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p className="text-xs text-slate-400">{getCaseDisplayId(caseItem)}</p>
+                <h2 className="text-lg font-semibold text-slate-900">{caseItem.counseledName}</h2>
+                <p className="text-sm text-slate-500">{caseItem.title}</p>
+              </div>
+              <span
+                className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusBadgeClass(caseItem.status)}`}
+              >
+                {getStatusLabel(caseItem.status)}
+              </span>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={onOpenNotes}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-1.5 text-xs font-medium text-brand-600 transition hover:bg-brand-50"
+              >
+                <DocumentTextIcon className="h-4 w-4" />
+                {t.meetingNotes.addNote}
+              </button>
+              {showReports && (
+                <button
+                  type="button"
+                  onClick={onOpenReports}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  <ClipboardDocumentListIcon className="h-4 w-4" />
+                  {t.adminTools.manageReports}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onEdit}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                <PencilSquareIcon className="h-4 w-4" />
+                {t.common.edit}
+              </button>
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={onDelete}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50"
+                >
+                  <TrashIcon className="h-4 w-4" />
+                  {t.common.delete}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-4 p-5">
+        <div className="rounded-lg bg-slate-50 p-4">
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {t.cases.clientInfo}
+          </h3>
+          <ul className="space-y-2.5 text-sm text-slate-700">
+            <li className="flex items-center gap-2">
+              <UserIcon className="h-4 w-4 shrink-0 text-slate-400" />
+              <span>
+                {caseItem.counseledName}, {caseItem.age} {t.cases.years},{' '}
+                {translateSex(caseItem.sex, caseItem.age)}
+              </span>
+            </li>
+            <li className="flex items-center gap-2">
+              <IdentificationIcon className="h-4 w-4 shrink-0 text-slate-400" />
+              <span>
+                {t.cases.civilStatusTitle}: {translateCivilStatus(caseItem.civilStatus, caseItem.sex)}
+              </span>
+            </li>
+            <li className="flex items-center gap-2">
+              <PhoneIcon className="h-4 w-4 shrink-0 text-slate-400" />
+              <span>{caseItem.phoneNumber}</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <CalendarDaysIcon className="h-4 w-4 shrink-0 text-slate-400" />
+              <span>
+                {t.cases.createdLabel}: {caseItem.createdAt.toLocaleDateString('ro-RO')}
+              </span>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {t.cases.description}
+          </h3>
+          <p className="whitespace-pre-wrap break-words rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm leading-relaxed text-slate-600">
+            {isTruncated
+              ? `${description.substring(0, 150)}...`
+              : description || t.cases.noDescriptionProvided}
+          </p>
+          {isTruncated && (
+            <button
+              type="button"
+              onClick={onOpenDescription}
+              className="mt-2 text-sm font-medium text-brand-600 hover:text-brand-700"
+            >
+              {t.cases.viewFullDescription}
+            </button>
+          )}
+        </div>
+
+        <div className="mt-auto rounded-lg border border-brand-100 bg-brand-50/50 p-4">
+          <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold text-brand-700">
+            <DocumentTextIcon className="h-4 w-4" />
+            {t.meetingNotes.latestMeetingNote}
+          </h3>
+          {latestNote ? (
+            <>
+              <p className="mb-3 line-clamp-3 text-sm italic text-slate-600">{latestNote}</p>
+              <button
+                type="button"
+                onClick={onOpenNotes}
+                className="text-sm font-medium text-brand-600 hover:text-brand-700"
+              >
+                {t.meetingNotes.viewAllNotes}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="mb-3 text-sm italic text-slate-500">{t.meetingNotes.noMeetingNotesYet}</p>
+              <button
+                type="button"
+                onClick={onOpenNotes}
+                className="rounded-lg border border-brand-200 bg-white px-3 py-1.5 text-sm font-medium text-brand-600 transition hover:bg-brand-50"
+              >
+                {t.meetingNotes.addNote}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+};
+
+export default CaseListCard;

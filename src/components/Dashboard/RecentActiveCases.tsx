@@ -56,13 +56,15 @@ const RecentActiveCases: React.FC<RecentActiveCasesProps> = ({
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={() => navigate('/cases?status=active')}
-        className="mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-700"
-      >
-        Vezi toate cazurile active →
-      </button>
+      {!loading && cases.length > 0 && (
+        <button
+          type="button"
+          onClick={() => navigate('/cases?status=active')}
+          className="mt-4 text-sm font-medium text-brand-600 hover:text-brand-700"
+        >
+          Vezi toate cazurile active →
+        </button>
+      )}
     </section>
   );
 };
