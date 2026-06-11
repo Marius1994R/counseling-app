@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline, Box } from '@mui/material';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Header from './components/Layout/Header';
+import AppLayout from './components/Layout/AppLayout';
+import { DashboardReportProvider } from './contexts/DashboardReportContext';
 import Login from './components/Auth/Login';
 import Dashboard from './components/Dashboard/Dashboard';
 import Cases from './components/Cases/Cases';
@@ -17,9 +18,9 @@ import MyProfile from './components/Profile/MyProfile';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#ffc700',
-      light: '#ffd633',
-      dark: '#e6b300',
+      main: '#4f46e5',
+      light: '#818cf8',
+      dark: '#4338ca',
       contrastText: '#ffffff',
     },
     secondary: {
@@ -83,72 +84,77 @@ const AppContent: React.FC = () => {
     );
   }
 
+  const routes = (
+    <Routes>
+      <Route path="/login" element={!currentUser ? <Login /> : <Navigate to="/" />} />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cases"
+        element={
+          <ProtectedRoute>
+            <Cases />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <MyProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/counselors"
+        element={
+          <ProtectedRoute>
+            <CounselorsManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/calendar"
+        element={
+          <ProtectedRoute>
+            <CalendarManagement isAdminView={false} />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/activity"
+        element={
+          <ProtectedRoute>
+            <ActivityTimeline />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <AdminTools />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
+  );
+
+  if (!currentUser) {
+    return routes;
+  }
+
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {currentUser && <Header />}
-      <Box component="main" sx={{ flexGrow: 1 }}>
-        <Routes>
-          <Route path="/login" element={!currentUser ? <Login /> : <Navigate to="/" />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/cases"
-            element={
-              <ProtectedRoute>
-                <Cases />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <MyProfile />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/counselors"
-            element={
-              <ProtectedRoute>
-                <CounselorsManagement />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/calendar"
-            element={
-              <ProtectedRoute>
-                <CalendarManagement isAdminView={false} />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/activity"
-            element={
-              <ProtectedRoute>
-                <ActivityTimeline />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute>
-                <AdminTools />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </Box>
-    </Box>
+    <DashboardReportProvider>
+      <AppLayout>{routes}</AppLayout>
+    </DashboardReportProvider>
   );
 };
 

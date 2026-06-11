@@ -81,7 +81,21 @@ export const t = {
     viewAllCases: 'Vezi Toate Cazurile',
     scheduleAppointment: 'Programează Întâlnirea',
     updateProfile: 'Actualizează Profil',
-    goToCalendar: 'Mergi la Calendar'
+    goToCalendar: 'Mergi la Calendar',
+    recentActiveCases: 'Cazuri active recente',
+    viewAllActiveCases: 'Vezi toate cazurile active',
+    raportLunar: 'Raport lunar',
+    raportCaz: 'Raport caz',
+    comingSoon: 'În curând',
+    quickPanel: 'Panou rapid',
+    alerts: 'Atenție',
+    progress: 'Progres',
+    viewCase: 'Vezi',
+    notes: 'Note',
+    schedule: 'Programează',
+    viewAllActivity: 'Vezi toată activitatea',
+    controlPanelSubtitle: 'Panou de control – Departamentul de Consiliere',
+    searchPlaceholder: 'Caută cazuri, persoane...'
   },
 
   // Delete/Deactivate Warnings

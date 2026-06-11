@@ -69,14 +69,18 @@ const CalendarManagement: React.FC<CalendarManagementProps> = ({ isAdminView = t
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [preSelectedDate, setPreSelectedDate] = useState<Date | null>(null);
+  const [preSelectedCaseId, setPreSelectedCaseId] = useState<string | null>(null);
 
   // Handle new appointment query parameter
   useEffect(() => {
     const newParam = searchParams.get('new');
     if (newParam === 'true') {
       setFormOpen(true);
-      // Remove the query parameter from URL after opening the form
-      setSearchParams({});
+      const caseId = searchParams.get('caseId');
+      if (caseId) {
+        setPreSelectedCaseId(caseId);
+      }
+      setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams]);
 
@@ -527,6 +531,7 @@ const CalendarManagement: React.FC<CalendarManagementProps> = ({ isAdminView = t
           setFormOpen(false);
           setEditingAppointment(null);
           setPreSelectedDate(null);
+          setPreSelectedCaseId(null);
         }}
         onSubmit={handleFormSubmit}
         appointmentData={editingAppointment}
@@ -535,6 +540,7 @@ const CalendarManagement: React.FC<CalendarManagementProps> = ({ isAdminView = t
         existingAppointments={appointments}
         currentUser={currentUser}
         preSelectedDate={preSelectedDate}
+        preSelectedCaseId={preSelectedCaseId}
       />
 
       {/* Action Menu */}

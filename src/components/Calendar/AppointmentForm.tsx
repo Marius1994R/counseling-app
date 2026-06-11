@@ -31,6 +31,7 @@ interface AppointmentFormProps {
   existingAppointments: Appointment[];
   currentUser?: { id: string; role: string; email: string } | null;
   preSelectedDate?: Date | null;
+  preSelectedCaseId?: string | null;
 }
 
 const AppointmentForm: React.FC<AppointmentFormProps> = ({
@@ -42,7 +43,8 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
   cases,
   existingAppointments,
   currentUser,
-  preSelectedDate
+  preSelectedDate,
+  preSelectedCaseId
 }) => {
   const [formData, setFormData] = useState({
     counselorId: '',
@@ -119,9 +121,14 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
         }
       }
       
+      const validPreselectedCase =
+        preSelectedCaseId && cases.some((c) => c.id === preSelectedCaseId)
+          ? preSelectedCaseId
+          : '';
+
       setFormData({
         counselorId: defaultCounselorId,
-        caseId: '',
+        caseId: validPreselectedCase,
         date: preSelectedDate ? dayjs(preSelectedDate) : dayjs(),
         startTime: null,
         endTime: null,
@@ -136,7 +143,7 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
       setStartTimePickerOpen(false);
       setEndTimePickerOpen(false);
     }
-  }, [appointmentData, open, currentUser, counselors, cases, preSelectedDate]);
+  }, [appointmentData, open, currentUser, counselors, cases, preSelectedDate, preSelectedCaseId]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};

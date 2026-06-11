@@ -47,6 +47,17 @@ import { logCaseStatusChange, logCaseCreated } from '../../utils/activityLogger'
 import { t } from '../../utils/translations';
 import { useSearchParams } from 'react-router-dom';
 
+const CASE_STATUS_FILTERS = ['waiting', 'active', 'unfinished', 'finished', 'cancelled'] as const;
+
+function getStatusFilterFromUrl(searchParams: URLSearchParams): CaseStatus | 'all' {
+  const status = searchParams.get('status');
+  if (status === 'all') return 'all';
+  if (status && CASE_STATUS_FILTERS.includes(status as CaseStatus)) {
+    return status as CaseStatus;
+  }
+  return 'active';
+}
+
 const Cases: React.FC = () => {
   const { currentUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -56,12 +67,8 @@ const Cases: React.FC = () => {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Initialize statusFilter from URL parameter or default to 'active'
-  const statusFromUrl = searchParams.get('status') as CaseStatus | null;
-  const [statusFilter, setStatusFilter] = useState<CaseStatus | 'all'>(
-    statusFromUrl && ['waiting', 'active', 'unfinished', 'finished'].includes(statusFromUrl) 
-      ? statusFromUrl 
-      : 'active'
+  const [statusFilter, setStatusFilter] = useState<CaseStatus | 'all'>(() =>
+    getStatusFilterFromUrl(searchParams)
   );
   const [issueTypeFilter, setIssueTypeFilter] = useState<IssueType | 'all'>('all');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -163,39 +170,57 @@ const Cases: React.FC = () => {
   // Helper function to update status filter and URL
   const handleStatusFilterChange = (status: CaseStatus | 'all') => {
     setStatusFilter(status);
-    if (status === 'all') {
-      setSearchParams({}, { replace: true });
-    } else {
-      setSearchParams({ status }, { replace: true });
-    }
+    setSearchParams({ status }, { replace: true });
   };
 
   // Sync statusFilter with URL parameter on mount and URL change
   useEffect(() => {
-    const statusFromUrl = searchParams.get('status') as CaseStatus | null;
-    if (statusFromUrl && ['waiting', 'active', 'unfinished', 'finished'].includes(statusFromUrl)) {
-      setStatusFilter(statusFromUrl);
-    }
+    setStatusFilter(getStatusFilterFromUrl(searchParams));
   }, [searchParams]);
+
+  const caseIdFilter = searchParams.get('caseId');
 
   // Filter cases based on search and filters
   useEffect(() => {
     let filtered = cases;
 
-    if (searchTerm) {
-      filtered = filtered.filter(caseItem =>
-        caseItem.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        caseItem.counseledName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        caseItem.description.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
+    if (caseIdFilter) {
+      filtered = filtered.filter((caseItem) => caseItem.id === caseIdFilter);
+    } else {
+      if (searchTerm) {
+        filtered = filtered.filter(
+          (caseItem) =>
+            caseItem.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            caseItem.counseledName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            caseItem.description.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
 
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(caseItem => caseItem.status === statusFilter);
+      if (statusFilter !== 'all') {
+        filtered = filtered.filter((caseItem) => caseItem.status === statusFilter);
+      }
     }
 
     setFilteredCases(filtered);
-  }, [cases, searchTerm, statusFilter]);
+  }, [cases, searchTerm, statusFilter, caseIdFilter]);
+
+  // Deep link: open meeting notes modal for a specific case
+  useEffect(() => {
+    if (loading || searchParams.get('openNotes') !== 'true') return;
+
+    const targetId = searchParams.get('caseId');
+    if (!targetId) return;
+
+    const caseItem = cases.find((c) => c.id === targetId);
+    if (caseItem) {
+      setSelectedCaseForNotes(caseItem);
+      setMeetingNotesOpen(true);
+    }
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('openNotes');
+    setSearchParams(nextParams, { replace: true });
+  }, [loading, cases, searchParams, setSearchParams]);
 
   const handleEditCase = (caseItem: Case) => {
     setSelectedCase(caseItem);
@@ -761,7 +786,8 @@ const Cases: React.FC = () => {
         }}>
           {filteredCases.map((caseItem) => (
           <Card 
-            key={caseItem.id} 
+            key={caseItem.id}
+            id={`case-${caseItem.id}`}
             elevation={4}
             sx={{ 
               height: '100%', 

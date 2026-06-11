@@ -1,0 +1,103 @@
+import React from 'react';
+import {
+  PlusIcon,
+  CalendarIcon,
+  DocumentChartBarIcon,
+  DocumentTextIcon,
+  UserIcon,
+} from '@heroicons/react/24/outline';
+import { useAuth } from '../../contexts/AuthContext';
+
+interface QuickAction {
+  label: string;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  onClick?: () => void;
+  disabled?: boolean;
+  roles?: Array<'counselor' | 'admin' | 'leader'>;
+}
+
+interface QuickActionsProps {
+  onRaportCaz: () => void;
+  onSchedule: () => void;
+  onAddCase?: () => void;
+  onAddNote?: () => void;
+  onUpdateProfile?: () => void;
+}
+
+const QuickActions: React.FC<QuickActionsProps> = ({
+  onRaportCaz,
+  onSchedule,
+  onAddCase,
+  onAddNote,
+  onUpdateProfile,
+}) => {
+  const { currentUser } = useAuth();
+
+  const actions: QuickAction[] = [
+    {
+      label: 'Adaugă caz nou',
+      icon: PlusIcon,
+      onClick: onAddCase,
+      roles: ['admin', 'leader'],
+    },
+    {
+      label: 'Programare nouă',
+      icon: CalendarIcon,
+      onClick: onSchedule,
+    },
+    {
+      label: 'Raport lunar',
+      icon: DocumentChartBarIcon,
+      disabled: true,
+    },
+    {
+      label: 'Raport caz',
+      icon: DocumentTextIcon,
+      onClick: onRaportCaz,
+    },
+    {
+      label: 'Adaugă notiță',
+      icon: DocumentTextIcon,
+      onClick: onAddNote,
+    },
+    {
+      label: 'Actualizează profil',
+      icon: UserIcon,
+      onClick: onUpdateProfile,
+    },
+  ];
+
+  const visible = actions.filter(
+    (a) => !a.roles || (currentUser && a.roles.includes(currentUser.role))
+  );
+
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="mb-4 text-sm font-semibold text-slate-900">Acțiuni rapide</h2>
+      <div className="flex flex-col gap-2">
+        {visible.map((action) => {
+          const Icon = action.icon;
+          return (
+            <button
+              key={action.label}
+              type="button"
+              onClick={action.disabled ? undefined : action.onClick}
+              disabled={action.disabled}
+              title={action.disabled ? 'În curând' : undefined}
+              className={`flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2.5 text-left text-sm font-medium transition duration-200 ease-out active:scale-[0.98] ${
+                action.disabled
+                  ? 'cursor-not-allowed text-slate-400 opacity-60'
+                  : 'text-slate-700 hover:bg-indigo-50 hover:text-indigo-700'
+              }`}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              {action.label}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+};
+
+export default QuickActions;
