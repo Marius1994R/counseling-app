@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -12,7 +12,6 @@ import {
   CardContent,
   IconButton,
   Chip,
-  Divider,
   Snackbar,
   Alert
 } from '@mui/material';
@@ -64,15 +63,7 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
 
-  // Load meeting notes for this case
-  useEffect(() => {
-    if (open && caseId) {
-      loadMeetingNotes();
-      setExpandedNotes(new Set()); // Reset expanded notes when dialog opens
-    }
-  }, [open, caseId]);
-
-  const loadMeetingNotes = async () => {
+  const loadMeetingNotes = useCallback(async () => {
     try {
       setLoading(true);
       const notesRef = collection(db, 'meetingNotes');
@@ -103,7 +94,14 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [caseId]);
+
+  useEffect(() => {
+    if (open && caseId) {
+      loadMeetingNotes();
+      setExpandedNotes(new Set());
+    }
+  }, [open, caseId, loadMeetingNotes]);
 
   const handleAddNote = () => {
     setEditingNote(null);

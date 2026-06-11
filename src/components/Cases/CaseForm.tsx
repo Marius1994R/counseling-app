@@ -13,9 +13,7 @@ import {
   MenuItem,
   Chip,
   Box,
-  Typography,
-  FormControlLabel,
-  Checkbox
+  Typography
 } from '@mui/material';
 import { Case, CaseStatus, IssueType, CivilStatus, Sex } from '../../types';
 import { t } from '../../utils/translations';

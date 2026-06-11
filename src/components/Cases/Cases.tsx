@@ -23,7 +23,6 @@ import {
 } from '@mui/material';
 import {
   Search,
-  FilterList,
   Edit,
   Assignment,
   Person,
@@ -33,7 +32,6 @@ import {
   Remove,
   CheckCircle,
   Note,
-  Block,
   Schedule,
   Phone
 } from '@mui/icons-material';
@@ -43,7 +41,7 @@ import { db } from '../../firebase';
 import { Case, CaseStatus, IssueType } from '../../types';
 import MeetingNotes from './MeetingNotes';
 import SessionReport from './SessionReport';
-import { logCaseStatusChange, logCaseCreated } from '../../utils/activityLogger';
+import { logCaseStatusChange } from '../../utils/activityLogger';
 import { t } from '../../utils/translations';
 import { useSearchParams } from 'react-router-dom';
 
@@ -70,7 +68,6 @@ const Cases: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<CaseStatus | 'all'>(() =>
     getStatusFilterFromUrl(searchParams)
   );
-  const [issueTypeFilter, setIssueTypeFilter] = useState<IssueType | 'all'>('all');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [editData, setEditData] = useState({

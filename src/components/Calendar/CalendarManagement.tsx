@@ -13,12 +13,7 @@ import {
   Chip,
   CircularProgress,
   Alert,
-  Tabs,
-  Tab,
   Paper,
-  Card,
-  CardContent,
-  IconButton,
   Menu,
   MenuItem as MenuItemComponent,
   Dialog,
@@ -30,14 +25,8 @@ import {
   Add,
   Search,
   CalendarToday,
-  Schedule,
-  Person,
-  Assignment,
-  MoreVert,
   Edit,
-  Delete,
-  FilterList,
-  Room
+  Delete
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import CalendarView from './CalendarView';
@@ -311,11 +300,6 @@ const CalendarManagement: React.FC<CalendarManagementProps> = ({ isAdminView = t
     }
   };
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, appointment: Appointment) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedAppointment(appointment);
-  };
-
   const handleMenuClose = () => {
     setAnchorEl(null);
     setSelectedAppointment(null);
@@ -332,24 +316,6 @@ const CalendarManagement: React.FC<CalendarManagementProps> = ({ isAdminView = t
       setDeleteDialogOpen(false);
     }
   };
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    }).format(date);
-  };
-
-  const formatTime = (time: string) => {
-    return new Date(`2000-01-01 ${time}`).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-  };
-
 
   if (loading) {
     return (

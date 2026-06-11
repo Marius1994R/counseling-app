@@ -16,28 +16,24 @@ import {
   InputAdornment,
   List,
   ListItem,
-  ListItemText,
   Divider
 } from '@mui/material';
 import {
   ArrowBack,
   Search,
-  FilterList,
   Assignment,
   People,
   Schedule,
   Edit,
   Add,
   Delete,
-  CheckCircle,
-  Warning,
   Info,
   Note,
   Update,
   Description
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { Counselor } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';

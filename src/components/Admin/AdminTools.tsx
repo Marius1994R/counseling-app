@@ -27,7 +27,6 @@ import {
   Alert,
   Snackbar,
   CircularProgress,
-  Divider,
   Tabs,
   Tab
 } from '@mui/material';
@@ -44,11 +43,10 @@ import {
   People,
   Person,
   Search,
-  Assignment,
-  CalendarToday
+  Assignment
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import { User, UserRole, Counselor, Case, Appointment } from '../../types';
+import { User, UserRole, Counselor, Case } from '../../types';
 import CounselorForm from '../Counselors/CounselorForm';
 import CounselorCard from '../Counselors/CounselorCard';
 import CaseCard from '../Cases/CaseCard';
@@ -145,23 +143,6 @@ const AdminTools: React.FC = () => {
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    if (currentUser) {
-      loadUsers();
-    }
-  }, [currentUser]);
-
-  useEffect(() => {
-    if (activeTab === 1) {
-      loadCounselors();
-    } else if (activeTab === 2) {
-      // Load both cases and counselors for the cases management tab
-      // since CaseForm needs counselors data for the dropdown
-      loadCases();
-      loadCounselors();
-    }
-  }, [activeTab]);
-
   const showSnackbar = useCallback((message: string, severity: 'success' | 'error') => {
     setSnackbar({ open: true, message, severity });
   }, []);
@@ -180,7 +161,7 @@ const AdminTools: React.FC = () => {
   }, [getAllUsers, showSnackbar]);
 
   // Counselors Management Functions
-  const loadCounselors = async () => {
+  const loadCounselors = useCallback(async () => {
     try {
       setCounselorsLoading(true);
       
@@ -251,7 +232,7 @@ const AdminTools: React.FC = () => {
     } finally {
       setCounselorsLoading(false);
     }
-  };
+  }, []);
 
   const handleCounselorSubmit = async (counselorData: Omit<Counselor, 'id' | 'createdAt' | 'updatedAt' | 'activeCases' | 'workloadLevel'>) => {
     try {
@@ -349,6 +330,21 @@ const AdminTools: React.FC = () => {
       setCasesLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      loadUsers();
+    }
+  }, [currentUser, loadUsers]);
+
+  useEffect(() => {
+    if (activeTab === 1) {
+      loadCounselors();
+    } else if (activeTab === 2) {
+      loadCases();
+      loadCounselors();
+    }
+  }, [activeTab, loadCases, loadCounselors]);
 
   // Load latest notes for cases
   const loadLatestNotes = async (cases: Case[]) => {

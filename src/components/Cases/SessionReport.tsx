@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -14,23 +14,19 @@ import {
   RadioGroup,
   FormControl,
   FormControlLabel,
-  FormLabel,
-  Chip,
-  Divider,
   Snackbar,
   Alert
 } from '@mui/material';
 import {
   Add,
-  Note,
-  CalendarToday
+  Note
 } from '@mui/icons-material';
-import { collection, addDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase';
 import { logSessionReportAdded } from '../../utils/activityLogger';
 
-interface SessionReport {
+interface SessionReportRecord {
   id: string;
   caseId: string;
   sessionNumber: number;
@@ -75,9 +71,8 @@ const SessionReport: React.FC<SessionReportProps> = ({
   const [loading, setLoading] = useState(false);
   const [addReportOpen, setAddReportOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
-  const [reports, setReports] = useState<SessionReport[]>([]);
+  const [reports, setReports] = useState<SessionReportRecord[]>([]);
   const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
-  const [hasAutoOpened, setHasAutoOpened] = useState(false);
 
   // Form state
   const [sessionNumber, setSessionNumber] = useState(1);
@@ -90,33 +85,13 @@ const SessionReport: React.FC<SessionReportProps> = ({
   const [nextCommitmentsDetails, setNextCommitmentsDetails] = useState('');
   const [noCommitmentsReason, setNoCommitmentsReason] = useState('');
 
-  useEffect(() => {
-    if (open && caseId) {
-      setHasAutoOpened(false); // Reset flag when dialog opens or case changes
-      resetForm();
-      
-      // If autoOpenAddForm is true, immediately open the form to avoid showing reports list
-      if (autoOpenAddForm && caseStatus === 'active') {
-        setAddReportOpen(true);
-        setHasAutoOpened(true);
-      }
-      
-      loadReports(true); // Pass true to indicate initial load
-    } else if (!open) {
-      // Reset flag when dialog closes
-      setHasAutoOpened(false);
-      setAddReportOpen(false);
-      setExpandedReportId(null); // Collapse all expanded reports
-    }
-  }, [open, caseId, autoOpenAddForm, caseStatus]);
-
-  const loadReports = async (isInitialLoad: boolean = false) => {
+  const loadReports = useCallback(async (isInitialLoad: boolean = false) => {
     try {
       const reportsRef = collection(db, 'sessionReports');
       const reportsQuery = query(reportsRef, where('caseId', '==', caseId));
       const reportsSnapshot = await getDocs(reportsQuery);
       
-      const reportsData: SessionReport[] = [];
+      const reportsData: SessionReportRecord[] = [];
       reportsSnapshot.forEach((doc) => {
         const data = doc.data();
         reportsData.push({
@@ -150,9 +125,9 @@ const SessionReport: React.FC<SessionReportProps> = ({
     } catch (error) {
       console.error('Error loading reports:', error);
     }
-  };
+  }, [caseId]);
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     // Set session number to next available
     const maxSession = reports.length > 0 ? Math.max(...reports.map(r => r.sessionNumber), 0) : 0;
     setSessionNumber(maxSession + 1);
@@ -164,7 +139,22 @@ const SessionReport: React.FC<SessionReportProps> = ({
     setNextCommitments('yes');
     setNextCommitmentsDetails('');
     setNoCommitmentsReason('');
-  };
+  }, [reports]);
+
+  useEffect(() => {
+    if (open && caseId) {
+      resetForm();
+
+      if (autoOpenAddForm && caseStatus === 'active') {
+        setAddReportOpen(true);
+      }
+
+      loadReports(true);
+    } else if (!open) {
+      setAddReportOpen(false);
+      setExpandedReportId(null);
+    }
+  }, [open, caseId, autoOpenAddForm, caseStatus, loadReports, resetForm]);
 
   const handleAddReport = async () => {
     // Validate required fields
@@ -234,8 +224,7 @@ const SessionReport: React.FC<SessionReportProps> = ({
   const handleClose = () => {
     resetForm();
     setAddReportOpen(false);
-    setHasAutoOpened(false); // Reset flag when dialog closes
-    setExpandedReportId(null); // Collapse all expanded reports
+    setExpandedReportId(null);
     onClose();
   };
 
@@ -394,7 +383,6 @@ const SessionReport: React.FC<SessionReportProps> = ({
       {/* Add Report Dialog */}
       <Dialog open={addReportOpen} onClose={() => {
         setAddReportOpen(false);
-        setHasAutoOpened(false); // Reset flag when closing add form
         // If onCancelAddForm callback is provided, call it to show case selection
         if (onCancelAddForm) {
           onCancelAddForm();
@@ -557,7 +545,6 @@ const SessionReport: React.FC<SessionReportProps> = ({
         <DialogActions>
           <Button onClick={() => {
             setAddReportOpen(false);
-            setHasAutoOpened(false); // Reset flag when canceling add form
             // If onCancelAddForm callback is provided, call it to show case selection
             if (onCancelAddForm) {
               onCancelAddForm();
