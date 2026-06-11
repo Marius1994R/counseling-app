@@ -9,6 +9,7 @@ import {
   ChartBarIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDashboardDataContext } from '../../contexts/DashboardDataContext';
 import { t } from '../../utils/translations';
 
 interface SidebarProps {
@@ -43,6 +44,7 @@ function isActive(path: string, pathname: string, search: string): boolean {
 
 const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, mobileOpen = false, onMobileClose }) => {
   const { currentUser } = useAuth();
+  const { refetch } = useDashboardDataContext();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -51,7 +53,13 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, mobileOpen = false
   );
 
   const handleNav = (path: string) => {
-    navigate(path);
+    if (path === '/') {
+      navigate(path);
+      refetch();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      navigate(path);
+    }
     onMobileClose?.();
   };
 

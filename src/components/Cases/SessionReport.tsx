@@ -143,7 +143,14 @@ const SessionReport: React.FC<SessionReportProps> = ({
 
   useEffect(() => {
     if (open && caseId) {
-      resetForm();
+      setMainTheme('');
+      setPersonResponse('');
+      setPreviousTaskCompleted('yes');
+      setPreviousTaskNotCompletedReason('');
+      setProgressNoted('');
+      setNextCommitments('yes');
+      setNextCommitmentsDetails('');
+      setNoCommitmentsReason('');
 
       if (autoOpenAddForm && caseStatus === 'active') {
         setAddReportOpen(true);
@@ -154,7 +161,7 @@ const SessionReport: React.FC<SessionReportProps> = ({
       setAddReportOpen(false);
       setExpandedReportId(null);
     }
-  }, [open, caseId, autoOpenAddForm, caseStatus, loadReports, resetForm]);
+  }, [open, caseId, autoOpenAddForm, caseStatus, loadReports]);
 
   const handleAddReport = async () => {
     // Validate required fields
