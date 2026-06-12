@@ -38,9 +38,9 @@ const Topbar: React.FC<TopbarProps> = ({
   const firstName = currentUser?.fullName?.split(' ')[0] ?? 'Utilizator';
   const roleLabel =
     currentUser?.role === 'leader'
-      ? 'Coordonator'
+      ? 'Lider'
       : currentUser?.role === 'admin'
-        ? 'Administrator'
+        ? 'Coordonator'
         : 'Consilier';
 
   useEffect(() => {
