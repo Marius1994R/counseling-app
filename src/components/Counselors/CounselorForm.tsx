@@ -225,7 +225,7 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
       phoneNumber: `+40${formData.phoneNumber.replace(/[\s\-()]/g, '')}`,
       specialties: formData.specialties,
       linkedUserId: formData.linkedUserId || undefined,
-      avatarUrl: counselorData?.avatarUrl,
+      ...(counselorData?.avatarUrl ? { avatarUrl: counselorData.avatarUrl } : {}),
     });
 
     onClose();

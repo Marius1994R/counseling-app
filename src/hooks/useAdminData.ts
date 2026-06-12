@@ -316,7 +316,12 @@ export function useAdminData() {
           showSnackbar('Consilier actualizat cu succes', 'success');
         } else {
           await addDoc(collection(db, 'counselors'), {
-            ...counselorData,
+            fullName: counselorData.fullName,
+            email: counselorData.email,
+            phoneNumber: counselorData.phoneNumber,
+            specialties: counselorData.specialties,
+            linkedUserId: counselorData.linkedUserId ?? null,
+            avatarUrl: counselorData.avatarUrl ?? null,
             createdAt: new Date(),
             updatedAt: new Date(),
           });

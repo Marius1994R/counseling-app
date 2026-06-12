@@ -191,7 +191,12 @@ export function useCounselorsData() {
           );
         } else {
           const docRef = await addDoc(collection(db, 'counselors'), {
-            ...counselorData,
+            fullName: counselorData.fullName,
+            email: counselorData.email,
+            phoneNumber: counselorData.phoneNumber,
+            specialties: counselorData.specialties,
+            linkedUserId: counselorData.linkedUserId ?? null,
+            avatarUrl: counselorData.avatarUrl ?? null,
             activeCases: 0,
             workloadLevel: 'low',
             createdAt: new Date(),

@@ -80,9 +80,9 @@ export async function syncLinkedUserAvatar(
   linkedUserId: string | undefined,
   avatarUrl: string | undefined
 ): Promise<void> {
-  if (!linkedUserId) return;
+  if (!linkedUserId || avatarUrl === undefined) return;
   await updateDoc(doc(db, 'users', linkedUserId), {
-    avatarUrl: avatarUrl ?? null,
+    avatarUrl,
     updatedAt: new Date(),
   });
 }

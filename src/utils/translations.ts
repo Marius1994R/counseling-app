@@ -53,6 +53,8 @@ export const t = {
     subtitle: 'Sistem de Management Consiliere - Biserica Lumina',
     emailLabel: 'Adresă Email',
     passwordLabel: 'Parolă',
+    showPassword: 'Afișează parola',
+    hidePassword: 'Ascunde parola',
     signInButton: 'Autentificare',
     credentialsError: 'Conectare eșuată. Verifică credențialele.',
     fillFieldsError: 'Completează toate câmpurile',
