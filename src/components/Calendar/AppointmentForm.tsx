@@ -20,7 +20,13 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
 import { Appointment, Counselor, Case } from '../../types';
 import { t } from '../../utils/translations';
-import { filterSchedulableCases, isSchedulableCase } from './calendarUtils';
+import {
+  filterSchedulableCases,
+  isSchedulableCase,
+  APPOINTMENT_ROOMS,
+  isBookableRoom,
+  findCounselorForUser,
+} from './calendarUtils';
 
 const combineDateAndTime = (date: Dayjs, time: Dayjs): Dayjs =>
   date.hour(time.hour()).minute(time.minute()).second(0).millisecond(0);
@@ -125,7 +131,7 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
 
   // Function to check for room conflicts
   const checkRoomConflict = (room: string, date: Dayjs, startTime: string, endTime: string, excludeId?: string) => {
-    if (!room || !date) return false;
+    if (!room || !date || !isBookableRoom(room)) return false;
 
     const appointmentDate = date.format('YYYY-MM-DD');
     const newStart = dayjs(`${appointmentDate} ${startTime}`);
@@ -177,21 +183,23 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
         description: appointmentData.description || ''
       });
     } else {
-      // For counselor users, auto-select themselves as the counselor
-      let defaultCounselorId = '';
-      if (currentUser && currentUser.role === 'counselor') {
-        // Find the counselor record that matches the current user's email
-        const userCounselor = counselors.find(c => c.email === currentUser.email);
-        if (userCounselor) {
-          defaultCounselorId = userCounselor.id;
-        }
-      }
-      
       const validPreselectedCase =
         preSelectedCaseId &&
         cases.some((c) => c.id === preSelectedCaseId && isSchedulableCase(c))
           ? preSelectedCaseId
           : '';
+
+      const preselectedCase = validPreselectedCase
+        ? cases.find((c) => c.id === validPreselectedCase)
+        : undefined;
+
+      let defaultCounselorId = preselectedCase?.assignedCounselorId || '';
+      if (!defaultCounselorId && currentUser) {
+        const userCounselor = findCounselorForUser(counselors, currentUser);
+        if (userCounselor) {
+          defaultCounselorId = userCounselor.id;
+        }
+      }
 
       setFormData({
         counselorId: defaultCounselorId,
@@ -226,6 +234,8 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
         newErrors.counselorId = 'Counselor is required';
       }
     }
+    if (!formData.caseId) newErrors.caseId = t.appointments.caseRequired;
+    if (!formData.room) newErrors.room = t.appointments.roomRequired;
     if (!formData.date) newErrors.date = 'Date is required';
     if (!formData.startTime) newErrors.startTime = 'Start time is required';
     if (!formData.endTime) newErrors.endTime = 'End time is required';
@@ -257,7 +267,7 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
       );
       
       if (hasConflict) {
-        newErrors.room = 'This room is already booked during the selected time period';
+        newErrors.room = t.appointments.roomConflict;
       }
     }
 
@@ -277,12 +287,12 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
       title: selectedCounselor?.fullName || 'Appointment',
       counselorId: formData.counselorId,
       counselorName: selectedCounselor?.fullName || '',
-      caseId: formData.caseId || undefined,
-      caseTitle: selectedCase?.title || undefined,
+      caseId: formData.caseId,
+      caseTitle: selectedCase?.title || '',
       date: formData.date!.toDate(),
       startTime: formData.startTime!.format('HH:mm'),
       endTime: formData.endTime!.format('HH:mm'),
-      room: formData.room || undefined,
+      room: formData.room,
       description: formData.description,
       createdBy: appointmentData?.createdBy || currentUser?.id || 'unknown'
     };
@@ -324,14 +334,47 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
         }
       }
       
+      // Clear case if it no longer belongs to the selected counselor
+      if (field === 'counselorId') {
+        const caseStillValid =
+          value &&
+          prev.caseId &&
+          cases.some(
+            (c) =>
+              c.id === prev.caseId &&
+              c.assignedCounselorId === value &&
+              isSchedulableCase(c)
+          );
+        if (!caseStillValid) {
+          newFormData.caseId = '';
+        }
+      }
+
       return newFormData;
     });
     
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
+    if (field === 'counselorId') {
+      setErrors((prev) => ({ ...prev, caseId: '' }));
+    }
 
     const updatedFormData = { ...formData, [field]: value };
+    if (field === 'counselorId') {
+      const caseStillValid =
+        value &&
+        formData.caseId &&
+        cases.some(
+          (c) =>
+            c.id === formData.caseId &&
+            c.assignedCounselorId === value &&
+            isSchedulableCase(c)
+        );
+      if (!caseStillValid) {
+        updatedFormData.caseId = '';
+      }
+    }
 
     if (field === 'date' || field === 'startTime' || field === 'endTime') {
       const pastErrors: Record<string, string> = {};
@@ -361,13 +404,26 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
         );
         
         if (hasConflict) {
-          setErrors(prev => ({ ...prev, room: 'This room is already booked during the selected time period' }));
+          setErrors(prev => ({ ...prev, room: t.appointments.roomConflict }));
         } else if (errors.room) {
           setErrors(prev => ({ ...prev, room: '' }));
         }
       }
     }
   };
+
+  const schedulableCasesForSelect = (() => {
+    if (!formData.counselorId) {
+      return [];
+    }
+
+    return filterSchedulableCases(cases).filter(
+      (caseItem) => caseItem.assignedCounselorId === formData.counselorId
+    );
+  })();
+
+  const isAdminOrLeader =
+    currentUser?.role === 'admin' || currentUser?.role === 'leader';
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -420,41 +476,47 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
                 )}
                 
                 <Box sx={{ flex: '1 1 300px', minWidth: '250px' }}>
-                  <FormControl fullWidth>
-                    <InputLabel>{(t.cases.title || "Caz")} (Opțional)</InputLabel>
+                  <FormControl fullWidth required error={!!errors.caseId}>
+                    <InputLabel shrink>{t.cases.title || 'Caz'}</InputLabel>
                     <Select
                       value={formData.caseId}
                       onChange={(e) => handleChange('caseId', e.target.value)}
-                      label={`${t.cases.title || "Caz"} (Opțional)`}
-                    >
-                      <MenuItem value="">
-                        <em>Niciun caz selectat</em>
-                      </MenuItem>
-                      {/* Filter cases based on user role */}
-                      {(() => {
-                        let filteredCases = filterSchedulableCases(cases);
-
-                        // For counselor users, only show cases assigned to them
-                        if (currentUser?.role === 'counselor') {
-                          const userCounselor = counselors.find(c => c.email === currentUser.email);
-                          if (userCounselor) {
-                            filteredCases = filteredCases.filter(
-                              (caseItem) => caseItem.assignedCounselorId === userCounselor.id
-                            );
-                          }
+                      label={t.cases.title || 'Caz'}
+                      displayEmpty
+                      disabled={!formData.counselorId}
+                      renderValue={(selected) => {
+                        if (!selected) {
+                          return (
+                            <Typography component="span" color="text.secondary">
+                              {t.appointments.selectCase}
+                            </Typography>
+                          );
                         }
-
-                        return filteredCases.map((caseItem) => (
-                          <MenuItem key={caseItem.id} value={caseItem.id}>
-                            {caseItem.title} - {caseItem.counseledName}
-                          </MenuItem>
-                        ));
-                      })()}
+                        const caseItem = schedulableCasesForSelect.find((c) => c.id === selected);
+                        return caseItem
+                          ? `${caseItem.title} - ${caseItem.counseledName}`
+                          : selected;
+                      }}
+                    >
+                      {schedulableCasesForSelect.map((caseItem) => (
+                        <MenuItem key={caseItem.id} value={caseItem.id}>
+                          {caseItem.title} - {caseItem.counseledName}
+                        </MenuItem>
+                      ))}
                     </Select>
-                    {/* Show helper text for counselor users */}
-                    {currentUser?.role === 'counselor' && (
+                    {errors.caseId && (
+                      <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                        {errors.caseId}
+                      </Typography>
+                    )}
+                    {isAdminOrLeader && !formData.counselorId && (
                       <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.5 }}>
-                        Sunt afișate doar cazurile tale alocate
+                        {t.appointments.selectCounselorForCases}
+                      </Typography>
+                    )}
+                    {formData.counselorId && (
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.5 }}>
+                        {t.appointments.counselorCasesOnly}
                       </Typography>
                     )}
                   </FormControl>
@@ -538,20 +600,29 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
               
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                 <Box sx={{ flex: '1 1 300px', minWidth: '250px' }}>
-                  <FormControl fullWidth error={!!errors.room}>
-                    <InputLabel>{t.appointments.room} (Opțional)</InputLabel>
+                  <FormControl fullWidth required error={!!errors.room}>
+                    <InputLabel shrink>{t.appointments.room}</InputLabel>
                     <Select
                       value={formData.room}
                       onChange={(e) => handleChange('room', e.target.value)}
-                      label={`${t.appointments.room} (Opțional)`}
+                      label={t.appointments.room}
+                      displayEmpty
+                      renderValue={(selected) => {
+                        if (!selected) {
+                          return (
+                            <Typography component="span" color="text.secondary">
+                              {t.appointments.selectRoom}
+                            </Typography>
+                          );
+                        }
+                        return selected;
+                      }}
                     >
-                      <MenuItem value="">
-                        <em>Nicio sală selectată</em>
-                      </MenuItem>
-                      <MenuItem value="Grupa Școlarii Mari">Grupa Școlarii Mari</MenuItem>
-                      <MenuItem value="Grupa Școlarii Mici">Grupa Școlarii Mici</MenuItem>
-                      <MenuItem value="Consiliu">Consiliu</MenuItem>
-                      <MenuItem value="Multifuncțională">Multifuncțională</MenuItem>
+                      {APPOINTMENT_ROOMS.map((room) => (
+                        <MenuItem key={room} value={room}>
+                          {room}
+                        </MenuItem>
+                      ))}
                     </Select>
                     {errors.room && (
                       <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
@@ -579,9 +650,12 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
               variant="contained"
               disabled={
                 !formData.counselorId ||
+                !formData.caseId ||
+                !formData.room ||
                 !formData.date ||
                 !formData.startTime ||
-                !formData.endTime
+                !formData.endTime ||
+                !!errors.room
               }
             >
               {appointmentData ? t.common.save : t.appointments.schedule}

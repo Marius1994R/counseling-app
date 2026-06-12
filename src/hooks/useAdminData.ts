@@ -32,6 +32,7 @@ import {
 import { countByWorkload, dedupeCounselors } from '../components/Counselors/counselorsUtils';
 import { syncLinkedUserAvatar } from '../utils/avatarUtils';
 import { normalizeSpecialties } from '../components/Profile/profileUtils';
+import { assertUserHasRole } from '../utils/roleAuth';
 
 export function useAdminData() {
   const {
@@ -101,6 +102,13 @@ export function useAdminData() {
   const showSnackbar = useCallback((message: string, severity: 'success' | 'error') => {
     setSnackbar({ open: true, message, severity });
   }, []);
+
+  const requireAdminAccess = useCallback(async () => {
+    if (!currentUser?.id) {
+      throw new Error(t.auth.notAuthenticated);
+    }
+    await assertUserHasRole(currentUser.id, ['leader', 'admin']);
+  }, [currentUser?.id]);
 
   useEffect(() => {
     setActiveTab(parseAdminTabFromUrl(searchParams.get('tab')));
@@ -302,6 +310,8 @@ export function useAdminData() {
       counselorData: Omit<Counselor, 'id' | 'createdAt' | 'updatedAt' | 'activeCases' | 'workloadLevel'>
     ) => {
       try {
+        await requireAdminAccess();
+
         if (editingCounselor) {
           await updateDoc(doc(db, 'counselors', editingCounselor.id), {
             fullName: counselorData.fullName,
@@ -334,29 +344,41 @@ export function useAdminData() {
         loadCounselors();
       } catch (error) {
         console.error('Error saving counselor:', error);
-        showSnackbar(t.counselors.saveError, 'error');
+        const message =
+          error instanceof Error && error.message === t.auth.permissionDenied
+            ? error.message
+            : t.counselors.saveError;
+        showSnackbar(message, 'error');
       }
     },
-    [editingCounselor, loadCounselors, showSnackbar]
+    [editingCounselor, loadCounselors, requireAdminAccess, showSnackbar]
   );
 
   const handleDeleteCounselor = useCallback(
     async (counselorId: string) => {
       try {
+        await requireAdminAccess();
+
         await deleteDoc(doc(db, 'counselors', counselorId));
         showSnackbar('Consilier șters cu succes', 'success');
         loadCounselors();
       } catch (error) {
         console.error('Error deleting counselor:', error);
-        showSnackbar(t.counselors.deleteError, 'error');
+        const message =
+          error instanceof Error && error.message === t.auth.permissionDenied
+            ? error.message
+            : t.counselors.deleteError;
+        showSnackbar(message, 'error');
       }
     },
-    [loadCounselors, showSnackbar]
+    [loadCounselors, requireAdminAccess, showSnackbar]
   );
 
   const handleCaseSubmit = useCallback(
     async (caseData: Omit<Case, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>) => {
       try {
+        await requireAdminAccess();
+
         if (editingCase) {
           const counselorChanged =
             editingCase.assignedCounselorId !== caseData.assignedCounselorId &&
@@ -412,25 +434,35 @@ export function useAdminData() {
         await refetchDashboard();
       } catch (error) {
         console.error('Error saving case:', error);
-        showSnackbar(t.cases.updateError, 'error');
+        const message =
+          error instanceof Error && error.message === t.auth.permissionDenied
+            ? error.message
+            : t.cases.updateError;
+        showSnackbar(message, 'error');
       }
     },
-    [editingCase, counselors, currentUser, loadCases, showSnackbar, refetchDashboard]
+    [editingCase, counselors, currentUser, loadCases, requireAdminAccess, showSnackbar, refetchDashboard]
   );
 
   const handleDeleteCase = useCallback(
     async (caseId: string) => {
       try {
+        await requireAdminAccess();
+
         await deleteDoc(doc(db, 'cases', caseId));
         showSnackbar('Caz șters cu succes', 'success');
         await loadCases();
         await refetchDashboard();
       } catch (error) {
         console.error('Error deleting case:', error);
-        showSnackbar('Eroare la ștergerea cazului', 'error');
+        const message =
+          error instanceof Error && error.message === t.auth.permissionDenied
+            ? error.message
+            : 'Eroare la ștergerea cazului';
+        showSnackbar(message, 'error');
       }
     },
-    [loadCases, showSnackbar, refetchDashboard]
+    [loadCases, requireAdminAccess, showSnackbar, refetchDashboard]
   );
 
   const handleCreateUser = useCallback(async () => {

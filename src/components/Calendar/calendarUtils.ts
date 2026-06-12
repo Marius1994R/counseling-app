@@ -1,4 +1,4 @@
-import { Appointment, Case, CaseStatus } from '../../types';
+import { Appointment, Case, CaseStatus, Counselor } from '../../types';
 
 export const SCHEDULABLE_CASE_STATUSES: CaseStatus[] = ['waiting', 'active'];
 
@@ -8,6 +8,93 @@ export function isSchedulableCase(caseItem: Case): boolean {
 
 export function filterSchedulableCases(cases: Case[]): Case[] {
   return cases.filter(isSchedulableCase);
+}
+
+export function findCounselorForUser(
+  counselors: Counselor[],
+  user: { id: string; email: string }
+): Counselor | undefined {
+  return (
+    counselors.find((c) => c.linkedUserId === user.id) ||
+    counselors.find((c) => c.email === user.email)
+  );
+}
+
+export const APPOINTMENT_ROOM_OUTSIDE = 'În afara Bisericii';
+
+export const APPOINTMENT_ROOMS = [
+  'Grupa Școlarii Mari',
+  'Grupa Școlarii Mici',
+  'Consiliu',
+  'Multifuncțională',
+  APPOINTMENT_ROOM_OUTSIDE,
+] as const;
+
+export function isBookableRoom(room: string): boolean {
+  return room !== APPOINTMENT_ROOM_OUTSIDE;
+}
+
+export interface RoomColorStyles {
+  bg: string;
+  text: string;
+  border: string;
+  dot: string;
+  accent: string;
+}
+
+const ROOM_COLOR_MAP: Record<string, RoomColorStyles> = {
+  'Grupa Școlarii Mari': {
+    bg: 'bg-sky-100',
+    text: 'text-sky-900',
+    border: 'border-sky-300',
+    dot: 'bg-sky-500',
+    accent: '#0ea5e9',
+  },
+  'Grupa Școlarii Mici': {
+    bg: 'bg-emerald-100',
+    text: 'text-emerald-900',
+    border: 'border-emerald-300',
+    dot: 'bg-emerald-500',
+    accent: '#10b981',
+  },
+  Consiliu: {
+    bg: 'bg-violet-100',
+    text: 'text-violet-900',
+    border: 'border-violet-300',
+    dot: 'bg-violet-500',
+    accent: '#8b5cf6',
+  },
+  Multifuncțională: {
+    bg: 'bg-amber-100',
+    text: 'text-amber-900',
+    border: 'border-amber-300',
+    dot: 'bg-amber-500',
+    accent: '#f59e0b',
+  },
+  [APPOINTMENT_ROOM_OUTSIDE]: {
+    bg: 'bg-slate-100',
+    text: 'text-slate-700',
+    border: 'border-slate-300 border-dashed',
+    dot: 'bg-slate-400',
+    accent: '#94a3b8',
+  },
+};
+
+const DEFAULT_ROOM_COLORS: RoomColorStyles = {
+  bg: 'bg-brand-100',
+  text: 'text-brand-800',
+  border: 'border-brand-200',
+  dot: 'bg-brand-500',
+  accent: '#C99700',
+};
+
+export function getRoomColorStyles(room?: string): RoomColorStyles {
+  if (!room) return DEFAULT_ROOM_COLORS;
+  return ROOM_COLOR_MAP[room] ?? DEFAULT_ROOM_COLORS;
+}
+
+export function sortAppointmentsByTime(appointments: Appointment[]): Appointment[] {
+  return [...appointments].sort((a, b) => a.startTime.localeCompare(b.startTime));
 }
 
 export const MONTH_NAMES_RO = [

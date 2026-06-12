@@ -20,10 +20,21 @@ import {
 import { auth, db, functions, getSecondaryAuth } from '../firebase';
 import { User, UserRole } from '../types';
 import { SUPREME_LEADER_EMAIL } from '../components/Admin/adminUtils';
+import { fetchFreshUserRole } from '../utils/roleAuth';
+import { getRoleLabel } from '../components/Profile/profileUtils';
+import { t } from '../utils/translations';
+
+export interface RoleUpdateNotice {
+  message: string;
+  previousRole: UserRole;
+  newRole: UserRole;
+}
 
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
+  roleUpdateNotice: RoleUpdateNotice | null;
+  clearRoleUpdateNotice: () => void;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   register: (email: string, password: string, fullName: string, role: UserRole) => Promise<void>;
@@ -63,7 +74,19 @@ function firestoreDataToUser(id: string, email: string, userData: DocumentData):
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [roleUpdateNotice, setRoleUpdateNotice] = useState<RoleUpdateNotice | null>(null);
   const bootstrapCompleteRef = useRef(false);
+  const currentUserRef = useRef<User | null>(null);
+
+  const clearRoleUpdateNotice = useCallback(() => {
+    setRoleUpdateNotice(null);
+  }, []);
+
+  const persistUser = useCallback((user: User) => {
+    currentUserRef.current = user;
+    setCurrentUser(user);
+    localStorage.setItem('counselingAppUser', JSON.stringify(user));
+  }, []);
 
   const clearSession = useCallback(async () => {
     try {
@@ -71,14 +94,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {
       // Ignore sign-out errors (e.g. already signed out)
     }
+    currentUserRef.current = null;
     setCurrentUser(null);
+    setRoleUpdateNotice(null);
     localStorage.removeItem('counselingAppUser');
   }, []);
 
-  const persistUser = useCallback((user: User) => {
-    setCurrentUser(user);
-    localStorage.setItem('counselingAppUser', JSON.stringify(user));
-  }, []);
+  const verifyPrivilege = useCallback(
+    async (allowedRoles: UserRole[]): Promise<User> => {
+      const cachedUser = currentUserRef.current;
+      if (!cachedUser) {
+        throw new Error(t.auth.notAuthenticated);
+      }
+
+      if (cachedUser.id.startsWith('demo-')) {
+        if (!allowedRoles.includes(cachedUser.role)) {
+          throw new Error(t.auth.permissionDenied);
+        }
+        return cachedUser;
+      }
+
+      const freshRole = await fetchFreshUserRole(cachedUser.id);
+      if (!freshRole || !allowedRoles.includes(freshRole)) {
+        if (freshRole && freshRole !== cachedUser.role) {
+          persistUser({ ...cachedUser, role: freshRole });
+        }
+        throw new Error(t.auth.permissionDenied);
+      }
+
+      if (freshRole !== cachedUser.role) {
+        persistUser({ ...cachedUser, role: freshRole });
+      }
+
+      return { ...cachedUser, role: freshRole };
+    },
+    [persistUser]
+  );
 
   useEffect(() => {
     if (bootstrapCompleteRef.current) return;
@@ -213,9 +264,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const createUser = async (email: string, password: string, fullName: string, role: UserRole): Promise<string> => {
     try {
-      if (currentUser?.role !== 'leader') {
-        throw new Error('Only leaders can create new users');
-      }
+      await verifyPrivilege(['leader']);
 
       const secondaryAuth = getSecondaryAuth();
       const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
@@ -254,11 +303,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUserRole = async (userId: string, newRole: UserRole) => {
     try {
-      if (currentUser?.role !== 'leader' && currentUser?.role !== 'admin') {
-        throw new Error('Only leaders and admins can update user roles');
-      }
+      const caller = await verifyPrivilege(['leader', 'admin']);
 
-      if (newRole === 'leader' && currentUser?.role !== 'leader') {
+      if (newRole === 'leader' && caller.role !== 'leader') {
         throw new Error('Only leaders can assign leader role');
       }
 
@@ -266,7 +313,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (userDoc.exists()) {
         const userData = userDoc.data();
 
-        if (currentUser?.role === 'admin' && userData.role === 'leader') {
+        if (caller.role === 'admin' && userData.role === 'leader') {
           throw new Error('Admins cannot modify leader account roles');
         }
       }
@@ -283,19 +330,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteUser = async (userId: string) => {
     try {
-      if (currentUser?.role !== 'leader') {
-        throw new Error('Only leaders can delete users');
-      }
+      const caller = await verifyPrivilege(['leader']);
 
-      const isSupremeLeader = currentUser?.email === SUPREME_LEADER_EMAIL;
-      if (userId === currentUser?.id && !isSupremeLeader) {
+      const isSupremeLeader = caller.email === SUPREME_LEADER_EMAIL;
+      if (userId === caller.id && !isSupremeLeader) {
         throw new Error('Cannot delete your own account');
       }
 
       const deleteAuthUserFn = httpsCallable(functions, 'deleteAuthUser');
       await deleteAuthUserFn({ userId });
 
-      if (userId === currentUser?.id) {
+      if (userId === caller.id) {
         await clearSession();
       }
     } catch (error) {
@@ -306,12 +351,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deactivateUser = async (userId: string) => {
     try {
-      if (currentUser?.role !== 'leader' && currentUser?.role !== 'admin') {
-        throw new Error('Only leaders and admins can deactivate users');
-      }
+      const caller = await verifyPrivilege(['leader', 'admin']);
 
-      const isSupremeLeader = currentUser?.email === SUPREME_LEADER_EMAIL;
-      if (userId === currentUser?.id && !isSupremeLeader) {
+      const isSupremeLeader = caller.email === SUPREME_LEADER_EMAIL;
+      if (userId === caller.id && !isSupremeLeader) {
         throw new Error('Cannot deactivate your own account');
       }
 
@@ -319,7 +362,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (userDoc.exists()) {
         const userData = userDoc.data();
 
-        if (currentUser?.role === 'admin' && userData.role === 'leader') {
+        if (caller.role === 'admin' && userData.role === 'leader') {
           throw new Error('Admins cannot deactivate leader accounts');
         }
       }
@@ -337,15 +380,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const reactivateUser = async (userId: string) => {
     try {
-      if (currentUser?.role !== 'leader' && currentUser?.role !== 'admin') {
-        throw new Error('Only leaders and admins can reactivate users');
-      }
+      const caller = await verifyPrivilege(['leader', 'admin']);
 
       const userDoc = await getDoc(doc(db, 'users', userId));
       if (userDoc.exists()) {
         const userData = userDoc.data();
 
-        if (currentUser?.role === 'admin' && userData.role === 'leader') {
+        if (caller.role === 'admin' && userData.role === 'leader') {
           throw new Error('Admins cannot reactivate leader accounts');
         }
       }
@@ -363,9 +404,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const getAllUsers = async (): Promise<User[]> => {
     try {
-      if (currentUser?.role !== 'leader' && currentUser?.role !== 'admin') {
-        throw new Error('Only leaders and admins can view all users');
-      }
+      await verifyPrivilege(['leader', 'admin']);
 
       const usersList: User[] = [];
 
@@ -451,11 +490,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onSnapshot(doc(db, 'users', userId), (userDoc) => {
       if (!userDoc.exists() || userDoc.data()?.isActive === false) {
         clearSession();
+        return;
+      }
+
+      const data = userDoc.data();
+      const prev = currentUserRef.current;
+      if (!prev || prev.id !== userId) {
+        return;
+      }
+
+      const updatedUser = firestoreDataToUser(userId, prev.email, data);
+      const roleChanged = data.role !== prev.role;
+
+      persistUser(updatedUser);
+
+      if (roleChanged) {
+        setRoleUpdateNotice({
+          message: t.auth.roleUpdated.replace('{{role}}', getRoleLabel(data.role as UserRole)),
+          previousRole: prev.role,
+          newRole: data.role as UserRole,
+        });
       }
     });
 
     return unsubscribe;
-  }, [currentUser?.id, clearSession]);
+  }, [currentUser?.id, clearSession, persistUser]);
 
   const updateUserAvatar = async (avatarUrl: string | null) => {
     if (!currentUser) return;
@@ -477,6 +536,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value = {
     currentUser,
     loading,
+    roleUpdateNotice,
+    clearRoleUpdateNotice,
     login,
     logout,
     register,

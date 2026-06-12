@@ -9,7 +9,11 @@ import {
   isPastDate,
   MONTH_NAMES_RO,
   DAY_NAMES_RO,
+  getRoomColorStyles,
+  formatTime,
+  sortAppointmentsByTime,
 } from './calendarUtils';
+import CalendarRoomLegend from './CalendarRoomLegend';
 
 interface CalendarMonthGridProps {
   appointments: Appointment[];
@@ -74,7 +78,7 @@ const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({ appointments, onD
             return <div key={`empty-${index}`} className="min-h-[5rem] sm:min-h-[6.25rem]" />;
           }
 
-          const dayAppointments = getAppointmentsForDate(appointments, date);
+          const dayAppointments = sortAppointmentsByTime(getAppointmentsForDate(appointments, date));
           const currentDay = isToday(date);
           const past = isPastDate(date);
 
@@ -95,14 +99,19 @@ const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({ appointments, onD
                 {date.getDate()}
               </span>
               <div className="mt-1 space-y-0.5 overflow-hidden">
-                {dayAppointments.slice(0, 2).map((appointment) => (
-                  <div
-                    key={appointment.id}
-                    className="truncate rounded bg-brand-100 px-1 py-0.5 text-[10px] font-medium text-brand-800 sm:text-xs"
-                  >
-                    {appointment.title}
-                  </div>
-                ))}
+                {dayAppointments.slice(0, 2).map((appointment) => {
+                  const colors = getRoomColorStyles(appointment.room);
+                  return (
+                    <div
+                      key={appointment.id}
+                      className={`truncate rounded border px-1 py-0.5 text-[10px] font-medium sm:text-xs ${colors.bg} ${colors.text} ${colors.border}`}
+                      title={`${formatTime(appointment.startTime)} · ${appointment.room || appointment.title}`}
+                    >
+                      <span className="font-semibold">{formatTime(appointment.startTime)}</span>{' '}
+                      {appointment.caseTitle || appointment.counselorName}
+                    </div>
+                  );
+                })}
                 {dayAppointments.length > 2 && (
                   <p className="text-[10px] text-slate-500 sm:text-xs">
                     +{dayAppointments.length - 2} {t.appointments.moreOnDay}
@@ -113,6 +122,8 @@ const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({ appointments, onD
           );
         })}
       </div>
+
+      <CalendarRoomLegend />
     </section>
   );
 };

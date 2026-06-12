@@ -14,6 +14,7 @@ import ActivityTimeline from './components/Activity/ActivityTimeline';
 import SessionReportsPage from './components/SessionReports/SessionReportsPage';
 import AdminTools from './components/Admin/AdminTools';
 import MyProfile from './components/Profile/MyProfile';
+import RoleUpdateNotifier from './components/Auth/RoleUpdateNotifier';
 
 // Create a theme
 const theme = createTheme({
@@ -162,6 +163,7 @@ const AppContent: React.FC = () => {
 
   return (
     <DashboardReportProvider>
+      <RoleUpdateNotifier />
       <AppLayout>{routes}</AppLayout>
     </DashboardReportProvider>
   );

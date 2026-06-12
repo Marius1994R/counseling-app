@@ -31,6 +31,13 @@ export const t = {
     confirm: 'Confirmă'
   },
 
+  // Auth
+  auth: {
+    roleUpdated: 'Rolul tău a fost actualizat în: {{role}}.',
+    permissionDenied: 'Nu ai permisiunea necesară pentru această acțiune.',
+    notAuthenticated: 'Trebuie să fii autentificat.',
+  },
+
   // Navigation
   navigation: {
     dashboard: 'Panou de Control',
@@ -230,6 +237,15 @@ export const t = {
     noAppointmentsDay: 'Nu există programări pentru această zi',
     moreOnDay: 'în plus',
     pastDateError: 'Nu poți programa în trecut',
+    caseRequired: 'Selectează un caz',
+    roomRequired: 'Selectează o sală',
+    selectCase: 'Selectează cazul',
+    selectCounselorForCases: 'Selectează un consilier pentru a vedea cazurile alocate',
+    counselorCasesOnly: 'Sunt afișate doar cazurile consilierului selectat',
+    selectRoom: 'Selectează sala',
+    roomOutsideChurch: 'În afara Bisericii',
+    roomConflict: 'Sala este deja rezervată în intervalul selectat',
+    roomLegend: 'Săli',
     pastStartTimeError: 'Ora de start trebuie să fie în viitor',
     pastEndTimeError: 'Ora de final trebuie să fie în viitor'
   },
