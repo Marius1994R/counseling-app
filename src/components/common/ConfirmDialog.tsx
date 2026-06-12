@@ -1,4 +1,5 @@
 import React from 'react';
+import { CircularProgress } from '@mui/material';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { t } from '../../utils/translations';
 
@@ -13,6 +14,7 @@ export interface ConfirmDialogProps {
   cancelLabel?: string;
   variant?: ConfirmDialogVariant;
   loading?: boolean;
+  loadingMessage?: string;
   onConfirm: () => void;
   onClose: () => void;
 }
@@ -26,6 +28,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   cancelLabel,
   variant = 'danger',
   loading = false,
+  loadingMessage,
   onConfirm,
   onClose,
 }) => {
@@ -65,6 +68,16 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 {warningMessage}
               </div>
             )}
+            {loading && (
+              <div
+                className="mt-4 flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700"
+                role="status"
+                aria-live="polite"
+              >
+                <CircularProgress size={18} thickness={5} aria-hidden="true" />
+                <span>{loadingMessage ?? t.common.loading}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -81,12 +94,15 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className={`rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
+            className={`inline-flex min-w-[7rem] items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
               isDanger
                 ? 'bg-red-600 hover:bg-red-700'
                 : 'bg-brand-600 hover:bg-brand-700'
             }`}
           >
+            {loading && (
+              <CircularProgress size={16} thickness={5} sx={{ color: 'inherit' }} aria-hidden="true" />
+            )}
             {confirmLabel ?? (isDanger ? t.common.delete : t.common.confirm)}
           </button>
         </div>

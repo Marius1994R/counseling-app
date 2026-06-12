@@ -509,6 +509,7 @@ export const t = {
       updateUserError: 'Eroare la actualizarea utilizatorului',
       deleteUserSuccess: 'Utilizator șters cu succes',
       deleteUserError: 'Eroare la ștergerea utilizatorului',
+      deleteUserInProgress: 'Se șterge utilizatorul. Poate dura câteva secunde…',
       deactivateUserSuccess: 'Utilizator dezactivat cu succes',
       deactivateUserError: 'Eroare la dezactivarea utilizatorului',
       reactivateUserSuccess: 'Utilizator reactivat cu succes',

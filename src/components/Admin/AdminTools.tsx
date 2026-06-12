@@ -145,7 +145,12 @@ const AdminTools: React.FC = () => {
             : t.admin.users.deactivateUser
         }
         loading={confirmLoading}
-        onClose={() => setPendingConfirm(null)}
+        loadingMessage={
+          pendingConfirm?.type === 'deleteUser' ? t.admin.users.deleteUserInProgress : undefined
+        }
+        onClose={() => {
+          if (!confirmLoading) setPendingConfirm(null);
+        }}
         onConfirm={handleConfirmAction}
       />
 
