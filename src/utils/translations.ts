@@ -25,7 +25,9 @@ export const t = {
     details: 'Detalii',
     actions: 'Acțiuni',
     created: 'Creat',
-    updated: 'Actualizat'
+    updated: 'Actualizat',
+    showMore: 'Arată mai multe',
+    showLess: 'Arată mai puține'
   },
 
   // Navigation
@@ -35,6 +37,7 @@ export const t = {
     calendar: 'Calendar',
     counselors: 'Consilieri',
     activity: 'Activitate',
+    sessionReports: 'Rapoarte',
     adminTools: 'Unelte Admin',
     myProfile: 'Profilul Meu',
     logout: 'Deconectare',
@@ -95,6 +98,7 @@ export const t = {
     schedule: 'Programează',
     viewAllActivity: 'Vezi toată activitatea',
     controlPanelSubtitle: 'Panou de control – Departamentul de Consiliere',
+    weeklyVerse: 'Versetul săptămânii',
     searchPlaceholder: 'Caută cazuri, persoane...'
   },
 
@@ -274,6 +278,47 @@ export const t = {
     },
     noCounselors: 'Nu există consilieri',
     noCounselorsMessage: 'Nu există consilieri disponibili momentan.'
+  },
+
+  // Session Reports
+  sessionReports: {
+    title: 'Rapoarte Post-Sesiune',
+    subtitle: 'Istoricul sesiunilor de consiliere, grupat pe caz',
+    addReport: 'Adaugă raport',
+    searchPlaceholder: 'Caută după caz, persoană sau temă...',
+    counselorLabel: 'Consilier',
+    periodLabel: 'Perioadă',
+    statusLabel: 'Status caz',
+    allCounselors: 'Toți consilierii',
+    allStatuses: 'Toate statusurile',
+    casesWithReports: 'Cazuri cu rapoarte',
+    caseSingular: 'caz găsit',
+    casePlural: 'cazuri găsite',
+    reportSingular: 'raport',
+    reportPlural: 'rapoarte',
+    lastReport: 'Ultimul',
+    sessions: 'Sesiuni',
+    sessionNumber: 'Sesiunea',
+    theme: 'Tema',
+    selectCase: 'Selectează un caz din listă pentru a vedea sesiunile.',
+    noCases: 'Nu există rapoarte pentru filtrele selectate.',
+    loadError: 'Eroare la încărcarea rapoartelor',
+    selectCaseForReport: 'Selectează caz pentru raport',
+    noActiveCases: 'Nu există cazuri active disponibile pentru raportare',
+    reportDetails: 'Detalii raport',
+    fields: {
+      mainTheme: '1. Tema principală abordată',
+      personResponse: '2. Răspuns persoana consiliată',
+      previousTask: '3. Tema/pașii anteriori împliniți',
+      progress: '4. Progres observat',
+      commitments: '5. Angajamente pentru următoarea întâlnire',
+      reason: 'Motiv',
+    },
+    metrics: {
+      total: 'Rapoarte totale',
+      cases: 'Cazuri cu rapoarte',
+      thisMonth: 'Luna aceasta',
+    },
   },
 
   // Activity Timeline

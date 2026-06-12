@@ -7,6 +7,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDashboardReport } from '../../contexts/DashboardReportContext';
+import { useDashboardDataContext } from '../../contexts/DashboardDataContext';
 import { t } from '../../utils/translations';
 
 interface TopbarProps {
@@ -27,6 +28,7 @@ const Topbar: React.FC<TopbarProps> = ({
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const { openCaseReportModal } = useDashboardReport();
+  const { refetch } = useDashboardDataContext();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -53,8 +55,15 @@ const Topbar: React.FC<TopbarProps> = ({
     navigate('/login');
   };
 
+  const handleGoHome = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.currentTarget.blur();
+    navigate('/');
+    refetch();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-slate-200 bg-white px-4 lg:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-slate-200 bg-white px-4 sm:gap-3 lg:gap-4 lg:px-6">
       <button
         type="button"
         onClick={onMenuClick}
@@ -62,6 +71,20 @@ const Topbar: React.FC<TopbarProps> = ({
         aria-label="Deschide meniul"
       >
         <Bars3Icon className="h-5 w-5" />
+      </button>
+
+      <button
+        type="button"
+        onClick={handleGoHome}
+        className="shrink-0 rounded-lg p-0.5 active:bg-slate-100 lg:hidden"
+        aria-label={t.navigation.dashboard}
+      >
+        <img
+          src="/favicon.svg"
+          alt=""
+          className="h-9 w-9 rounded-lg"
+          aria-hidden="true"
+        />
       </button>
 
       <div className="min-w-0 flex-1">

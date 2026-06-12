@@ -7,10 +7,12 @@ import {
   CalendarIcon,
   UserGroupIcon,
   ChartBarIcon,
+  ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDashboardDataContext } from '../../contexts/DashboardDataContext';
 import { t } from '../../utils/translations';
+import WeeklyVerseCard from './WeeklyVerseCard';
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -33,8 +35,9 @@ const navItems: NavItem[] = [
   { label: 'Cazuri în așteptare', path: WAITING_CASES_PATH, icon: ClockIcon },
   { label: 'Toate cazurile', path: '/cases?status=all', icon: FolderOpenIcon },
   { label: t.navigation.calendar, path: CALENDAR_PATH, icon: CalendarIcon },
+  { label: t.navigation.sessionReports, path: '/session-reports', icon: ClipboardDocumentListIcon },
   { label: 'Echipa', path: '/counselors', icon: UserGroupIcon, roles: ['admin', 'leader'] },
-  { label: 'Rapoarte', path: '/activity', icon: ChartBarIcon },
+  { label: t.navigation.activity, path: '/activity', icon: ChartBarIcon },
 ];
 
 function isActive(path: string, pathname: string, search: string): boolean {
@@ -70,11 +73,17 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, mobileOpen = false
 
   const content = (
     <div className="flex h-full flex-col">
-      <div className={`flex items-center gap-3 border-b border-slate-200 px-4 py-5 ${collapsed ? 'justify-center' : ''}`}>
+      <button
+        type="button"
+        onClick={() => handleNav('/')}
+        className={`flex w-full items-center gap-3 border-b border-slate-200 px-4 py-5 text-left transition hover:bg-slate-50 ${collapsed ? 'justify-center' : ''}`}
+        aria-label={t.navigation.dashboard}
+      >
         <img
           src="/favicon.svg"
-          alt="Lumina Consiliere"
+          alt=""
           className="h-9 w-9 shrink-0 rounded-lg"
+          aria-hidden="true"
         />
         {!collapsed && (
           <div>
@@ -82,7 +91,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, mobileOpen = false
             <p className="text-[10px] font-medium uppercase tracking-widest text-slate-500">Consiliere</p>
           </div>
         )}
-      </div>
+      </button>
 
       <nav className="space-y-1 overflow-y-auto px-3 py-4">
         {visibleItems.map((item) => {
@@ -137,13 +146,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, mobileOpen = false
         })}
       </nav>
 
-      {!collapsed && (
-        <div className="mx-3 mt-2 mb-6 rounded-xl bg-brand-50/60 p-4">
-          <p className="text-xs italic leading-relaxed text-slate-500">
-            „Domnul este aproape de cei cu inima zdrobită.” — Psalm 34:18
-          </p>
-        </div>
-      )}
+      {!collapsed && <WeeklyVerseCard />}
     </div>
   );
 

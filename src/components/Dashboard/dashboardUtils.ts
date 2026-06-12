@@ -158,11 +158,11 @@ export function getAppointmentDisplayName(appointment: Appointment): string {
   return appointment.caseTitle ?? appointment.title;
 }
 
-export function getActiveCases(cases: Case[], limit = 5): Case[] {
-  return cases
+export function getActiveCases(cases: Case[], limit?: number): Case[] {
+  const active = cases
     .filter((c) => c.status === 'active')
-    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-    .slice(0, limit);
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  return limit !== undefined ? active.slice(0, limit) : active;
 }
 
 export function getLastActivityForCase(caseId: string, activities: ActivityRecord[]): Date | null {

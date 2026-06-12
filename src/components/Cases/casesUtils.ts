@@ -1,4 +1,6 @@
-import { CaseStatus } from '../../types';
+import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
+import { Case, CaseStatus } from '../../types';
+import { db } from '../../firebase';
 import { getCaseDisplayId, getInitials, getStatusLabel } from '../Dashboard/dashboardUtils';
 import { t } from '../../utils/translations';
 
@@ -75,4 +77,52 @@ export const AVATAR_COLORS = [
 
 export function getAvatarColorClass(name: string): string {
   return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+}
+
+export async function loadVisibleCasesForUser(userId: string): Promise<Case[]> {
+  let counselorId: string | null = null;
+  const counselorsRef = collection(db, 'counselors');
+  const counselorsQuery = query(counselorsRef, where('linkedUserId', '==', userId));
+  const counselorsSnapshot = await getDocs(counselorsQuery);
+
+  if (!counselorsSnapshot.empty) {
+    counselorId = counselorsSnapshot.docs[0].id;
+  }
+
+  const casesRef = collection(db, 'cases');
+  const casesQuery = query(casesRef, orderBy('createdAt', 'desc'));
+  const casesSnapshot = await getDocs(casesQuery);
+
+  const casesData: Case[] = [];
+  casesSnapshot.forEach((caseDoc) => {
+    const data = caseDoc.data();
+    const caseItem: Case = {
+      id: caseDoc.id,
+      title: data.title,
+      counseledName: data.counseledName,
+      age: data.age,
+      sex: data.sex,
+      civilStatus: data.civilStatus,
+      issueTypes: data.issueTypes || [],
+      phoneNumber: data.phoneNumber || '',
+      description: data.description,
+      status: data.status,
+      assignedCounselorId: data.assignedCounselorId,
+      assignedCounselorName: data.assignedCounselorName,
+      meetingFeedback: data.meetingFeedback || '',
+      createdAt: data.createdAt.toDate(),
+      updatedAt: data.updatedAt.toDate(),
+      createdBy: data.createdBy || '',
+    };
+
+    const shouldInclude = counselorId
+      ? caseItem.assignedCounselorId === counselorId
+      : caseItem.assignedCounselorId === userId;
+
+    if (shouldInclude) {
+      casesData.push(caseItem);
+    }
+  });
+
+  return casesData;
 }

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -19,14 +20,18 @@ import {
 import { useCasesData } from '../../hooks/useCasesData';
 import { CaseStatus } from '../../types';
 import MeetingNotes from './MeetingNotes';
-import SessionReport from './SessionReport';
 import CasesPageHeader from './CasesPageHeader';
 import CasesToolbar from './CasesToolbar';
 import CasesGrid from './CasesGrid';
 import { t } from '../../utils/translations';
 
 const Cases: React.FC = () => {
+  const navigate = useNavigate();
   const data = useCasesData();
+
+  const handleOpenReports = (caseItem: { id: string }) => {
+    navigate(`/session-reports?caseId=${caseItem.id}`);
+  };
 
   const hasActiveFilters =
     Boolean(data.searchTerm) || data.statusFilter !== 'all' || Boolean(data.caseIdFilter);
@@ -61,7 +66,7 @@ const Cases: React.FC = () => {
         caseReportsCount={data.caseReportsCount}
         hasActiveFilters={hasActiveFilters}
         onOpenNotes={data.handleOpenMeetingNotes}
-        onOpenReports={data.handleOpenSessionReport}
+        onOpenReports={handleOpenReports}
         onEdit={data.handleEditCase}
         onOpenDescription={data.handleOpenDescription}
       />
@@ -139,15 +144,6 @@ const Cases: React.FC = () => {
         caseId={data.selectedCaseForNotes?.id || ''}
         caseTitle={data.selectedCaseForNotes?.title || ''}
         onNoteAdded={data.handleNoteAdded}
-      />
-
-      <SessionReport
-        open={data.sessionReportOpen}
-        onClose={data.handleCloseSessionReport}
-        caseId={data.selectedCaseForNotes?.id || ''}
-        caseTitle={data.selectedCaseForNotes?.title || ''}
-        onReportAdded={data.handleNoteAdded}
-        caseStatus={data.selectedCaseForNotes?.status}
       />
 
       <Dialog

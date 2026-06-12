@@ -93,7 +93,7 @@ const Dashboard: React.FC = () => {
     setCaseSelectionModalOpen(true);
   };
 
-  const activeCases = getActiveCases(cases, 5);
+  const activeCases = getActiveCases(cases);
 
   if (error) {
     return (
