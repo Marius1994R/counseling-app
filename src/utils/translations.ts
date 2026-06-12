@@ -301,6 +301,7 @@ export const t = {
     sessionNumber: 'Sesiunea',
     theme: 'Tema',
     selectCase: 'Selectează un caz din listă pentru a vedea sesiunile.',
+    noReportsForCase: 'Nu există rapoarte pentru acest caz.',
     noCases: 'Nu există rapoarte pentru filtrele selectate.',
     loadError: 'Eroare la încărcarea rapoartelor',
     selectCaseForReport: 'Selectează caz pentru raport',

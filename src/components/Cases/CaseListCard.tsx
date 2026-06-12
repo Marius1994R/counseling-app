@@ -26,6 +26,7 @@ interface CaseListCardProps {
   latestNote: string;
   reportsCount: number;
   onOpenNotes: () => void;
+  onOpenAddReport: () => void;
   onOpenReports: () => void;
   onEdit: () => void;
   onOpenDescription: () => void;
@@ -37,6 +38,7 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
   latestNote,
   reportsCount,
   onOpenNotes,
+  onOpenAddReport,
   onOpenReports,
   onEdit,
   onOpenDescription,
@@ -74,14 +76,16 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={onOpenNotes}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-1.5 text-xs font-medium text-brand-600 transition hover:bg-brand-50"
-              >
-                <DocumentTextIcon className="h-4 w-4" />
-                {t.meetingNotes.addNote}
-              </button>
+              {caseItem.status === 'active' && (
+                <button
+                  type="button"
+                  onClick={onOpenAddReport}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-1.5 text-xs font-medium text-brand-600 transition hover:bg-brand-50"
+                >
+                  <ClipboardDocumentListIcon className="h-4 w-4" />
+                  {t.sessionReports.addReport}
+                </button>
+              )}
               {showReports && (
                 <button
                   type="button"

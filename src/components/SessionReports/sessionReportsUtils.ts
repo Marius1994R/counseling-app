@@ -80,6 +80,48 @@ export interface SessionReportsFilterState {
   statusFilter: CaseStatus | 'all';
 }
 
+export function shouldUseAllTimeForDeepLink(lastReportDate: Date | null): boolean {
+  if (!lastReportDate) return false;
+  return lastReportDate < getCutoffDate('3months');
+}
+
+export function createEmptyCaseSummary(caseItem: Case): CaseReportSummary {
+  return {
+    case: caseItem,
+    reportCount: 0,
+    lastReportDate: null,
+    reports: [],
+  };
+}
+
+export function findCaseReportSummary(
+  caseId: string,
+  allSummaries: CaseReportSummary[],
+  allCases: Case[]
+): CaseReportSummary | null {
+  const existing = allSummaries.find((s) => s.case.id === caseId);
+  if (existing) return existing;
+
+  const caseItem = allCases.find((c) => c.id === caseId);
+  return caseItem ? createEmptyCaseSummary(caseItem) : null;
+}
+
+/** Pin a deep-linked case at the top when it would otherwise be hidden by filters. */
+export function buildCaseListSummaries(
+  filteredSummaries: CaseReportSummary[],
+  selectedCaseId: string | null,
+  allSummaries: CaseReportSummary[],
+  allCases: Case[]
+): CaseReportSummary[] {
+  if (!selectedCaseId) return filteredSummaries;
+  if (filteredSummaries.some((s) => s.case.id === selectedCaseId)) {
+    return filteredSummaries;
+  }
+
+  const pinned = findCaseReportSummary(selectedCaseId, allSummaries, allCases);
+  return pinned ? [pinned, ...filteredSummaries] : filteredSummaries;
+}
+
 export function filterCaseSummaries(
   summaries: CaseReportSummary[],
   filters: SessionReportsFilterState

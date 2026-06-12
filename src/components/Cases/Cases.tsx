@@ -20,6 +20,7 @@ import {
 import { useCasesData } from '../../hooks/useCasesData';
 import { CaseStatus } from '../../types';
 import MeetingNotes from './MeetingNotes';
+import SessionReport from './SessionReport';
 import CasesPageHeader from './CasesPageHeader';
 import CasesToolbar from './CasesToolbar';
 import CasesGrid from './CasesGrid';
@@ -31,6 +32,11 @@ const Cases: React.FC = () => {
 
   const handleOpenReports = (caseItem: { id: string }) => {
     navigate(`/session-reports?caseId=${caseItem.id}`);
+  };
+
+  const handleReportSaved = () => {
+    data.handleCloseSessionReport();
+    data.handleNoteAdded();
   };
 
   const hasActiveFilters =
@@ -66,6 +72,7 @@ const Cases: React.FC = () => {
         caseReportsCount={data.caseReportsCount}
         hasActiveFilters={hasActiveFilters}
         onOpenNotes={data.handleOpenMeetingNotes}
+        onOpenAddReport={data.handleOpenSessionReport}
         onOpenReports={handleOpenReports}
         onEdit={data.handleEditCase}
         onOpenDescription={data.handleOpenDescription}
@@ -144,6 +151,18 @@ const Cases: React.FC = () => {
         caseId={data.selectedCaseForNotes?.id || ''}
         caseTitle={data.selectedCaseForNotes?.title || ''}
         onNoteAdded={data.handleNoteAdded}
+      />
+
+      <SessionReport
+        open={data.sessionReportOpen}
+        onClose={data.handleCloseSessionReport}
+        caseId={data.selectedCaseForNotes?.id || ''}
+        caseTitle={data.selectedCaseForNotes?.title || ''}
+        onReportAdded={handleReportSaved}
+        onCancelAddForm={data.handleCloseSessionReport}
+        hideAddButton
+        caseStatus={data.selectedCaseForNotes?.status}
+        autoOpenAddForm
       />
 
       <Dialog

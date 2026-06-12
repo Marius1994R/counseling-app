@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { collection, getDocs } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,17 +7,29 @@ import { Case, CaseStatus } from '../types';
 import { loadVisibleCasesForUser } from '../components/Cases/casesUtils';
 import { TimeRangeFilter } from '../components/Activity/activityUtils';
 import {
+  buildCaseListSummaries,
   buildCaseSummaries,
   computeSessionReportMetrics,
   filterCaseSummaries,
+  findCaseReportSummary,
   parseSessionReportDoc,
   SessionReportRecord,
+  shouldUseAllTimeForDeepLink,
 } from '../components/SessionReports/sessionReportsUtils';
 import { t } from '../utils/translations';
 
 export interface CounselorOption {
   userId: string;
   name: string;
+}
+
+const VALID_TIME_RANGES: TimeRangeFilter[] = ['3months', '6months', '9months', 'alltime'];
+
+function parseTimeRangeFromParams(params: URLSearchParams): TimeRangeFilter {
+  const value = params.get('timeRange');
+  return value && VALID_TIME_RANGES.includes(value as TimeRangeFilter)
+    ? (value as TimeRangeFilter)
+    : '3months';
 }
 
 export function useSessionReportsData() {
@@ -31,10 +43,14 @@ export function useSessionReportsData() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [counselorFilter, setCounselorFilter] = useState('all');
-  const [timeRangeFilter, setTimeRangeFilter] = useState<TimeRangeFilter>('3months');
+  const [timeRangeFilter, setTimeRangeFilter] = useState<TimeRangeFilter>(() =>
+    parseTimeRangeFromParams(searchParams)
+  );
   const [statusFilter, setStatusFilter] = useState<CaseStatus | 'all'>('all');
 
   const selectedCaseId = searchParams.get('caseId');
+  const deepLinkProcessedRef = useRef<string | null>(null);
+  const prevCaseIdRef = useRef<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!currentUser?.id) return;
@@ -81,6 +97,22 @@ export function useSessionReportsData() {
     loadData();
   }, [loadData]);
 
+  useEffect(() => {
+    const urlTimeRange = searchParams.get('timeRange');
+    const caseIdChanged = selectedCaseId !== prevCaseIdRef.current;
+    prevCaseIdRef.current = selectedCaseId;
+
+    if (urlTimeRange && VALID_TIME_RANGES.includes(urlTimeRange as TimeRangeFilter)) {
+      setTimeRangeFilter(urlTimeRange as TimeRangeFilter);
+      return;
+    }
+
+    if (caseIdChanged && selectedCaseId) {
+      setTimeRangeFilter('3months');
+      deepLinkProcessedRef.current = null;
+    }
+  }, [searchParams, selectedCaseId]);
+
   const filteredSummaries = useMemo(
     () =>
       filterCaseSummaries(allSummaries, {
@@ -90,6 +122,11 @@ export function useSessionReportsData() {
         statusFilter,
       }),
     [allSummaries, searchTerm, counselorFilter, timeRangeFilter, statusFilter]
+  );
+
+  const caseListSummaries = useMemo(
+    () => buildCaseListSummaries(filteredSummaries, selectedCaseId, allSummaries, allCases),
+    [filteredSummaries, selectedCaseId, allSummaries, allCases]
   );
 
   const metrics = useMemo(
@@ -112,35 +149,46 @@ export function useSessionReportsData() {
   }, [allSummaries]);
 
   const selectedSummary = useMemo(() => {
-    if (filteredSummaries.length === 0) return null;
     if (selectedCaseId) {
-      return filteredSummaries.find((s) => s.case.id === selectedCaseId) ?? filteredSummaries[0];
+      return findCaseReportSummary(selectedCaseId, allSummaries, allCases);
     }
+    if (filteredSummaries.length === 0) return null;
     return filteredSummaries[0];
-  }, [filteredSummaries, selectedCaseId]);
+  }, [selectedCaseId, allSummaries, allCases, filteredSummaries]);
 
   useEffect(() => {
-    if (!loading && filteredSummaries.length > 0 && selectedCaseId) {
-      const exists = filteredSummaries.some((s) => s.case.id === selectedCaseId);
-      if (!exists) {
-        const nextParams = new URLSearchParams(searchParams);
-        nextParams.delete('caseId');
-        setSearchParams(nextParams, { replace: true });
-      }
+    if (loading || !selectedCaseId) return;
+    if (deepLinkProcessedRef.current === selectedCaseId) return;
+
+    const targetSummary = allSummaries.find((s) => s.case.id === selectedCaseId);
+    if (
+      targetSummary &&
+      shouldUseAllTimeForDeepLink(targetSummary.lastReportDate) &&
+      timeRangeFilter !== 'alltime'
+    ) {
+      setTimeRangeFilter('alltime');
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.set('caseId', selectedCaseId);
+      nextParams.set('timeRange', 'alltime');
+      setSearchParams(nextParams, { replace: true });
     }
-  }, [loading, filteredSummaries, selectedCaseId, searchParams, setSearchParams]);
+
+    deepLinkProcessedRef.current = selectedCaseId;
+  }, [loading, selectedCaseId, allSummaries, timeRangeFilter, searchParams, setSearchParams]);
 
   const selectCase = useCallback(
     (caseId: string) => {
-      setSearchParams({ caseId }, { replace: true });
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.set('caseId', caseId);
+      setSearchParams(nextParams, { replace: true });
     },
-    [setSearchParams]
+    [searchParams, setSearchParams]
   );
 
   return {
     currentUser,
     allCases,
-    filteredSummaries,
+    filteredSummaries: caseListSummaries,
     selectedSummary,
     selectedCaseId,
     loading,

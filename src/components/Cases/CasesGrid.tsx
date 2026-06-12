@@ -11,6 +11,7 @@ interface CasesGridProps {
   caseReportsCount: Record<string, number>;
   hasActiveFilters: boolean;
   onOpenNotes: (caseItem: Case) => void;
+  onOpenAddReport: (caseItem: Case) => void;
   onOpenReports: (caseItem: Case) => void;
   onEdit: (caseItem: Case) => void;
   onOpenDescription: (caseItem: Case) => void;
@@ -24,6 +25,7 @@ const CasesGrid: React.FC<CasesGridProps> = ({
   caseReportsCount,
   hasActiveFilters,
   onOpenNotes,
+  onOpenAddReport,
   onOpenReports,
   onEdit,
   onOpenDescription,
@@ -60,6 +62,7 @@ const CasesGrid: React.FC<CasesGridProps> = ({
           latestNote={caseNotes[caseItem.id] ?? ''}
           reportsCount={caseReportsCount[caseItem.id] ?? 0}
           onOpenNotes={() => onOpenNotes(caseItem)}
+          onOpenAddReport={() => onOpenAddReport(caseItem)}
           onOpenReports={() => onOpenReports(caseItem)}
           onEdit={() => onEdit(caseItem)}
           onOpenDescription={() => onOpenDescription(caseItem)}

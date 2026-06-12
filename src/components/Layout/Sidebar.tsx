@@ -11,6 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDashboardDataContext } from '../../contexts/DashboardDataContext';
+import { useDashboardReport } from '../../contexts/DashboardReportContext';
 import { t } from '../../utils/translations';
 import WeeklyVerseCard from './WeeklyVerseCard';
 
@@ -51,10 +52,12 @@ function isActive(path: string, pathname: string, search: string): boolean {
 const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, mobileOpen = false, onMobileClose }) => {
   const { currentUser } = useAuth();
   const { refetch, metrics } = useDashboardDataContext();
-  const waitingCasesCount = metrics.pendingCases;
-  const futureAppointmentsCount = metrics.futureAppointmentsCount;
+  const { openCaseReportModal } = useDashboardReport();
   const navigate = useNavigate();
   const location = useLocation();
+  const showReportActions = location.pathname === '/';
+  const waitingCasesCount = metrics.pendingCases;
+  const futureAppointmentsCount = metrics.futureAppointmentsCount;
 
   const visibleItems = navItems.filter(
     (item) => !item.roles || (currentUser && item.roles.includes(currentUser.role))
@@ -146,7 +149,32 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, mobileOpen = false
         })}
       </nav>
 
-      {!collapsed && <WeeklyVerseCard />}
+      {!collapsed && (
+        <>
+          <WeeklyVerseCard />
+          {showReportActions && (
+            <div className="flex flex-wrap justify-center gap-1.5 px-3 pb-4 sm:hidden">
+              <button
+                type="button"
+                title="În curând"
+                className="inline-flex cursor-not-allowed rounded-full border border-slate-200 px-2.5 py-1 text-[11px] font-medium text-slate-400 opacity-70"
+              >
+                + Raport lunar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  openCaseReportModal();
+                  onMobileClose?.();
+                }}
+                className="inline-flex rounded-full bg-brand-600 px-2.5 py-1 text-[11px] font-medium text-white shadow-sm transition duration-200 ease-out hover:bg-brand-700 active:scale-[0.98]"
+              >
+                + Raport caz
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 

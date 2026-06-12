@@ -1,10 +1,14 @@
 import { Case } from '../../types';
 import {
+  buildCaseListSummaries,
   buildCaseSummaries,
   computeSessionReportMetrics,
   filterCaseSummaries,
+  createEmptyCaseSummary,
   SessionReportRecord,
+  shouldUseAllTimeForDeepLink,
 } from './sessionReportsUtils';
+import { getCutoffDate } from '../Activity/activityUtils';
 
 const mockCase = (id: string, title: string): Case => ({
   id,
@@ -80,6 +84,46 @@ describe('sessionReportsUtils', () => {
 
     expect(filtered).toHaveLength(1);
     expect(filtered[0].case.id).toBe('case-2');
+  });
+
+  it('detects when deep link should use all-time filter', () => {
+    const recent = new Date();
+    const old = new Date(getCutoffDate('3months'));
+    old.setDate(old.getDate() - 1);
+
+    expect(shouldUseAllTimeForDeepLink(recent)).toBe(false);
+    expect(shouldUseAllTimeForDeepLink(old)).toBe(true);
+    expect(shouldUseAllTimeForDeepLink(null)).toBe(false);
+  });
+
+  it('pins deep-linked case at top of case list', () => {
+    const cases = [mockCase('case-1', 'Anxietate'), mockCase('case-2', 'Doliu')];
+    const oldDate = new Date(getCutoffDate('3months'));
+    oldDate.setMonth(oldDate.getMonth() - 1);
+    const map = new Map<string, SessionReportRecord[]>([
+      ['case-1', [mockReport('r1', 'case-1', 1, oldDate)]],
+      ['case-2', [mockReport('r2', 'case-2', 1, new Date('2026-06-02'))]],
+    ]);
+    const summaries = buildCaseSummaries(cases, map);
+    const filtered = filterCaseSummaries(summaries, {
+      searchTerm: '',
+      counselorFilter: 'all',
+      timeRangeFilter: '3months',
+      statusFilter: 'all',
+    });
+
+    expect(filtered.some((s) => s.case.id === 'case-1')).toBe(false);
+
+    const list = buildCaseListSummaries(filtered, 'case-1', summaries, cases);
+    expect(list[0].case.id).toBe('case-1');
+    expect(list).toHaveLength(2);
+  });
+
+  it('builds empty summary for active case without reports', () => {
+    const caseItem = mockCase('case-3', 'Nou');
+    const summary = createEmptyCaseSummary(caseItem);
+    expect(summary.reportCount).toBe(0);
+    expect(summary.reports).toHaveLength(0);
   });
 
   it('computes metrics from summaries', () => {
