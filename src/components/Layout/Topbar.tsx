@@ -10,6 +10,9 @@ import { useDashboardReport } from '../../contexts/DashboardReportContext';
 import { useDashboardDataContext } from '../../contexts/DashboardDataContext';
 import { t } from '../../utils/translations';
 
+/** Re-enable when in-app notifications are implemented. */
+const SHOW_NOTIFICATIONS = false;
+
 interface TopbarProps {
   title?: string;
   subtitle?: string;
@@ -116,18 +119,20 @@ const Topbar: React.FC<TopbarProps> = ({
           </>
         )}
 
-        <button
-          type="button"
-          className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-          aria-label="Notificări"
-        >
-          <BellIcon className="h-5 w-5" />
-          {notificationCount > 0 && (
-            <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-white">
-              {notificationCount > 9 ? '9+' : notificationCount}
-            </span>
-          )}
-        </button>
+        {SHOW_NOTIFICATIONS && (
+          <button
+            type="button"
+            className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+            aria-label="Notificări"
+          >
+            <BellIcon className="h-5 w-5" />
+            {notificationCount > 0 && (
+              <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-white">
+                {notificationCount > 9 ? '9+' : notificationCount}
+              </span>
+            )}
+          </button>
+        )}
 
         <div className="relative" ref={menuRef}>
           <button
