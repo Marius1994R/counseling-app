@@ -478,12 +478,14 @@ export function useAdminData() {
         await deleteUser(userId);
         showSnackbar(t.admin.users.deleteUserSuccess, 'success');
         loadUsers();
+        loadCounselors();
+        loadCases();
       } catch (error) {
         console.error('Error deleting user:', error);
         showSnackbar(t.admin.users.deleteUserError, 'error');
       }
     },
-    [deleteUser, loadUsers, showSnackbar]
+    [deleteUser, loadUsers, loadCounselors, loadCases, showSnackbar]
   );
 
   const handleDeactivateUser = useCallback(

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { 
   User as FirebaseUser,
   signInWithEmailAndPassword,
@@ -6,9 +6,20 @@ import {
   onAuthStateChanged,
   createUserWithEmailAndPassword
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
-import { auth, db, getSecondaryAuth } from '../firebase';
+import { httpsCallable } from 'firebase/functions';
+import {
+  doc,
+  getDoc,
+  setDoc,
+  collection,
+  getDocs,
+  updateDoc,
+  onSnapshot,
+  DocumentData,
+} from 'firebase/firestore';
+import { auth, db, functions, getSecondaryAuth } from '../firebase';
 import { User, UserRole } from '../types';
+import { SUPREME_LEADER_EMAIL } from '../components/Admin/adminUtils';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -35,43 +46,91 @@ export const useAuth = () => {
   return context;
 };
 
+function firestoreDataToUser(id: string, email: string, userData: DocumentData): User {
+  return {
+    id,
+    email,
+    fullName: userData.fullName,
+    role: userData.role,
+    isActive: userData.isActive ?? true,
+    avatarUrl: userData.avatarUrl || undefined,
+    createdAt: userData.createdAt.toDate(),
+    lastLogin: userData.lastLogin?.toDate(),
+    deactivatedAt: userData.deactivatedAt?.toDate(),
+  };
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const initializedRef = useRef(false);
+  const bootstrapCompleteRef = useRef(false);
 
-  // Restore user from localStorage on app load
+  const clearSession = useCallback(async () => {
+    try {
+      await signOut(auth);
+    } catch {
+      // Ignore sign-out errors (e.g. already signed out)
+    }
+    setCurrentUser(null);
+    localStorage.removeItem('counselingAppUser');
+  }, []);
+
+  const persistUser = useCallback((user: User) => {
+    setCurrentUser(user);
+    localStorage.setItem('counselingAppUser', JSON.stringify(user));
+  }, []);
+
   useEffect(() => {
-    if (initializedRef.current) return; // Prevent multiple initializations
-    initializedRef.current = true;
-    
-    const savedUser = localStorage.getItem('counselingAppUser');
-    
-    if (savedUser) {
+    if (bootstrapCompleteRef.current) return;
+    bootstrapCompleteRef.current = true;
+
+    const bootstrap = async () => {
+      const savedUser = localStorage.getItem('counselingAppUser');
+
+      if (!savedUser) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const userData = JSON.parse(savedUser);
-        
-        // Check if the saved user is still valid (not expired)
-        if (userData.id && userData.email) {
-          // Convert date strings back to Date objects
-          const restoredUser = {
+
+        if (!userData.id || !userData.email) {
+          localStorage.removeItem('counselingAppUser');
+          setLoading(false);
+          return;
+        }
+
+        if (userData.id.startsWith('demo-')) {
+          persistUser({
             ...userData,
             createdAt: new Date(userData.createdAt),
-            lastLogin: new Date(userData.lastLogin)
-          };
-          setCurrentUser(restoredUser);
+            lastLogin: new Date(userData.lastLogin),
+          });
+          setLoading(false);
+          return;
+        }
+
+        const userDoc = await getDoc(doc(db, 'users', userData.id));
+        if (!userDoc.exists() || userDoc.data()?.isActive === false) {
+          await clearSession();
+        } else {
+          const data = userDoc.data();
+          persistUser(firestoreDataToUser(userData.id, userData.email, data));
         }
       } catch (error) {
-        console.error('AuthContext: Error parsing saved user data:', error);
+        console.error('AuthContext: Error validating saved user:', error);
         localStorage.removeItem('counselingAppUser');
       }
-    }
-    setLoading(false);
-  }, []);
+
+      setLoading(false);
+    };
+
+    bootstrap();
+  }, [clearSession, persistUser]);
 
   const login = async (email: string, password: string) => {
     try {
-      // Hardcoded demo credentials
       const demoUsers = {
         'marius.rasbici@biserica-lumina.ro': { password: 'm.rasbici@BLT2024', fullName: 'Marius Rasbici', role: 'leader' as UserRole, isActive: true },
         'admin@church.com': { password: 'a.admin@BLT2024', fullName: 'Admin User', role: 'admin' as UserRole, isActive: true },
@@ -89,40 +148,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           createdAt: new Date(),
           lastLogin: new Date()
         };
-        setCurrentUser(user);
-        // Save to localStorage for persistence
-        localStorage.setItem('counselingAppUser', JSON.stringify(user));
+        persistUser(user);
         return;
       }
 
-      // Try Firebase authentication as fallback
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
-      
-      // Get user data from Firestore
+
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        
-        // Check if user is active
+
         if (!userData.isActive) {
           throw new Error('Account has been deactivated. Please contact an administrator.');
         }
-        
-        const user = {
-          id: firebaseUser.uid,
-          email: firebaseUser.email!,
-          fullName: userData.fullName,
-          role: userData.role,
-          isActive: userData.isActive,
-          avatarUrl: userData.avatarUrl || undefined,
-          createdAt: userData.createdAt.toDate(),
-          lastLogin: new Date(),
-          deactivatedAt: userData.deactivatedAt?.toDate()
-        };
-        setCurrentUser(user);
-        // Save to localStorage for persistence
-        localStorage.setItem('counselingAppUser', JSON.stringify(user));
+
+        persistUser(firestoreDataToUser(firebaseUser.uid, firebaseUser.email!, userData));
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -132,10 +173,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await signOut(auth);
-      setCurrentUser(null);
-      // Clear localStorage on logout
-      localStorage.removeItem('counselingAppUser');
+      await clearSession();
     } catch (error) {
       console.error('Logout error:', error);
       throw error;
@@ -146,8 +184,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      
-      // Create user document in Firestore
+
       const userData = {
         email: user.email,
         fullName,
@@ -156,10 +193,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         createdAt: new Date(),
         lastLogin: new Date()
       };
-      
+
       await setDoc(doc(db, 'users', user.uid), userData);
-      
-      setCurrentUser({
+
+      persistUser({
         id: user.uid,
         email: user.email!,
         fullName,
@@ -176,17 +213,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const createUser = async (email: string, password: string, fullName: string, role: UserRole): Promise<string> => {
     try {
-      // Check if current user has permission to create users
       if (currentUser?.role !== 'leader') {
         throw new Error('Only leaders can create new users');
       }
 
-      // Use secondary auth instance to create user without affecting main session
       const secondaryAuth = getSecondaryAuth();
       const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
       const user = userCredential.user;
-      
-      // Create user document in Firestore
+
       const userData = {
         email: user.email,
         fullName,
@@ -195,54 +229,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         createdAt: new Date(),
         lastLogin: new Date()
       };
-      
+
       await setDoc(doc(db, 'users', user.uid), userData);
-      
-      // Sign out from the secondary auth instance to clean up
       await signOut(secondaryAuth);
-      
-      
-      // Return the newly created user ID
+
       return user.uid;
-      
     } catch (error: any) {
       console.error('Create user error:', error);
-      
-      // Sign out from secondary auth instance in case of error
+
       try {
         const secondaryAuth = getSecondaryAuth();
         await signOut(secondaryAuth);
-      } catch (signOutError) {
+      } catch {
         // Ignore sign out errors
       }
-      
-      // If email already exists in Firebase Auth, provide more specific error
+
       if (error.code === 'auth/email-already-in-use') {
         throw new Error('This email is already registered in Firebase Authentication. The user may exist in Firebase Auth but not in your Firestore database. Please use a different email or contact an administrator to clean up orphaned accounts.');
       }
-      
+
       throw error;
     }
   };
 
   const updateUserRole = async (userId: string, newRole: UserRole) => {
     try {
-      // Check if current user has permission to update roles
       if (currentUser?.role !== 'leader' && currentUser?.role !== 'admin') {
         throw new Error('Only leaders and admins can update user roles');
       }
 
-      // Prevent non-leaders from creating other leaders
       if (newRole === 'leader' && currentUser?.role !== 'leader') {
         throw new Error('Only leaders can assign leader role');
       }
 
-      // Get user data to check their current role
       const userDoc = await getDoc(doc(db, 'users', userId));
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        
-        // Prevent admins from changing the role of leader accounts
+
         if (currentUser?.role === 'admin' && userData.role === 'leader') {
           throw new Error('Admins cannot modify leader account roles');
         }
@@ -258,38 +281,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-
-
   const deleteUser = async (userId: string) => {
     try {
-      // Check if current user has permission to delete users
       if (currentUser?.role !== 'leader') {
         throw new Error('Only leaders can delete users');
       }
 
-      // Allow supreme leader to delete themselves
-      const isSupremeLeader = currentUser?.email === 'marius.rasbici@biserica-lumina.ro';
+      const isSupremeLeader = currentUser?.email === SUPREME_LEADER_EMAIL;
       if (userId === currentUser?.id && !isSupremeLeader) {
         throw new Error('Cannot delete your own account');
       }
 
-      // Get user data first to get the Firebase Auth UID
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      if (userDoc.exists()) {
-        // Delete user from Firebase Auth (if it's a real Firebase user, not demo)
-        if (!userId.startsWith('demo-')) {
-          try {
-            // Note: This requires admin privileges in Firebase Auth
-            // For now, we'll just delete from Firestore
-            console.warn('Firebase Auth user deletion requires admin privileges');
-          } catch (authError) {
-            console.warn('Could not delete from Firebase Auth:', authError);
-          }
-        }
-      }
+      const deleteAuthUserFn = httpsCallable(functions, 'deleteAuthUser');
+      await deleteAuthUserFn({ userId });
 
-      // Delete user document from Firestore
-      await deleteDoc(doc(db, 'users', userId));
+      if (userId === currentUser?.id) {
+        await clearSession();
+      }
     } catch (error) {
       console.error('Delete user error:', error);
       throw error;
@@ -298,23 +306,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deactivateUser = async (userId: string) => {
     try {
-      // Check if current user has permission to deactivate users
       if (currentUser?.role !== 'leader' && currentUser?.role !== 'admin') {
         throw new Error('Only leaders and admins can deactivate users');
       }
 
-      // Allow supreme leader to deactivate themselves
-      const isSupremeLeader = currentUser?.email === 'marius.rasbici@biserica-lumina.ro';
+      const isSupremeLeader = currentUser?.email === SUPREME_LEADER_EMAIL;
       if (userId === currentUser?.id && !isSupremeLeader) {
         throw new Error('Cannot deactivate your own account');
       }
 
-      // Get user data to check their role
       const userDoc = await getDoc(doc(db, 'users', userId));
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        
-        // Prevent admins from deactivating leaders
+
         if (currentUser?.role === 'admin' && userData.role === 'leader') {
           throw new Error('Admins cannot deactivate leader accounts');
         }
@@ -333,17 +337,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const reactivateUser = async (userId: string) => {
     try {
-      // Check if current user has permission to reactivate users
       if (currentUser?.role !== 'leader' && currentUser?.role !== 'admin') {
         throw new Error('Only leaders and admins can reactivate users');
       }
 
-      // Get user data to check their role
       const userDoc = await getDoc(doc(db, 'users', userId));
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        
-        // Prevent admins from reactivating leaders
+
         if (currentUser?.role === 'admin' && userData.role === 'leader') {
           throw new Error('Admins cannot reactivate leader accounts');
         }
@@ -360,26 +361,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-
   const getAllUsers = async (): Promise<User[]> => {
     try {
-      // Check if current user has permission to view all users
       if (currentUser?.role !== 'leader' && currentUser?.role !== 'admin') {
         throw new Error('Only leaders and admins can view all users');
       }
 
       const usersList: User[] = [];
-      
-      // Get Firebase users
+
       const usersSnapshot = await getDocs(collection(db, 'users'));
-      usersSnapshot.forEach((doc) => {
-        const userData = doc.data();
+      usersSnapshot.forEach((userDoc) => {
+        const userData = userDoc.data();
         usersList.push({
-          id: doc.id,
+          id: userDoc.id,
           email: userData.email,
           fullName: userData.fullName,
           role: userData.role,
-          isActive: userData.isActive ?? true, // Default to true for existing users
+          isActive: userData.isActive ?? true,
           avatarUrl: userData.avatarUrl || undefined,
           createdAt: userData.createdAt.toDate(),
           lastLogin: userData.lastLogin?.toDate(),
@@ -388,15 +386,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       return usersList.sort((a, b) => {
-        // First sort by role priority: leader > admin > counselor
         const roleOrder = { leader: 0, admin: 1, counselor: 2 };
         const roleComparison = roleOrder[a.role] - roleOrder[b.role];
-        
-        // If roles are the same, sort by name
+
         if (roleComparison === 0) {
           return a.fullName.localeCompare(b.fullName);
         }
-        
+
         return roleComparison;
       });
     } catch (error) {
@@ -412,34 +408,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data();
-            const firebaseUserData = {
-              id: firebaseUser.uid,
-              email: firebaseUser.email!,
-              fullName: userData.fullName,
-              role: userData.role,
-              isActive: userData.isActive ?? true,
-              avatarUrl: userData.avatarUrl || undefined,
-              createdAt: userData.createdAt.toDate(),
-              lastLogin: userData.lastLogin?.toDate(),
-              deactivatedAt: userData.deactivatedAt?.toDate()
-            };
-            setCurrentUser(firebaseUserData);
-            localStorage.setItem('counselingAppUser', JSON.stringify(firebaseUserData));
+            if (userData.isActive === false) {
+              await clearSession();
+              return;
+            }
+            persistUser(firestoreDataToUser(firebaseUser.uid, firebaseUser.email!, userData));
+          } else {
+            await clearSession();
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
         }
       } else {
-        // Only clear currentUser if we don't have a localStorage user
         const savedUser = localStorage.getItem('counselingAppUser');
         if (!savedUser) {
           setCurrentUser(null);
+          return;
+        }
+
+        try {
+          const parsed = JSON.parse(savedUser);
+          if (!parsed.id?.startsWith('demo-')) {
+            setCurrentUser(null);
+            localStorage.removeItem('counselingAppUser');
+          }
+        } catch {
+          setCurrentUser(null);
+          localStorage.removeItem('counselingAppUser');
         }
       }
     });
 
     return unsubscribe;
-  }, []);
+  }, [clearSession, persistUser]);
+
+  useEffect(() => {
+    const userId = currentUser?.id;
+    if (!userId || userId.startsWith('demo-')) {
+      return;
+    }
+
+    const unsubscribe = onSnapshot(doc(db, 'users', userId), (userDoc) => {
+      if (!userDoc.exists() || userDoc.data()?.isActive === false) {
+        clearSession();
+      }
+    });
+
+    return unsubscribe;
+  }, [currentUser?.id, clearSession]);
 
   const updateUserAvatar = async (avatarUrl: string | null) => {
     if (!currentUser) return;
@@ -455,8 +471,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...currentUser,
       avatarUrl: avatarUrl ?? undefined,
     };
-    setCurrentUser(updatedUser);
-    localStorage.setItem('counselingAppUser', JSON.stringify(updatedUser));
+    persistUser(updatedUser);
   };
 
   const value = {

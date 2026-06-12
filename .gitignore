@@ -2,8 +2,12 @@
 
 # dependencies
 /node_modules
+/functions/node_modules
 /.pnp
 .pnp.js
+
+# Cloud Functions build output
+/functions/lib
 
 # testing
 /coverage

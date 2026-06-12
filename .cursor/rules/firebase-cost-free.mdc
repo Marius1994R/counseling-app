@@ -1,0 +1,35 @@
+---
+description: Keep Firebase usage within free-tier limits (~20 users, church app)
+alwaysApply: true
+---
+
+# Firebase cost-free scope
+
+Consiliere360 targets ~20 light users on Firebase **Blaze pay-as-you-go**, but usage must stay within free-tier allowances. Treat unnecessary paid/overage risk as a bug.
+
+## Default choices (prefer in order)
+
+1. **Firestore** for app data and small binary assets (avatars: client-compress → base64 in `users` / `counselors`, max ~320px JPEG via `avatarUtils.ts`).
+2. **Client-side** work (resize, compress, validate) before any write.
+3. **Firebase Auth + Firestore + Hosting** only — no extra GCP services unless justified.
+4. **Cloud Functions** only when the client cannot do it (e.g. Admin SDK `deleteAuthUser`). Keep invocations rare; no scheduled/high-frequency functions.
+
+## Avoid unless explicitly requested and cost-reviewed
+
+- **Firebase Storage** (avatars, files) — Storage on Spark is limited; bandwidth adds cost on Blaze.
+- **Frequent Cloud Functions** (triggers on every write, cron jobs, image processing).
+- **Large Firestore documents** (>100KB fields, unbounded arrays, storing full file blobs without compression).
+- **Unbounded listeners** or queries that load entire collections on every page load.
+- **Redundant writes** (sync the same data to multiple collections without need).
+
+## Implementation checklist
+
+- Batch reads where possible; filter in queries, not only in memory.
+- Use `dedupeCounselors` / single source of truth — avoid duplicate docs that multiply reads/writes.
+- Prefer `null` over `undefined` for optional Firestore fields.
+- Session invalidation via Firestore `onSnapshot` on `users/{uid}` — no extra services.
+- When adding a feature, note estimated Firestore reads/writes per user action.
+
+## Blaze note
+
+Blaze is required for Functions but expected bill is **$0** at current scale. New features should not assume unlimited budget.
