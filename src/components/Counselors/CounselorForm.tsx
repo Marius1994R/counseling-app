@@ -18,6 +18,7 @@ import {
 import { Counselor, User } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { t } from '../../utils/translations';
+import { COMMON_SPECIALTIES, normalizeSpecialties } from '../Profile/profileUtils';
 
 interface CounselorFormProps {
   open: boolean;
@@ -48,7 +49,7 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
     email: '',
     phoneNumber: '',
     specialties: [],
-    linkedUserId: ''
+    linkedUserId: '',
   });
 
   const [newSpecialty, setNewSpecialty] = useState('');
@@ -84,8 +85,8 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
         fullName: counselorData.fullName || '',
         email: counselorData.email || '',
         phoneNumber: phoneWithoutPrefix,
-        specialties: counselorData.specialties || [],
-        linkedUserId: counselorData.linkedUserId || ''
+        specialties: normalizeSpecialties(counselorData.specialties || []),
+        linkedUserId: counselorData.linkedUserId || '',
       });
     } else if (preselectedUserId && users.length > 0) {
       // Pre-select the user if preselectedUserId is provided
@@ -96,7 +97,7 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
           email: preselectedUser.email || '',
           phoneNumber: '',
           specialties: [],
-          linkedUserId: preselectedUserId
+          linkedUserId: preselectedUserId,
         });
       } else {
         // Reset form for new counselor
@@ -105,7 +106,7 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
           email: '',
           phoneNumber: '',
           specialties: [],
-          linkedUserId: preselectedUserId // Still set the linkedUserId even if user not found yet
+          linkedUserId: preselectedUserId,
         });
       }
     } else {
@@ -115,27 +116,12 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
         email: '',
         phoneNumber: '',
         specialties: [],
-        linkedUserId: preselectedUserId || ''
+        linkedUserId: preselectedUserId || '',
       });
     }
     setNewSpecialty('');
     setErrors({});
   }, [counselorData, preselectedUserId, users]);
-
-  const commonSpecialties = [
-    'Consiliere Căsnicie',
-    'Terapie Familială',
-    'Consiliere Doliu',
-    'Recuperare Dependențe',
-    'Probleme Adolescenți',
-    'Orientare Spirituală',
-    'Anxietate și Depresie',
-    'Managementul Mâniei',
-    'Consiliere Financiară',
-    'Orientare Carieră',
-    'Probleme Relațiilor',
-    'Intervenție în Criză'
-  ];
 
   const handleChange = (field: string) => (event: any) => {
     let value = event.target.value;
@@ -177,7 +163,7 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
         ...prev,
         linkedUserId: userId,
         fullName: selectedUser.fullName,
-        email: selectedUser.email
+        email: selectedUser.email,
       }));
     }
   };
@@ -238,7 +224,8 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
       email: formData.email.trim(),
       phoneNumber: `+40${formData.phoneNumber.replace(/[\s\-()]/g, '')}`,
       specialties: formData.specialties,
-      linkedUserId: formData.linkedUserId || undefined
+      linkedUserId: formData.linkedUserId || undefined,
+      avatarUrl: counselorData?.avatarUrl,
     });
 
     onClose();
@@ -250,7 +237,7 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
       email: '',
       phoneNumber: '',
       specialties: [],
-      linkedUserId: ''
+      linkedUserId: '',
     });
     setNewSpecialty('');
     setErrors({});
@@ -423,7 +410,7 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
                 {t.profile.commonSpecialties}:
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {commonSpecialties
+                {COMMON_SPECIALTIES
                   .filter(specialty => !formData.specialties.includes(specialty))
                   .map((specialty) => (
                     <Chip

@@ -1,14 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { collection, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import { Counselor, Case } from '../types';
 import { t } from '../utils/translations';
-import { COMMON_SPECIALTIES } from '../components/Profile/profileUtils';
+import { COMMON_SPECIALTIES, normalizeSpecialties } from '../components/Profile/profileUtils';
+import { getEarliestDate, pickNewestCounselorDoc } from '../components/Counselors/counselorsUtils';
+import { fileToAvatarDataUrl, validateAvatarFile } from '../utils/avatarUtils';
 
 export function useProfileData() {
-  const { currentUser } = useAuth();
+  const { currentUser, updateUserAvatar } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [counselor, setCounselor] = useState<Counselor | null>(null);
@@ -16,6 +18,11 @@ export function useProfileData() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [removeAvatarConfirmOpen, setRemoveAvatarConfirmOpen] = useState(false);
+  const [isLinkedCounselor, setIsLinkedCounselor] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
@@ -42,12 +49,24 @@ export function useProfileData() {
         setLoadError(false);
 
         const counselorsRef = collection(db, 'counselors');
-        const counselorsQuery = query(counselorsRef, where('linkedUserId', '==', currentUser.id));
-        const counselorsSnapshot = await getDocs(counselorsQuery);
+        const linkedQuery = query(counselorsRef, where('linkedUserId', '==', currentUser.id));
+        const linkedSnapshot = await getDocs(linkedQuery);
 
-        if (!counselorsSnapshot.empty) {
-          const counselorDoc = counselorsSnapshot.docs[0];
+        const matchingDocs = [...linkedSnapshot.docs];
+        if (matchingDocs.length === 0) {
+          const emailQuery = query(counselorsRef, where('email', '==', currentUser.email));
+          const emailSnapshot = await getDocs(emailQuery);
+          matchingDocs.push(...emailSnapshot.docs);
+        }
+
+        const counselorDoc = pickNewestCounselorDoc(matchingDocs);
+
+        if (counselorDoc) {
           const counselorData = counselorDoc.data();
+          const createdAt = getEarliestDate(
+            matchingDocs.map((docSnap) => docSnap.data().createdAt?.toDate?.() ?? new Date())
+          );
+          setIsLinkedCounselor(true);
 
           const casesRef = collection(db, 'cases');
           const casesQuery = query(casesRef, where('assignedCounselorId', '==', counselorDoc.id));
@@ -83,16 +102,18 @@ export function useProfileData() {
             fullName: counselorData.fullName,
             email: counselorData.email,
             phoneNumber: counselorData.phoneNumber || '',
-            specialties: counselorData.specialties || [],
+            specialties: normalizeSpecialties(counselorData.specialties || []),
             activeCases,
             workloadLevel,
             linkedUserId: counselorData.linkedUserId,
-            createdAt: counselorData.createdAt.toDate(),
+            avatarUrl: currentUser.avatarUrl || counselorData.avatarUrl || undefined,
+            createdAt,
             updatedAt: counselorData.updatedAt.toDate(),
           });
 
           setCases(casesData);
         } else {
+          setIsLinkedCounselor(false);
           setCounselor({
             id: currentUser.id,
             fullName: currentUser.fullName || '',
@@ -102,6 +123,7 @@ export function useProfileData() {
             activeCases: 0,
             workloadLevel: 'low',
             linkedUserId: undefined,
+            avatarUrl: currentUser.avatarUrl,
             createdAt: new Date(),
             updatedAt: new Date(),
           });
@@ -141,7 +163,7 @@ export function useProfileData() {
   }, [counselor]);
 
   const handleSave = useCallback(async () => {
-    if (!counselor) return;
+    if (!counselor || !isLinkedCounselor) return;
 
     try {
       const counselorRef = doc(db, 'counselors', counselor.id);
@@ -156,6 +178,7 @@ export function useProfileData() {
         ...counselor,
         phoneNumber: formattedPhone,
         specialties: editData.specialties,
+        createdAt: counselor.createdAt,
         updatedAt: new Date(),
       });
 
@@ -165,7 +188,97 @@ export function useProfileData() {
       console.error('Error updating profile:', error);
       showSnackbar(t.profile.updateError || 'Eroare la actualizarea profilului', 'error');
     }
-  }, [counselor, editData, showSnackbar]);
+  }, [counselor, editData, isLinkedCounselor, showSnackbar]);
+
+  const handleAvatarClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleAvatarFileChange = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = '';
+      if (!file || !currentUser || !counselor) return;
+
+      const validationError = validateAvatarFile(file);
+      if (validationError === 'invalidType') {
+        showSnackbar(t.profile.avatarInvalidType, 'error');
+        return;
+      }
+      if (validationError === 'tooLarge') {
+        showSnackbar(t.profile.avatarTooLarge, 'error');
+        return;
+      }
+
+      try {
+        setAvatarUploading(true);
+
+        const avatarUrl = await fileToAvatarDataUrl(file);
+
+        await updateUserAvatar(avatarUrl);
+
+        if (isLinkedCounselor) {
+          await updateDoc(doc(db, 'counselors', counselor.id), {
+            avatarUrl,
+            updatedAt: new Date(),
+          });
+        }
+
+        setCounselor({
+          ...counselor,
+          avatarUrl,
+          createdAt: counselor.createdAt,
+          updatedAt: new Date(),
+        });
+        showSnackbar(t.profile.avatarUpdateSuccess, 'success');
+      } catch (error) {
+        console.error('Error uploading avatar:', error);
+        showSnackbar(t.profile.avatarUpdateError, 'error');
+      } finally {
+        setAvatarUploading(false);
+      }
+    },
+    [currentUser, counselor, isLinkedCounselor, updateUserAvatar, showSnackbar]
+  );
+
+  const handleRequestRemoveAvatar = useCallback(() => {
+    setRemoveAvatarConfirmOpen(true);
+  }, []);
+
+  const handleCancelRemoveAvatar = useCallback(() => {
+    setRemoveAvatarConfirmOpen(false);
+  }, []);
+
+  const handleConfirmRemoveAvatar = useCallback(async () => {
+    if (!currentUser || !counselor) return;
+
+    try {
+      setAvatarUploading(true);
+
+      await updateUserAvatar(null);
+
+      if (isLinkedCounselor) {
+        await updateDoc(doc(db, 'counselors', counselor.id), {
+          avatarUrl: null,
+          updatedAt: new Date(),
+        });
+      }
+
+      setCounselor({
+        ...counselor,
+        avatarUrl: undefined,
+        createdAt: counselor.createdAt,
+        updatedAt: new Date(),
+      });
+      setRemoveAvatarConfirmOpen(false);
+      showSnackbar(t.profile.avatarRemoveSuccess, 'success');
+    } catch (error) {
+      console.error('Error removing avatar:', error);
+      showSnackbar(t.profile.avatarUpdateError, 'error');
+    } finally {
+      setAvatarUploading(false);
+    }
+  }, [currentUser, counselor, isLinkedCounselor, updateUserAvatar, showSnackbar]);
 
   const handleAddSpecialty = useCallback(() => {
     const trimmedSpecialty = newSpecialty.trim();
@@ -207,8 +320,17 @@ export function useProfileData() {
     snackbar,
     setSnackbar,
     commonSpecialties: COMMON_SPECIALTIES,
+    isLinkedCounselor,
+    avatarUploading,
+    fileInputRef,
     handleEditClick,
     handleSave,
+    handleAvatarClick,
+    handleAvatarFileChange,
+    removeAvatarConfirmOpen,
+    handleRequestRemoveAvatar,
+    handleCancelRemoveAvatar,
+    handleConfirmRemoveAvatar,
     handleAddSpecialty,
     handleRemoveSpecialty,
     handleAddCommonSpecialty,

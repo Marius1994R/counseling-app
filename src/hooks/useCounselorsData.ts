@@ -20,7 +20,10 @@ import {
   getCounselorCases,
   countByWorkload,
   computeWorkload,
+  dedupeCounselors,
 } from '../components/Counselors/counselorsUtils';
+import { syncLinkedUserAvatar } from '../utils/avatarUtils';
+import { normalizeSpecialties } from '../components/Profile/profileUtils';
 
 export function useCounselorsData() {
   const { currentUser } = useAuth();
@@ -79,8 +82,9 @@ export function useCounselorsData() {
                 fullName: data.fullName,
                 email: data.email,
                 phoneNumber: data.phoneNumber || '',
-                specialties: data.specialties || [],
+                specialties: normalizeSpecialties(data.specialties || []),
                 linkedUserId: data.linkedUserId || undefined,
+                avatarUrl: data.avatarUrl || undefined,
                 createdAt: data.createdAt.toDate(),
                 updatedAt: data.updatedAt.toDate(),
               },
@@ -90,7 +94,7 @@ export function useCounselorsData() {
         });
 
         setCases(casesData);
-        setCounselors(counselorsData);
+        setCounselors(dedupeCounselors(counselorsData));
       } catch (err) {
         setError(t.counselors.loadError);
         console.error('Counselors loading error:', err);
@@ -162,15 +166,22 @@ export function useCounselorsData() {
           );
 
           await updateDoc(doc(db, 'counselors', editingCounselor.id), {
-            ...counselorData,
+            fullName: counselorData.fullName,
+            email: counselorData.email,
+            phoneNumber: counselorData.phoneNumber,
+            specialties: counselorData.specialties,
+            linkedUserId: counselorData.linkedUserId ?? null,
+            avatarUrl: counselorData.avatarUrl ?? null,
             activeCases,
             workloadLevel,
             updatedAt: new Date(),
           });
+          await syncLinkedUserAvatar(counselorData.linkedUserId, counselorData.avatarUrl);
 
           const updatedCounselor: Counselor = {
             ...editingCounselor,
             ...counselorData,
+            createdAt: editingCounselor.createdAt,
             activeCases,
             workloadLevel,
             updatedAt: new Date(),
@@ -186,6 +197,7 @@ export function useCounselorsData() {
             createdAt: new Date(),
             updatedAt: new Date(),
           });
+          await syncLinkedUserAvatar(counselorData.linkedUserId, counselorData.avatarUrl);
 
           const newCounselor: Counselor = {
             ...counselorData,

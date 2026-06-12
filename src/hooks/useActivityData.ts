@@ -11,6 +11,7 @@ import {
   shouldIncludeActivityForUser,
   filterActivities,
 } from '../components/Activity/activityUtils';
+import { dedupeCounselors } from '../components/Counselors/counselorsUtils';
 
 export function useActivityData() {
   const { currentUser } = useAuth();
@@ -87,7 +88,11 @@ export function useActivityData() {
         });
 
         setActivities(allActivities);
-        setCounselors(counselorsData);
+        setCounselors(
+          dedupeCounselors(counselorsData).sort((a, b) =>
+            a.fullName.localeCompare(b.fullName, 'ro')
+          )
+        );
       } catch (err) {
         setError(t.activity.loadError);
         console.error('Activity loading error:', err);

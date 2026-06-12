@@ -29,6 +29,44 @@ export function getCounselorCases(counselorId: string, cases: Case[]): Case[] {
   return cases.filter((c) => c.assignedCounselorId === counselorId);
 }
 
+export function pickNewestCounselorDoc<
+  T extends { data: () => { updatedAt?: { toDate: () => Date } } },
+>(docs: T[]): T | null {
+  if (docs.length === 0) return null;
+  return [...docs].sort((a, b) => {
+    const aTime = a.data().updatedAt?.toDate?.()?.getTime() ?? 0;
+    const bTime = b.data().updatedAt?.toDate?.()?.getTime() ?? 0;
+    return bTime - aTime;
+  })[0];
+}
+
+export function getEarliestDate(dates: Date[]): Date {
+  return dates.reduce(
+    (earliest, date) => (date.getTime() < earliest.getTime() ? date : earliest),
+    dates[0]
+  );
+}
+
+/** Newest data, earliest createdAt — hides duplicates without shifting the creation date. */
+export function dedupeCounselors(counselors: Counselor[]): Counselor[] {
+  const byKey = new Map<string, Counselor[]>();
+
+  for (const counselor of counselors) {
+    const key = counselor.linkedUserId || counselor.email.trim().toLowerCase();
+    const group = byKey.get(key) ?? [];
+    group.push(counselor);
+    byKey.set(key, group);
+  }
+
+  return Array.from(byKey.values()).map((group) => {
+    const preferred = [...group].sort(
+      (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+    )[0];
+    const createdAt = getEarliestDate(group.map((c) => c.createdAt));
+    return { ...preferred, createdAt };
+  });
+}
+
 export function filterCounselors(
   counselors: Counselor[],
   searchTerm: string,

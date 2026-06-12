@@ -29,7 +29,9 @@ import {
   filterAdminCases,
   enrichCounselorsList,
 } from '../components/Admin/adminUtils';
-import { countByWorkload } from '../components/Counselors/counselorsUtils';
+import { countByWorkload, dedupeCounselors } from '../components/Counselors/counselorsUtils';
+import { syncLinkedUserAvatar } from '../utils/avatarUtils';
+import { normalizeSpecialties } from '../components/Profile/profileUtils';
 
 export function useAdminData() {
   const {
@@ -191,17 +193,18 @@ export function useAdminData() {
           fullName: data.fullName,
           email: data.email,
           phoneNumber: data.phoneNumber || '',
-          specialties: data.specialties || [],
+          specialties: normalizeSpecialties(data.specialties || []),
           activeCases: 0,
           workloadLevel: 'low',
           linkedUserId: data.linkedUserId || undefined,
+          avatarUrl: data.avatarUrl || undefined,
           createdAt: data.createdAt.toDate(),
           updatedAt: data.updatedAt.toDate(),
         });
       });
 
       setCounselorCases(casesData);
-      setCounselors(enrichCounselorsList(counselorsData, casesData));
+      setCounselors(enrichCounselorsList(dedupeCounselors(counselorsData), casesData));
     } catch (error) {
       console.error('Error loading counselors:', error);
       setCounselorsError(t.counselors.loadError);
@@ -301,9 +304,15 @@ export function useAdminData() {
       try {
         if (editingCounselor) {
           await updateDoc(doc(db, 'counselors', editingCounselor.id), {
-            ...counselorData,
+            fullName: counselorData.fullName,
+            email: counselorData.email,
+            phoneNumber: counselorData.phoneNumber,
+            specialties: counselorData.specialties,
+            linkedUserId: counselorData.linkedUserId ?? null,
+            avatarUrl: counselorData.avatarUrl ?? null,
             updatedAt: new Date(),
           });
+          await syncLinkedUserAvatar(counselorData.linkedUserId, counselorData.avatarUrl);
           showSnackbar('Consilier actualizat cu succes', 'success');
         } else {
           await addDoc(collection(db, 'counselors'), {
@@ -311,6 +320,7 @@ export function useAdminData() {
             createdAt: new Date(),
             updatedAt: new Date(),
           });
+          await syncLinkedUserAvatar(counselorData.linkedUserId, counselorData.avatarUrl);
           showSnackbar('Consilier creat cu succes', 'success');
         }
         setCounselorFormOpen(false);

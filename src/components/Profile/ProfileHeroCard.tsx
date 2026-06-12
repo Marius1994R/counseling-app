@@ -1,11 +1,16 @@
 import React from 'react';
-import { PencilSquareIcon, PhoneIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
+import {
+  PencilSquareIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  CameraIcon,
+  TrashIcon,
+} from '@heroicons/react/24/outline';
 import { Counselor } from '../../types';
 import { UserRole } from '../../types';
 import { t } from '../../utils/translations';
-import { getAvatarColorClass } from '../Cases/casesUtils';
+import UserAvatar from '../common/UserAvatar';
 import {
-  getInitials,
   getWorkloadLabel,
   getWorkloadBadgeClass,
   getRoleLabel,
@@ -14,10 +19,20 @@ import {
 interface ProfileHeroCardProps {
   counselor: Counselor;
   role?: UserRole;
+  avatarUploading?: boolean;
   onEdit: () => void;
+  onAvatarClick: () => void;
+  onRemoveAvatar: () => void;
 }
 
-const ProfileHeroCard: React.FC<ProfileHeroCardProps> = ({ counselor, role, onEdit }) => {
+const ProfileHeroCard: React.FC<ProfileHeroCardProps> = ({
+  counselor,
+  role,
+  avatarUploading = false,
+  onEdit,
+  onAvatarClick,
+  onRemoveAvatar,
+}) => {
   const displayPhone = counselor.phoneNumber || t.profile.phoneNotProvided;
 
   return (
@@ -32,14 +47,38 @@ const ProfileHeroCard: React.FC<ProfileHeroCardProps> = ({ counselor, role, onEd
       </button>
 
       <div className="flex flex-col gap-5 md:flex-row md:items-start">
-        <div
-          className={`mx-auto flex h-24 w-24 shrink-0 items-center justify-center rounded-full text-2xl font-semibold md:mx-0 ${getAvatarColorClass(counselor.fullName)}`}
-        >
-          {getInitials(counselor.fullName)}
+        <div className="relative mx-auto shrink-0 md:mx-0">
+          <UserAvatar
+            name={counselor.fullName}
+            avatarUrl={counselor.avatarUrl}
+            size="xl"
+            className={avatarUploading ? 'opacity-60' : ''}
+          />
+          <button
+            type="button"
+            onClick={onAvatarClick}
+            disabled={avatarUploading}
+            title={t.profile.changeAvatar}
+            className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-brand-600 text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <CameraIcon className="h-4 w-4" />
+          </button>
+          {counselor.avatarUrl && (
+            <button
+              type="button"
+              onClick={onRemoveAvatar}
+              disabled={avatarUploading}
+              title={t.profile.removeAvatar}
+              className="absolute -left-1 top-0 flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <TrashIcon className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         <div className="min-w-0 flex-1 pt-1 text-center md:pt-2 md:text-left">
           <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">{counselor.fullName}</h2>
+          <p className="mt-1 text-sm text-slate-500">{t.profile.avatarHint}</p>
 
           <div className="mt-3 flex flex-wrap items-center justify-center gap-2 md:justify-start">
             <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700">

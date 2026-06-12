@@ -22,6 +22,7 @@ interface AuthContextType {
   deactivateUser: (userId: string) => Promise<void>;
   reactivateUser: (userId: string) => Promise<void>;
   getAllUsers: () => Promise<User[]>;
+  updateUserAvatar: (avatarUrl: string | null) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -114,6 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           fullName: userData.fullName,
           role: userData.role,
           isActive: userData.isActive,
+          avatarUrl: userData.avatarUrl || undefined,
           createdAt: userData.createdAt.toDate(),
           lastLogin: new Date(),
           deactivatedAt: userData.deactivatedAt?.toDate()
@@ -378,6 +380,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           fullName: userData.fullName,
           role: userData.role,
           isActive: userData.isActive ?? true, // Default to true for existing users
+          avatarUrl: userData.avatarUrl || undefined,
           createdAt: userData.createdAt.toDate(),
           lastLogin: userData.lastLogin?.toDate(),
           deactivatedAt: userData.deactivatedAt?.toDate()
@@ -415,11 +418,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               fullName: userData.fullName,
               role: userData.role,
               isActive: userData.isActive ?? true,
+              avatarUrl: userData.avatarUrl || undefined,
               createdAt: userData.createdAt.toDate(),
               lastLogin: userData.lastLogin?.toDate(),
               deactivatedAt: userData.deactivatedAt?.toDate()
             };
             setCurrentUser(firebaseUserData);
+            localStorage.setItem('counselingAppUser', JSON.stringify(firebaseUserData));
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
@@ -436,6 +441,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return unsubscribe;
   }, []);
 
+  const updateUserAvatar = async (avatarUrl: string | null) => {
+    if (!currentUser) return;
+
+    if (!currentUser.id.startsWith('demo-')) {
+      await updateDoc(doc(db, 'users', currentUser.id), {
+        avatarUrl: avatarUrl ?? null,
+        updatedAt: new Date(),
+      });
+    }
+
+    const updatedUser: User = {
+      ...currentUser,
+      avatarUrl: avatarUrl ?? undefined,
+    };
+    setCurrentUser(updatedUser);
+    localStorage.setItem('counselingAppUser', JSON.stringify(updatedUser));
+  };
+
   const value = {
     currentUser,
     loading,
@@ -447,7 +470,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     deleteUser,
     deactivateUser,
     reactivateUser,
-    getAllUsers
+    getAllUsers,
+    updateUserAvatar,
   };
 
   return (

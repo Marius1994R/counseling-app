@@ -20,6 +20,7 @@ import ProfileStatsRow from './ProfileStatsRow';
 import ProfileSpecialties from './ProfileSpecialties';
 import ProfileSkeleton from './ProfileSkeleton';
 import { t } from '../../utils/translations';
+import ConfirmDialog from '../common/ConfirmDialog';
 
 const MyProfile: React.FC = () => {
   const data = useProfileData();
@@ -48,10 +49,32 @@ const MyProfile: React.FC = () => {
   return (
     <div>
       <ProfilePageHeader />
+      <input
+        ref={data.fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={data.handleAvatarFileChange}
+      />
+
       <ProfileHeroCard
         counselor={data.counselor}
         role={data.currentUser?.role}
+        avatarUploading={data.avatarUploading}
         onEdit={data.handleEditClick}
+        onAvatarClick={data.handleAvatarClick}
+        onRemoveAvatar={data.handleRequestRemoveAvatar}
+      />
+
+      <ConfirmDialog
+        open={data.removeAvatarConfirmOpen}
+        title={t.profile.removeAvatar}
+        message={t.profile.removeAvatarConfirm}
+        confirmLabel={t.profile.removeAvatar}
+        variant="danger"
+        loading={data.avatarUploading}
+        onClose={data.handleCancelRemoveAvatar}
+        onConfirm={data.handleConfirmRemoveAvatar}
       />
       <ProfileStatsRow stats={stats} />
       <ProfileSpecialties specialties={data.counselor.specialties} />

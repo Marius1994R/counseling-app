@@ -4,6 +4,19 @@ import { t } from '../../utils/translations';
 
 export { getInitials };
 
+const LEGACY_AUTO_SPECIALTIES = new Set(['Leadership', 'Administration']);
+
+/** Placeholder specialties from an old auto-create bug — treat as unset. */
+export function isLegacyAutoSpecialties(specialties: string[]): boolean {
+  return (
+    specialties.length > 0 && specialties.every((specialty) => LEGACY_AUTO_SPECIALTIES.has(specialty))
+  );
+}
+
+export function normalizeSpecialties(specialties: string[]): string[] {
+  return isLegacyAutoSpecialties(specialties) ? [] : specialties;
+}
+
 export const COMMON_SPECIALTIES = [
   'Consiliere În Căsătorie',
   'Terapie Familială',

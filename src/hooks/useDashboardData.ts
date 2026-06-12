@@ -5,7 +5,6 @@ import {
   query,
   orderBy,
   where,
-  addDoc,
   doc,
   getDoc,
   setDoc,
@@ -87,39 +86,27 @@ export function useDashboardData() {
   const loadData = useCallback(async () => {
     if (!currentUser) return;
 
-    const ensureCounselorRecord = async (user: NonNullable<typeof currentUser>) => {
+    const findCounselorRecordId = async (user: NonNullable<typeof currentUser>) => {
       if (user.role !== 'leader' && user.role !== 'admin' && user.role !== 'counselor') {
         return null;
       }
 
       try {
         const counselorsRef = collection(db, 'counselors');
-        const q = query(counselorsRef, where('linkedUserId', '==', user.id));
-        const querySnapshot = await getDocs(q);
+        const linkedQuery = query(counselorsRef, where('linkedUserId', '==', user.id));
+        const linkedSnapshot = await getDocs(linkedQuery);
 
-        if (!querySnapshot.empty) {
-          return querySnapshot.docs[0].id;
+        if (!linkedSnapshot.empty) {
+          return linkedSnapshot.docs[0].id;
         }
 
-        if (user.role === 'leader' || user.role === 'admin') {
-          const counselorData = {
-            fullName: user.fullName || user.email,
-            email: user.email,
-            phoneNumber: '',
-            specialties: user.role === 'leader' ? ['Leadership', 'Administration'] : ['Administration'],
-            activeCases: 0,
-            workloadLevel: 'low',
-            linkedUserId: user.id,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-
-          const counselorRef = collection(db, 'counselors');
-          const docRef = await addDoc(counselorRef, counselorData);
-          return docRef.id;
+        const emailQuery = query(counselorsRef, where('email', '==', user.email));
+        const emailSnapshot = await getDocs(emailQuery);
+        if (!emailSnapshot.empty) {
+          return emailSnapshot.docs[0].id;
         }
       } catch (err) {
-        console.error('Error ensuring counselor record:', err);
+        console.error('Error finding counselor record:', err);
       }
       return null;
     };
@@ -128,7 +115,7 @@ export function useDashboardData() {
       setLoading(true);
       setError(null);
 
-      const counselorId = await ensureCounselorRecord(currentUser);
+      const counselorId = await findCounselorRecordId(currentUser);
       setCounselorRecordId(counselorId);
 
       const casesRef = collection(db, 'cases');

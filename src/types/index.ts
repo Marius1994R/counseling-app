@@ -8,6 +8,7 @@ export interface User {
   fullName: string;
   role: UserRole;
   isActive: boolean;
+  avatarUrl?: string;
   createdAt: Date;
   lastLogin?: Date;
   deactivatedAt?: Date;
@@ -23,6 +24,7 @@ export interface Counselor {
   activeCases: number;
   workloadLevel: 'low' | 'moderate' | 'high';
   linkedUserId?: string; // Link to user account from admin tools
+  avatarUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }

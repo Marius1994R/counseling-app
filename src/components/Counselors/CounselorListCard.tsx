@@ -9,8 +9,9 @@ import {
 } from '@heroicons/react/24/outline';
 import { Counselor, Case } from '../../types';
 import { t } from '../../utils/translations';
-import { getAvatarColorClass, getStatusLabel, getStatusBadgeClass } from '../Cases/casesUtils';
-import { getInitials, getWorkloadLabel, getWorkloadBadgeClass } from '../Profile/profileUtils';
+import { getStatusLabel, getStatusBadgeClass } from '../Cases/casesUtils';
+import { getWorkloadLabel, getWorkloadBadgeClass, normalizeSpecialties } from '../Profile/profileUtils';
+import UserAvatar from '../common/UserAvatar';
 import { formatCounselorDate } from './counselorsUtils';
 import CounselorDeleteDialog from './CounselorDeleteDialog';
 import CounselorCaseHistoryDialog from './CounselorCaseHistoryDialog';
@@ -36,6 +37,7 @@ const CounselorListCard: React.FC<CounselorListCardProps> = ({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
 
+  const specialties = normalizeSpecialties(counselor.specialties);
   const activeCases = assignedCases.filter((c) => c.status === 'active');
   const waitingCases = assignedCases.filter((c) => c.status === 'waiting');
   const recentCases = assignedCases.slice(-2);
@@ -95,11 +97,7 @@ const CounselorListCard: React.FC<CounselorListCardProps> = ({
         )}
 
         <div className="flex items-start gap-3 pr-8">
-          <div
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${getAvatarColorClass(counselor.fullName)}`}
-          >
-            {getInitials(counselor.fullName)}
-          </div>
+          <UserAvatar name={counselor.fullName} avatarUrl={counselor.avatarUrl} size="lg" />
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold text-slate-900">{counselor.fullName}</h2>
             <span
@@ -127,13 +125,13 @@ const CounselorListCard: React.FC<CounselorListCardProps> = ({
           </div>
         </div>
 
-        {counselor.specialties.length > 0 && (
+        {specialties.length > 0 && (
           <div className="mt-4">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
               {t.counselors.specialtiesTitle}
             </p>
             <div className="flex flex-wrap gap-1.5">
-              {counselor.specialties.map((specialty) => (
+              {specialties.map((specialty) => (
                 <span
                   key={specialty}
                   className="rounded-full border border-brand-100 bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700"

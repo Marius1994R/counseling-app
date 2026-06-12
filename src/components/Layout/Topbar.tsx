@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useDashboardReport } from '../../contexts/DashboardReportContext';
 import { useDashboardDataContext } from '../../contexts/DashboardDataContext';
 import { t } from '../../utils/translations';
+import UserAvatar from '../common/UserAvatar';
 
 /** Re-enable when in-app notifications are implemented. */
 const SHOW_NOTIFICATIONS = false;
@@ -140,13 +141,11 @@ const Topbar: React.FC<TopbarProps> = ({
             onClick={() => setMenuOpen((o) => !o)}
             className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 hover:bg-slate-50"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-600">
-              {currentUser?.fullName
-                ?.split(' ')
-                .map((n) => n[0])
-                .join('')
-                .slice(0, 2) ?? 'U'}
-            </div>
+            <UserAvatar
+              name={currentUser?.fullName ?? 'Utilizator'}
+              avatarUrl={currentUser?.avatarUrl}
+              size="sm"
+            />
             <div className="hidden text-left sm:block">
               <p className="text-xs font-medium text-slate-900">{currentUser?.fullName}</p>
               <p className="text-[10px] text-slate-500">{roleLabel}</p>
