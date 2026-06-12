@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { collection, getDocs, query, where, orderBy, updateDoc, doc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
+import { useDashboardDataContext } from '../contexts/DashboardDataContext';
 import { db } from '../firebase';
 import { Case, CaseStatus, IssueType } from '../types';
 import { logCaseStatusChange } from '../utils/activityLogger';
@@ -12,6 +13,7 @@ const COMMON_ISSUE_TYPES: IssueType[] = ['spiritual', 'relational', 'personal'];
 
 export function useCasesData() {
   const { currentUser } = useAuth();
+  const { refetch: refetchDashboard } = useDashboardDataContext();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [cases, setCases] = useState<Case[]>([]);
@@ -270,6 +272,7 @@ export function useCasesData() {
       );
 
       setEditDialogOpen(false);
+      await refetchDashboard();
       setSnackbar({
         open: true,
         message: t.cases.updateSuccess || 'Caz actualizat cu succes',
@@ -283,7 +286,7 @@ export function useCasesData() {
         severity: 'error',
       });
     }
-  }, [selectedCase, editData, currentUser]);
+  }, [selectedCase, editData, currentUser, refetchDashboard]);
 
   const handleCloseEditDialog = useCallback(() => {
     setEditDialogOpen(false);

@@ -12,6 +12,7 @@ import {
   doc,
 } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
+import { useDashboardDataContext } from '../contexts/DashboardDataContext';
 import { db } from '../firebase';
 import { Case, Counselor, User, UserRole } from '../types';
 import { logCaseAssigned } from '../utils/activityLogger';
@@ -40,6 +41,7 @@ export function useAdminData() {
     reactivateUser,
     getAllUsers,
   } = useAuth();
+  const { refetch: refetchDashboard } = useDashboardDataContext();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [activeTab, setActiveTab] = useState<AdminTab>(0);
@@ -391,13 +393,14 @@ export function useAdminData() {
         }
         setCaseFormOpen(false);
         setEditingCase(null);
-        loadCases();
+        await loadCases();
+        await refetchDashboard();
       } catch (error) {
         console.error('Error saving case:', error);
         showSnackbar(t.cases.updateError, 'error');
       }
     },
-    [editingCase, counselors, currentUser, loadCases, showSnackbar]
+    [editingCase, counselors, currentUser, loadCases, showSnackbar, refetchDashboard]
   );
 
   const handleDeleteCase = useCallback(
@@ -405,13 +408,14 @@ export function useAdminData() {
       try {
         await deleteDoc(doc(db, 'cases', caseId));
         showSnackbar('Caz șters cu succes', 'success');
-        loadCases();
+        await loadCases();
+        await refetchDashboard();
       } catch (error) {
         console.error('Error deleting case:', error);
         showSnackbar('Eroare la ștergerea cazului', 'error');
       }
     },
-    [loadCases, showSnackbar]
+    [loadCases, showSnackbar, refetchDashboard]
   );
 
   const handleCreateUser = useCallback(async () => {
