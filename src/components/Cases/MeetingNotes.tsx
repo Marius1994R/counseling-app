@@ -28,6 +28,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase';
 import { logMeetingNotesAdded } from '../../utils/activityLogger';
 import { t } from '../../utils/translations';
+import ConfirmDialog from '../common/ConfirmDialog';
 
 const BRAND_PRIMARY = '#C99700';
 const BRAND_PRIMARY_HOVER = '#B8860B';
@@ -72,6 +73,8 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
   const [noteContent, setNoteContent] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const loadMeetingNotes = useCallback(async () => {
     try {
@@ -176,16 +179,20 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
     }
   };
 
-  const handleDeleteNote = async (noteId: string) => {
-    if (window.confirm('Sigur doriți să ștergeți această notă de ședință?')) {
-      try {
-        await deleteDoc(doc(db, 'meetingNotes', noteId));
-        setSnackbar({ open: true, message: t.meetingNotes.deleteNoteSuccess, severity: 'success' });
-        loadMeetingNotes();
-      } catch (error) {
-        console.error('Error deleting meeting note:', error);
-        setSnackbar({ open: true, message: t.meetingNotes.deleteNoteError, severity: 'error' });
-      }
+  const handleDeleteNoteConfirm = async () => {
+    if (!deleteTargetId) return;
+
+    try {
+      setDeleteLoading(true);
+      await deleteDoc(doc(db, 'meetingNotes', deleteTargetId));
+      setSnackbar({ open: true, message: t.meetingNotes.deleteNoteSuccess, severity: 'success' });
+      setDeleteTargetId(null);
+      loadMeetingNotes();
+    } catch (error) {
+      console.error('Error deleting meeting note:', error);
+      setSnackbar({ open: true, message: t.meetingNotes.deleteNoteError, severity: 'error' });
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -260,7 +267,7 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
                         </IconButton>
                         <IconButton
                           size="small"
-                          onClick={() => handleDeleteNote(note.id)}
+                          onClick={() => setDeleteTargetId(note.id)}
                           sx={{ color: 'error.main' }}
                         >
                           <Delete fontSize="small" />
@@ -350,6 +357,16 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmDialog
+        open={deleteTargetId !== null}
+        title={t.meetingNotes.deleteNote}
+        message={t.meetingNotes.deleteNoteConfirm}
+        variant="danger"
+        loading={deleteLoading}
+        onClose={() => setDeleteTargetId(null)}
+        onConfirm={handleDeleteNoteConfirm}
+      />
 
       {/* Snackbar */}
       <Snackbar

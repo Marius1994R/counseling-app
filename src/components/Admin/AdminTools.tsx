@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Alert, Snackbar } from '@mui/material';
 import { useAdminData } from '../../hooks/useAdminData';
 import CounselorForm from '../Counselors/CounselorForm';
@@ -10,9 +10,33 @@ import AdminUsersPanel from './AdminUsersPanel';
 import AdminCounselorsPanel from './AdminCounselorsPanel';
 import AdminCasesPanel from './AdminCasesPanel';
 import AdminUserDialogs from './AdminUserDialogs';
+import ConfirmDialog from '../common/ConfirmDialog';
+import { t } from '../../utils/translations';
+
+type PendingConfirm =
+  | { type: 'deleteUser'; userId: string; message: string }
+  | { type: 'deactivateUser'; userId: string };
 
 const AdminTools: React.FC = () => {
   const data = useAdminData();
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+  const handleConfirmAction = async () => {
+    if (!pendingConfirm) return;
+
+    try {
+      setConfirmLoading(true);
+      if (pendingConfirm.type === 'deleteUser') {
+        await data.handleDeleteUser(pendingConfirm.userId);
+      } else {
+        await data.handleDeactivateUser(pendingConfirm.userId);
+      }
+      setPendingConfirm(null);
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
 
   if (!data.canManageUsers) {
     return (
@@ -37,9 +61,18 @@ const AdminTools: React.FC = () => {
           isSupremeLeader={data.isSupremeLeader}
           onCreateUser={() => data.setCreateDialogOpen(true)}
           onEdit={data.openEditDialog}
-          onDeactivate={data.handleDeactivateUser}
+          onDeactivate={(userId) => setPendingConfirm({ type: 'deactivateUser', userId })}
           onReactivate={data.handleReactivateUser}
-          onDelete={data.handleDeleteUser}
+          onDelete={(userId) => {
+            const isDeletingSelf = userId === data.currentUser?.id;
+            setPendingConfirm({
+              type: 'deleteUser',
+              userId,
+              message: isDeletingSelf
+                ? t.admin.users.deleteUserSelfConfirm
+                : t.admin.users.deleteUserConfirm,
+            });
+          }}
         />
       )}
 
@@ -92,6 +125,29 @@ const AdminTools: React.FC = () => {
           isLeader={data.currentUser?.role === 'leader'}
         />
       )}
+
+      <ConfirmDialog
+        open={pendingConfirm !== null}
+        title={
+          pendingConfirm?.type === 'deleteUser'
+            ? t.admin.users.deleteUserTitle
+            : t.admin.users.deactivateUser
+        }
+        message={
+          pendingConfirm?.type === 'deleteUser'
+            ? pendingConfirm.message
+            : t.admin.users.deactivateUserConfirm
+        }
+        variant={pendingConfirm?.type === 'deleteUser' ? 'danger' : 'default'}
+        confirmLabel={
+          pendingConfirm?.type === 'deleteUser'
+            ? t.common.delete
+            : t.admin.users.deactivateUser
+        }
+        loading={confirmLoading}
+        onClose={() => setPendingConfirm(null)}
+        onConfirm={handleConfirmAction}
+      />
 
       <AdminUserDialogs
         createDialogOpen={data.createDialogOpen}

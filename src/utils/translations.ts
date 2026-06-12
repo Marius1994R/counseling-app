@@ -27,7 +27,8 @@ export const t = {
     created: 'Creat',
     updated: 'Actualizat',
     showMore: 'Arată mai multe',
-    showLess: 'Arată mai puține'
+    showLess: 'Arată mai puține',
+    confirm: 'Confirmă'
   },
 
   // Navigation
@@ -55,7 +56,7 @@ export const t = {
     signInButton: 'Autentificare',
     credentialsError: 'Conectare eșuată. Verifică credențialele.',
     fillFieldsError: 'Completează toate câmpurile',
-    contactAdmin: 'Contactează administratorul pentru credențiale'
+    contactAdmin: '*Contactează administratorul pentru credențiale sau restarea parolei'
   },
 
   // Dashboard
@@ -108,7 +109,7 @@ export const t = {
     deleteCaseConfirm: 'Ești sigur că vrei să ștergi cazul "{title}"? Această acțiune nu poate fi anulată.',
     deleteCounselor: 'Șterge Consilier',
     deleteCounselorConfirm: 'Ești sigur că vrei să ștergi consilierul "{name}"? Această acțiune nu poate fi anulată.',
-    deleteCounselorWarning: 'Acest consilier are {count} cazuri alocate. Poți dori să realocezi aceste cazuri înainte de ștergere.',
+    deleteCounselorWarning: 'Acest consilier are {count} cazuri alocate. Te rog realocă aceste cazuri înainte de ștergere.',
     deleteAppointment: 'Șterge Programare',
     deleteAppointmentConfirm: 'Ești sigur că vrei să ștergi programarea "{title}"? Această acțiune nu poate fi anulată.',
     thisActionCannotBeUndone: 'Această acțiune nu poate fi anulată'
@@ -542,6 +543,7 @@ export const t = {
     addNote: 'Adaugă Notă',
     editNote: 'Editează Notă',
     deleteNote: 'Șterge Notă',
+    deleteNoteConfirm: 'Sigur doriți să ștergeți această notă de ședință?',
     date: 'Data',
     counselor: 'Consilier',
     content: 'Conținut',

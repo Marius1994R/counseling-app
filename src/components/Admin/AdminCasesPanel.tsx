@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { Alert } from '@mui/material';
 import { Case, Counselor } from '../../types';
@@ -6,6 +6,7 @@ import { CaseStatusFilter } from './adminUtils';
 import { t } from '../../utils/translations';
 import CasesGrid from '../Cases/CasesGrid';
 import AdminSkeleton from './AdminSkeleton';
+import ConfirmDialog from '../common/ConfirmDialog';
 
 interface AdminCasesPanelProps {
   loading: boolean;
@@ -53,6 +54,8 @@ const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
   onOpenSessionReport,
   isLeader,
 }) => {
+  const [deleteTarget, setDeleteTarget] = useState<Case | null>(null);
+
   const hasFilters =
     searchTerm.trim() !== '' || statusFilter !== 'all' || counselorFilter !== 'all';
   const countLabel = cases.length === 1 ? 'caz' : 'cazuri';
@@ -174,17 +177,26 @@ const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
           onOpenReports={onOpenSessionReport}
           onEdit={onEdit}
           onOpenDescription={onEdit}
-          onDelete={(caseItem) => {
-            if (
-              window.confirm(
-                t.deleteWarnings.deleteCaseConfirm.replace('{title}', caseItem.title)
-              )
-            ) {
-              onDelete(caseItem.id);
-            }
-          }}
+          onDelete={(caseItem) => setDeleteTarget(caseItem)}
         />
       )}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title={t.deleteWarnings.deleteCase}
+        message={t.deleteWarnings.deleteCaseConfirm.replace(
+          '{title}',
+          deleteTarget?.title ?? ''
+        )}
+        variant="danger"
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget) {
+            onDelete(deleteTarget.id);
+            setDeleteTarget(null);
+          }
+        }}
+      />
     </div>
   );
 };

@@ -24,6 +24,7 @@ import {
 import { Appointment } from '../../types';
 import { t } from '../../utils/translations';
 import { formatCalendarDate, formatTime, isDateTodayOrFuture } from './calendarUtils';
+import ConfirmDialog from '../common/ConfirmDialog';
 
 interface CalendarDayDialogProps {
   selectedDate: Date | null;
@@ -178,23 +179,17 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
         </DialogActions>
       </Dialog>
 
-      <Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)}>
-        <DialogTitle>{t.appointments.deleteAppointment}</DialogTitle>
-        <DialogContent>
-          <Typography>
-            {t.deleteWarnings.deleteAppointmentConfirm.replace(
-              '{title}',
-              deleteTarget?.title || ''
-            )}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteTarget(null)}>{t.common.cancel}</Button>
-          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-            {t.common.delete}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title={t.appointments.deleteAppointment}
+        message={t.deleteWarnings.deleteAppointmentConfirm.replace(
+          '{title}',
+          deleteTarget?.title ?? ''
+        )}
+        variant="danger"
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+      />
     </>
   );
 };

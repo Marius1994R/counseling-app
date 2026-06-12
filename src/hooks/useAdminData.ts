@@ -459,13 +459,6 @@ export function useAdminData() {
 
   const handleDeleteUser = useCallback(
     async (userId: string) => {
-      const isDeletingSelf = userId === currentUser?.id;
-      const confirmMessage = isDeletingSelf
-        ? t.admin.users.deleteUserSelfConfirm
-        : t.admin.users.deleteUserConfirm;
-
-      if (!window.confirm(confirmMessage)) return;
-
       try {
         await deleteUser(userId);
         showSnackbar(t.admin.users.deleteUserSuccess, 'success');
@@ -475,12 +468,11 @@ export function useAdminData() {
         showSnackbar(t.admin.users.deleteUserError, 'error');
       }
     },
-    [currentUser?.id, deleteUser, loadUsers, showSnackbar]
+    [deleteUser, loadUsers, showSnackbar]
   );
 
   const handleDeactivateUser = useCallback(
     async (userId: string) => {
-      if (!window.confirm(t.admin.users.deactivateUserConfirm)) return;
       try {
         await deactivateUser(userId);
         showSnackbar(t.admin.users.deactivateUserSuccess, 'success');
