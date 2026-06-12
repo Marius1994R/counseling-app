@@ -29,6 +29,16 @@ import { db } from '../../firebase';
 import { logMeetingNotesAdded } from '../../utils/activityLogger';
 import { t } from '../../utils/translations';
 
+const BRAND_PRIMARY = '#C99700';
+const BRAND_PRIMARY_HOVER = '#B8860B';
+
+const brandButtonSx = {
+  backgroundColor: BRAND_PRIMARY,
+  color: '#fff',
+  fontWeight: 600,
+  '&:hover': { backgroundColor: BRAND_PRIMARY_HOVER },
+};
+
 interface MeetingNote {
   id: string;
   caseId: string;
@@ -190,7 +200,7 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
       <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Note sx={{ color: '#ffc700' }} />
+            <Note sx={{ color: BRAND_PRIMARY }} />
             <Typography variant="h6">
               {t.meetingNotes.title} - {caseTitle}
             </Typography>
@@ -205,12 +215,7 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
               variant="contained"
               startIcon={<Add />}
               onClick={handleAddNote}
-              sx={{ 
-                backgroundColor: '#ffc700',
-                color: '#000',
-                fontWeight: 'bold',
-                '&:hover': { backgroundColor: '#e6b300' }
-              }}
+              sx={brandButtonSx}
             >
               {t.meetingNotes.addNote}
             </Button>
@@ -230,7 +235,7 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {notes.map((note) => (
-                <Card key={note.id} sx={{ borderLeft: '4px solid #ffc700' }}>
+                <Card key={note.id} sx={{ borderLeft: `4px solid ${BRAND_PRIMARY}` }}>
                   <CardContent>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -249,7 +254,7 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
                         <IconButton
                           size="small"
                           onClick={() => handleEditNote(note)}
-                          sx={{ color: '#ffc700' }}
+                          sx={{ color: BRAND_PRIMARY }}
                         >
                           <Edit fontSize="small" />
                         </IconButton>
@@ -285,16 +290,16 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
                           }
                           setExpandedNotes(newExpanded);
                         }}
-                        sx={{ 
+                        sx={{
                           mt: 1,
-                          color: '#ffc700',
+                          color: BRAND_PRIMARY,
                           textTransform: 'none',
-                          fontWeight: 'bold',
+                          fontWeight: 600,
                           p: 0,
                           minWidth: 'auto',
                           '&:hover': {
-                            backgroundColor: 'rgba(255, 199, 0, 0.1)'
-                          }
+                            backgroundColor: 'rgba(201, 151, 0, 0.1)',
+                          },
                         }}
                       >
                         {expandedNotes.has(note.id) ? t.meetingNotes.showLess : t.meetingNotes.showMore}
@@ -339,12 +344,7 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
             onClick={handleSaveNote}
             variant="contained"
             disabled={!noteContent.trim()}
-            sx={{ 
-              backgroundColor: '#ffc700',
-              color: '#000',
-              fontWeight: 'bold',
-              '&:hover': { backgroundColor: '#e6b300' }
-            }}
+            sx={brandButtonSx}
           >
             {editingNote ? t.common.save : t.meetingNotes.addNote}
           </Button>

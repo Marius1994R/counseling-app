@@ -1,6 +1,8 @@
 import React from 'react';
+import { DocumentTextIcon } from '@heroicons/react/24/outline';
 import { Case } from '../../types';
 import { getCaseDisplayId, getInitials, getStatusLabel } from './dashboardUtils';
+import { t } from '../../utils/translations';
 
 interface DashboardCaseCardProps {
   caseItem: Case;
@@ -91,9 +93,10 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
             <button
               type="button"
               onClick={onNotes}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition duration-200 ease-out hover:bg-slate-50 active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition duration-200 ease-out hover:bg-slate-50 active:scale-[0.98]"
             >
-              Note
+              <DocumentTextIcon className="h-4 w-4" />
+              {t.meetingNotes.addNote}
             </button>
             <button
               type="button"
