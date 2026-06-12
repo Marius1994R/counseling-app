@@ -92,6 +92,21 @@ export interface Appointment {
   createdAt: Date;
 }
 
+// Church event (Eveniment) — separate from counseling appointments
+export interface ChurchEvent {
+  id: string;
+  name: string;
+  description: string;
+  startDate: Date;
+  endDate: Date;
+  startTime: string;
+  endTime: string;
+  registrationUrl?: string;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Dashboard metrics
 export interface DashboardMetrics {
   totalCases: number;

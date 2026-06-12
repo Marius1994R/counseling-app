@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
-import { Appointment } from '../../types';
+import { Appointment, ChurchEvent } from '../../types';
 import { t } from '../../utils/translations';
 import {
   getDaysInMonth,
@@ -13,14 +13,55 @@ import {
   formatTime,
   sortAppointmentsByTime,
 } from './calendarUtils';
+import {
+  getEventsForDate,
+  sortEventsByTime,
+  getEventDisplayStyles,
+  CalendarDayItem,
+} from './eventUtils';
 import CalendarRoomLegend from './CalendarRoomLegend';
 
 interface CalendarMonthGridProps {
   appointments: Appointment[];
+  events: ChurchEvent[];
   onDateClick: (date: Date) => void;
 }
 
-const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({ appointments, onDateClick }) => {
+function buildDayItems(
+  dayAppointments: Appointment[],
+  dayEvents: ChurchEvent[]
+): CalendarDayItem[] {
+  const items: CalendarDayItem[] = [
+    ...dayAppointments.map((appointment) => {
+      const colors = getRoomColorStyles(appointment.room);
+      return {
+        kind: 'appointment' as const,
+        id: appointment.id,
+        startTime: appointment.startTime,
+        label: appointment.caseTitle || appointment.counselorName,
+        styles: { bg: colors.bg, text: colors.text, border: colors.border },
+      };
+    }),
+    ...dayEvents.map((event) => {
+      const styles = getEventDisplayStyles();
+      return {
+        kind: 'event' as const,
+        id: event.id,
+        startTime: event.startTime,
+        label: event.name,
+        styles,
+      };
+    }),
+  ];
+
+  return items.sort((a, b) => a.startTime.localeCompare(b.startTime));
+}
+
+const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
+  appointments,
+  events,
+  onDateClick,
+}) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const days = getDaysInMonth(currentDate);
 
@@ -79,8 +120,11 @@ const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({ appointments, onD
           }
 
           const dayAppointments = sortAppointmentsByTime(getAppointmentsForDate(appointments, date));
+          const dayEvents = sortEventsByTime(getEventsForDate(events, date));
+          const dayItems = buildDayItems(dayAppointments, dayEvents);
           const currentDay = isToday(date);
           const past = isPastDate(date);
+          const totalCount = dayAppointments.length + dayEvents.length;
 
           return (
             <button
@@ -99,22 +143,19 @@ const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({ appointments, onD
                 {date.getDate()}
               </span>
               <div className="mt-1 space-y-0.5 overflow-hidden">
-                {dayAppointments.slice(0, 2).map((appointment) => {
-                  const colors = getRoomColorStyles(appointment.room);
-                  return (
-                    <div
-                      key={appointment.id}
-                      className={`truncate rounded border px-1 py-0.5 text-[10px] font-medium sm:text-xs ${colors.bg} ${colors.text} ${colors.border}`}
-                      title={`${formatTime(appointment.startTime)} · ${appointment.room || appointment.title}`}
-                    >
-                      <span className="font-semibold">{formatTime(appointment.startTime)}</span>{' '}
-                      {appointment.caseTitle || appointment.counselorName}
-                    </div>
-                  );
-                })}
-                {dayAppointments.length > 2 && (
+                {dayItems.slice(0, 2).map((item) => (
+                  <div
+                    key={`${item.kind}-${item.id}`}
+                    className={`truncate rounded border px-1 py-0.5 text-[10px] font-medium sm:text-xs ${item.styles.bg} ${item.styles.text} ${item.styles.border}`}
+                    title={`${formatTime(item.startTime)} · ${item.label}`}
+                  >
+                    <span className="font-semibold">{formatTime(item.startTime)}</span>{' '}
+                    {item.label}
+                  </div>
+                ))}
+                {totalCount > 2 && (
                   <p className="text-[10px] text-slate-500 sm:text-xs">
-                    +{dayAppointments.length - 2} {t.appointments.moreOnDay}
+                    +{totalCount - 2} {t.appointments.moreOnDay}
                   </p>
                 )}
               </div>

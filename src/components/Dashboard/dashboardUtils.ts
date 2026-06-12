@@ -1,4 +1,4 @@
-import { Appointment, Case, CaseStatus } from '../../types';
+import { Appointment, Case, CaseStatus, ChurchEvent } from '../../types';
 import { t } from '../../utils/translations';
 
 export interface ActivityRecord {
@@ -72,6 +72,75 @@ export function formatDateLabel(timestamp: Date): string {
   if (target.getTime() === today.getTime()) return t.dashboard.today;
   if (target.getTime() === tomorrow.getTime()) return 'Mâine';
   return timestamp.toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'short' });
+}
+
+export type UpcomingScheduleItem =
+  | { kind: 'appointment'; id: string; date: Date; startTime: string; label: string }
+  | { kind: 'event'; id: string; date: Date; startTime: string; label: string; isMultiDay: boolean };
+
+export interface UpcomingScheduleGroup {
+  label: string;
+  items: UpcomingScheduleItem[];
+}
+
+function startOfDay(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+export function buildUpcomingScheduleItems(
+  appointments: Appointment[],
+  events: { event: ChurchEvent; displayDate: Date }[],
+  now = new Date()
+): UpcomingScheduleItem[] {
+  const appointmentItems: UpcomingScheduleItem[] = appointments
+    .filter((apt) => {
+      const appointmentDateTime = new Date(apt.date);
+      if (apt.startTime) {
+        const [hours, minutes] = apt.startTime.split(':').map(Number);
+        appointmentDateTime.setHours(hours, minutes, 0, 0);
+      }
+      return appointmentDateTime > now;
+    })
+    .map((apt) => ({
+      kind: 'appointment' as const,
+      id: apt.id,
+      date: apt.date,
+      startTime: apt.startTime,
+      label: getAppointmentDisplayName(apt),
+    }));
+
+  const eventItems: UpcomingScheduleItem[] = events.map(({ event, displayDate }) => ({
+    kind: 'event' as const,
+    id: event.id,
+    date: displayDate,
+    startTime: event.startTime,
+    label: event.name,
+    isMultiDay: startOfDay(event.startDate).getTime() !== startOfDay(event.endDate).getTime(),
+  }));
+
+  return [...appointmentItems, ...eventItems].sort((a, b) => {
+    const dateCompare = a.date.getTime() - b.date.getTime();
+    if (dateCompare !== 0) return dateCompare;
+    return a.startTime.localeCompare(b.startTime);
+  });
+}
+
+export function groupUpcomingScheduleByDay(items: UpcomingScheduleItem[]): UpcomingScheduleGroup[] {
+  const groups = new Map<string, UpcomingScheduleItem[]>();
+
+  items.forEach((item) => {
+    const label = formatDateLabel(item.date);
+    const existing = groups.get(label) ?? [];
+    existing.push(item);
+    groups.set(label, existing);
+  });
+
+  return Array.from(groups.entries()).map(([label, groupItems]) => ({
+    label,
+    items: groupItems.sort((a, b) => a.startTime.localeCompare(b.startTime)),
+  }));
 }
 
 export function groupAppointmentsByDay(appointments: Appointment[]): AppointmentGroup[] {

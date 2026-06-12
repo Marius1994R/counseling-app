@@ -18,6 +18,7 @@ import { logAppointmentCreated } from '../utils/activityLogger';
 import { getAppointmentsForDate } from '../components/Calendar/calendarUtils';
 
 interface UseCalendarDataOptions {
+  /** @deprecated unused — kept for call-site compatibility */
   isAdminView?: boolean;
 }
 
@@ -42,11 +43,18 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
 
   useEffect(() => {
     const newParam = searchParams.get('new');
+    const dateParam = searchParams.get('date');
     if (newParam === 'true') {
       setFormOpen(true);
       const caseId = searchParams.get('caseId');
       if (caseId) {
         setPreSelectedCaseId(caseId);
+      }
+      setSearchParams({}, { replace: true });
+    } else if (dateParam) {
+      const parsed = new Date(`${dateParam}T12:00:00`);
+      if (!Number.isNaN(parsed.getTime())) {
+        setSelectedDate(parsed);
       }
       setSearchParams({}, { replace: true });
     }

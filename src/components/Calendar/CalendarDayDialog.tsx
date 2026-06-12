@@ -12,6 +12,8 @@ import {
   Divider,
   IconButton,
   Chip,
+  Link,
+  Alert,
 } from '@mui/material';
 import {
   Schedule,
@@ -20,48 +22,85 @@ import {
   Edit,
   Delete,
   Add,
+  Event as EventIcon,
 } from '@mui/icons-material';
-import { Appointment } from '../../types';
+import { Appointment, ChurchEvent } from '../../types';
 import { t } from '../../utils/translations';
-import { formatCalendarDate, formatTime, isDateTodayOrFuture, getRoomColorStyles, sortAppointmentsByTime } from './calendarUtils';
+import {
+  formatCalendarDate,
+  formatTime,
+  isDateTodayOrFuture,
+  getRoomColorStyles,
+  sortAppointmentsByTime,
+} from './calendarUtils';
+import {
+  sortEventsByTime,
+  getEventDisplayStyles,
+  formatEventDateRange,
+  formatEventTimeRange,
+} from './eventUtils';
 import ConfirmDialog from '../common/ConfirmDialog';
 
 interface CalendarDayDialogProps {
   selectedDate: Date | null;
   appointments: Appointment[];
+  events: ChurchEvent[];
   onClose: () => void;
   onEditAppointment: (appointment: Appointment) => void;
   onDeleteAppointment: (appointmentId: string) => void;
   onScheduleAppointment: (date: Date) => void;
+  onEditEvent: (event: ChurchEvent) => void;
+  onDeleteEvent: (eventId: string) => void;
+  onAddEvent: (date: Date) => void;
   canEdit: (appointment: Appointment) => boolean;
   canDelete: (appointment: Appointment) => boolean;
+  canManageEvents: boolean;
 }
+
+type DeleteTarget =
+  | { kind: 'appointment'; item: Appointment }
+  | { kind: 'event'; item: ChurchEvent };
 
 const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
   selectedDate,
   appointments,
+  events,
   onClose,
   onEditAppointment,
   onDeleteAppointment,
   onScheduleAppointment,
+  onEditEvent,
+  onDeleteEvent,
+  onAddEvent,
   canEdit,
   canDelete,
+  canManageEvents,
 }) => {
-  const [deleteTarget, setDeleteTarget] = useState<Appointment | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [localAppointments, setLocalAppointments] = useState(appointments);
+  const [localEvents, setLocalEvents] = useState(events);
 
   React.useEffect(() => {
     setLocalAppointments(appointments);
-  }, [appointments]);
+    setLocalEvents(events);
+  }, [appointments, events]);
+
+  const sortedAppointments = sortAppointmentsByTime(localAppointments);
+  const sortedEvents = sortEventsByTime(localEvents);
+  const eventStyles = getEventDisplayStyles();
+  const isEmpty = sortedAppointments.length === 0 && sortedEvents.length === 0;
 
   const handleDeleteConfirm = () => {
     if (!deleteTarget) return;
-    onDeleteAppointment(deleteTarget.id);
-    setLocalAppointments((prev) => prev.filter((a) => a.id !== deleteTarget.id));
+    if (deleteTarget.kind === 'appointment') {
+      onDeleteAppointment(deleteTarget.item.id);
+      setLocalAppointments((prev) => prev.filter((a) => a.id !== deleteTarget.item.id));
+    } else {
+      onDeleteEvent(deleteTarget.item.id);
+      setLocalEvents((prev) => prev.filter((e) => e.id !== deleteTarget.item.id));
+    }
     setDeleteTarget(null);
   };
-
-  const sortedAppointments = sortAppointmentsByTime(localAppointments);
 
   return (
     <>
@@ -75,7 +114,7 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
           </Box>
         </DialogTitle>
         <DialogContent>
-          {sortedAppointments.length === 0 ? (
+          {isEmpty ? (
             <Typography color="text.secondary" textAlign="center" py={2}>
               {t.appointments.noAppointmentsDay}
             </Typography>
@@ -84,7 +123,7 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
               {sortedAppointments.map((appointment, index) => {
                 const roomColors = getRoomColorStyles(appointment.room);
                 return (
-                  <React.Fragment key={appointment.id}>
+                  <React.Fragment key={`appt-${appointment.id}`}>
                     <ListItem
                       sx={{
                         flexDirection: 'column',
@@ -126,7 +165,9 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
                               {canDelete(appointment) && (
                                 <IconButton
                                   size="small"
-                                  onClick={() => setDeleteTarget(appointment)}
+                                  onClick={() =>
+                                    setDeleteTarget({ kind: 'appointment', item: appointment })
+                                  }
                                   aria-label="delete appointment"
                                 >
                                   <Delete />
@@ -166,38 +207,149 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
                         </Typography>
                       )}
                     </ListItem>
-                    {index < sortedAppointments.length - 1 && <Divider />}
+                    {(index < sortedAppointments.length - 1 || sortedEvents.length > 0) && (
+                      <Divider />
+                    )}
                   </React.Fragment>
                 );
               })}
+
+              {sortedEvents.map((event, index) => (
+                <React.Fragment key={`event-${event.id}`}>
+                  <ListItem
+                    sx={{
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      py: 2,
+                      borderLeft: 4,
+                      borderColor: eventStyles.accent,
+                      pl: 2,
+                    }}
+                  >
+                    <Box
+                      display="flex"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      width="100%"
+                      mb={1}
+                    >
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <EventIcon sx={{ fontSize: 20, color: eventStyles.accent }} />
+                        <Typography variant="h6" component="h3">
+                          {event.name}
+                        </Typography>
+                      </Box>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Typography variant="body2" color="text.secondary">
+                          {formatEventTimeRange(event)}
+                        </Typography>
+                        {canManageEvents && (
+                          <Box display="flex" gap={0.5}>
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                onEditEvent(event);
+                                onClose();
+                              }}
+                              aria-label="edit event"
+                            >
+                              <Edit />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={() => setDeleteTarget({ kind: 'event', item: event })}
+                              aria-label="delete event"
+                            >
+                              <Delete />
+                            </IconButton>
+                          </Box>
+                        )}
+                      </Box>
+                    </Box>
+
+                    <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
+                      {formatEventDateRange(event)}
+                    </Typography>
+
+                    <Typography variant="body2" color="text.secondary">
+                      {event.description}
+                    </Typography>
+
+                    {event.registrationUrl && (
+                      <>
+                        <Alert severity="warning" sx={{ mt: 1.5, width: '100%' }} className="rounded-lg">
+                          {t.events.registrationMandatory}
+                        </Alert>
+                        <Link
+                          href={event.registrationUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          variant="body2"
+                          sx={{ mt: 1 }}
+                        >
+                          {t.events.registrationLink}
+                        </Link>
+                      </>
+                    )}
+                  </ListItem>
+                  {index < sortedEvents.length - 1 && <Divider />}
+                </React.Fragment>
+              ))}
             </List>
           )}
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ flexWrap: 'wrap', gap: 1 }}>
           <Button onClick={onClose}>{t.common.close}</Button>
           {selectedDate && isDateTodayOrFuture(selectedDate) && (
-            <Button
-              onClick={() => {
-                onScheduleAppointment(selectedDate);
-                onClose();
-              }}
-              variant="contained"
-              startIcon={<Add />}
-              sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B8860B' } }}
-            >
-              {t.appointments.scheduleAppointment}
-            </Button>
+            <>
+              {canManageEvents && (
+                <Button
+                  onClick={() => {
+                    onAddEvent(selectedDate);
+                    onClose();
+                  }}
+                  variant="outlined"
+                  startIcon={<EventIcon />}
+                  sx={{
+                    borderColor: '#C99700',
+                    color: '#B8860B',
+                    '&:hover': { borderColor: '#B8860B', backgroundColor: 'rgba(201, 151, 0, 0.08)' },
+                  }}
+                >
+                  {t.events.addEvent}
+                </Button>
+              )}
+              <Button
+                onClick={() => {
+                  onScheduleAppointment(selectedDate);
+                  onClose();
+                }}
+                variant="contained"
+                startIcon={<Add />}
+                sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B8860B' } }}
+              >
+                {t.appointments.scheduleAppointment}
+              </Button>
+            </>
           )}
         </DialogActions>
       </Dialog>
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        title={t.appointments.deleteAppointment}
-        message={t.deleteWarnings.deleteAppointmentConfirm.replace(
-          '{title}',
-          deleteTarget?.title ?? ''
-        )}
+        title={
+          deleteTarget?.kind === 'event'
+            ? t.events.deleteEvent
+            : t.appointments.deleteAppointment
+        }
+        message={
+          deleteTarget?.kind === 'event'
+            ? t.events.deleteConfirm.replace('{name}', deleteTarget.item.name)
+            : t.deleteWarnings.deleteAppointmentConfirm.replace(
+                '{title}',
+                deleteTarget?.kind === 'appointment' ? deleteTarget.item.title : ''
+              )
+        }
         variant="danger"
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}

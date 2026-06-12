@@ -6,18 +6,16 @@ import {
   ChevronDownIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
+import { useEvents } from '../../contexts/EventsContext';
 import { useDashboardReport } from '../../contexts/DashboardReportContext';
 import { useDashboardDataContext } from '../../contexts/DashboardDataContext';
 import { t } from '../../utils/translations';
 import UserAvatar from '../common/UserAvatar';
-
-/** Re-enable when in-app notifications are implemented. */
-const SHOW_NOTIFICATIONS = false;
+import EventNotificationsModal from '../Events/EventNotificationsModal';
 
 interface TopbarProps {
   title?: string;
   subtitle?: string;
-  notificationCount?: number;
   onMenuClick?: () => void;
   showReportActions?: boolean;
 }
@@ -25,15 +23,16 @@ interface TopbarProps {
 const Topbar: React.FC<TopbarProps> = ({
   title,
   subtitle,
-  notificationCount = 0,
   onMenuClick,
   showReportActions = true,
 }) => {
   const { currentUser, logout } = useAuth();
+  const { unreadEventCount } = useEvents();
   const navigate = useNavigate();
   const { openCaseReportModal } = useDashboardReport();
   const { refetch } = useDashboardDataContext();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const firstName = currentUser?.fullName?.split(' ')[0] ?? 'Utilizator';
@@ -120,20 +119,24 @@ const Topbar: React.FC<TopbarProps> = ({
           </>
         )}
 
-        {SHOW_NOTIFICATIONS && (
-          <button
-            type="button"
-            className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-            aria-label="Notificări"
-          >
-            <BellIcon className="h-5 w-5" />
-            {notificationCount > 0 && (
-              <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-white">
-                {notificationCount > 9 ? '9+' : notificationCount}
-              </span>
-            )}
-          </button>
-        )}
+        <button
+          type="button"
+          className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+          aria-label="Notificări"
+          onClick={() => setNotificationsOpen(true)}
+        >
+          <BellIcon className="h-5 w-5" />
+          {unreadEventCount > 0 && (
+            <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-white">
+              {unreadEventCount > 9 ? '9+' : unreadEventCount}
+            </span>
+          )}
+        </button>
+
+        <EventNotificationsModal
+          open={notificationsOpen}
+          onClose={() => setNotificationsOpen(false)}
+        />
 
         <div className="relative" ref={menuRef}>
           <button

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline, Box } from '@mui/material';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { EventsProvider } from './contexts/EventsContext';
 import AppLayout from './components/Layout/AppLayout';
 import { DashboardReportProvider } from './contexts/DashboardReportContext';
 import Login from './components/Auth/Login';
@@ -125,7 +126,7 @@ const AppContent: React.FC = () => {
         path="/calendar"
         element={
           <ProtectedRoute>
-            <CalendarManagement isAdminView={false} />
+            <CalendarManagement />
           </ProtectedRoute>
         }
       />
@@ -162,10 +163,12 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <DashboardReportProvider>
-      <RoleUpdateNotifier />
-      <AppLayout>{routes}</AppLayout>
-    </DashboardReportProvider>
+    <EventsProvider>
+      <DashboardReportProvider>
+        <RoleUpdateNotifier />
+        <AppLayout>{routes}</AppLayout>
+      </DashboardReportProvider>
+    </EventsProvider>
   );
 };
 

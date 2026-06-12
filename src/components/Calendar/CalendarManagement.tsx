@@ -1,20 +1,102 @@
-import React from 'react';
-import { Alert } from '@mui/material';
+import React, { useState, useMemo, useCallback } from 'react';
+import { Alert, Snackbar } from '@mui/material';
 import { useCalendarData } from '../../hooks/useCalendarData';
+import { useEvents } from '../../contexts/EventsContext';
+import { ChurchEvent } from '../../types';
 import AppointmentForm from './AppointmentForm';
+import EventForm from './EventForm';
 import CalendarPageHeader from './CalendarPageHeader';
 import CalendarToolbar from './CalendarToolbar';
 import CalendarMonthGrid from './CalendarMonthGrid';
 import CalendarDayDialog from './CalendarDayDialog';
 import CalendarSkeleton from './CalendarSkeleton';
 import { countFutureAppointments } from './calendarUtils';
+import { getEventsForDate } from './eventUtils';
+import { t } from '../../utils/translations';
 
-interface CalendarManagementProps {
-  isAdminView?: boolean;
-}
+const CalendarManagement: React.FC = () => {
+  const data = useCalendarData();
+  const {
+    events,
+    canManageEvents,
+    createEvent,
+    updateEvent,
+    deleteEvent,
+  } = useEvents();
 
-const CalendarManagement: React.FC<CalendarManagementProps> = ({ isAdminView = true }) => {
-  const data = useCalendarData({ isAdminView });
+  const [eventFormOpen, setEventFormOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<ChurchEvent | null>(null);
+  const [preSelectedEventDate, setPreSelectedEventDate] = useState<Date | null>(null);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success' as 'success' | 'error',
+  });
+
+  const selectedDayEvents = useMemo(
+    () => (data.selectedDate ? getEventsForDate(events, data.selectedDate) : []),
+    [events, data.selectedDate]
+  );
+
+  const showSnackbar = useCallback((message: string, severity: 'success' | 'error') => {
+    setSnackbar({ open: true, message, severity });
+  }, []);
+
+  const handleAddEvent = useCallback(() => {
+    setEditingEvent(null);
+    setPreSelectedEventDate(null);
+    setEventFormOpen(true);
+  }, []);
+
+  const handleAddEventFromDate = useCallback((date: Date) => {
+    setEditingEvent(null);
+    setPreSelectedEventDate(date);
+    setEventFormOpen(true);
+  }, []);
+
+  const handleEditEvent = useCallback((event: ChurchEvent) => {
+    setEditingEvent(event);
+    setPreSelectedEventDate(null);
+    setEventFormOpen(true);
+  }, []);
+
+  const handleCloseEventForm = useCallback(() => {
+    setEventFormOpen(false);
+    setEditingEvent(null);
+    setPreSelectedEventDate(null);
+  }, []);
+
+  const handleEventSubmit = useCallback(
+    async (eventData: Omit<ChurchEvent, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>) => {
+      try {
+        if (editingEvent) {
+          await updateEvent(editingEvent.id, eventData);
+          showSnackbar(t.events.updateSuccess, 'success');
+        } else {
+          await createEvent(eventData);
+          showSnackbar(t.events.createSuccess, 'success');
+        }
+        handleCloseEventForm();
+      } catch (error) {
+        console.error('Event save error:', error);
+        showSnackbar(t.events.saveError, 'error');
+      }
+    },
+    [editingEvent, updateEvent, createEvent, showSnackbar, handleCloseEventForm]
+  );
+
+  const handleDeleteEvent = useCallback(
+    async (eventId: string) => {
+      try {
+        await deleteEvent(eventId);
+        showSnackbar(t.events.deleteSuccess, 'success');
+      } catch (error) {
+        console.error('Event delete error:', error);
+        showSnackbar(t.events.deleteError, 'error');
+      }
+    },
+    [deleteEvent, showSnackbar]
+  );
 
   if (data.loading) {
     return (
@@ -43,22 +125,30 @@ const CalendarManagement: React.FC<CalendarManagementProps> = ({ isAdminView = t
         counselors={data.counselors}
         filteredCount={countFutureAppointments(data.filteredAppointments)}
         onSchedule={data.handleAddAppointment}
+        onAddEvent={handleAddEvent}
+        canManageEvents={canManageEvents}
       />
 
       <CalendarMonthGrid
         appointments={data.filteredAppointments}
+        events={events}
         onDateClick={data.handleDateClick}
       />
 
       <CalendarDayDialog
         selectedDate={data.selectedDate}
         appointments={data.selectedDayAppointments}
+        events={selectedDayEvents}
         onClose={() => data.setSelectedDate(null)}
         onEditAppointment={data.handleEditAppointment}
         onDeleteAppointment={data.handleDeleteAppointment}
         onScheduleAppointment={data.handleScheduleFromDate}
+        onEditEvent={handleEditEvent}
+        onDeleteEvent={handleDeleteEvent}
+        onAddEvent={handleAddEventFromDate}
         canEdit={data.canEditAppointment}
         canDelete={data.canDeleteAppointment}
+        canManageEvents={canManageEvents}
       />
 
       <AppointmentForm
@@ -73,6 +163,29 @@ const CalendarManagement: React.FC<CalendarManagementProps> = ({ isAdminView = t
         preSelectedDate={data.preSelectedDate}
         preSelectedCaseId={data.preSelectedCaseId}
       />
+
+      <EventForm
+        open={eventFormOpen}
+        onClose={handleCloseEventForm}
+        onSubmit={handleEventSubmit}
+        eventData={editingEvent}
+        preSelectedDate={preSelectedEventDate}
+      />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+      >
+        <Alert
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+          className="rounded-xl"
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };

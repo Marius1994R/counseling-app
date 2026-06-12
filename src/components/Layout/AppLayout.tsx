@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
-import { DashboardDataProvider, useDashboardDataContext } from '../../contexts/DashboardDataContext';
+import { DashboardDataProvider } from '../../contexts/DashboardDataContext';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -13,7 +13,6 @@ const AppLayoutInner: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const [collapsed, setCollapsed] = useState(false);
   const [isLg, setIsLg] = useState(false);
   const location = useLocation();
-  const { pendingAssignmentCount } = useDashboardDataContext();
 
   useEffect(() => {
     const tabletMq = window.matchMedia('(min-width: 768px) and (max-width: 1023px)');
@@ -50,7 +49,6 @@ const AppLayoutInner: React.FC<{ children: React.ReactNode }> = ({ children }) =
         style={{ marginLeft: isLg ? sidebarWidth : 0 }}
       >
         <Topbar
-          notificationCount={pendingAssignmentCount}
           onMenuClick={() => setMobileOpen(true)}
           showReportActions={location.pathname === '/'}
         />
