@@ -7,14 +7,16 @@ interface CounselorDeleteDialogProps {
   open: boolean;
   counselor: Counselor | null;
   assignedCases: Case[];
+  loading?: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
 }
 
 const CounselorDeleteDialog: React.FC<CounselorDeleteDialogProps> = ({
   open,
   counselor,
   assignedCases,
+  loading = false,
   onClose,
   onConfirm,
 }) => {
@@ -34,6 +36,7 @@ const CounselorDeleteDialog: React.FC<CounselorDeleteDialogProps> = ({
           : undefined
       }
       variant="danger"
+      loading={loading}
       onClose={onClose}
       onConfirm={onConfirm}
     />

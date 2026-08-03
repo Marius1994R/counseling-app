@@ -15,7 +15,8 @@ import {
   FormControl,
   FormControlLabel,
   Snackbar,
-  Alert
+  Alert,
+  CircularProgress,
 } from '@mui/material';
 import {
   Add,
@@ -164,6 +165,8 @@ const SessionReport: React.FC<SessionReportProps> = ({
   }, [open, caseId, autoOpenAddForm, caseStatus, loadReports]);
 
   const handleAddReport = async () => {
+    if (loading) return;
+
     // Validate required fields
     if (!mainTheme.trim() || !personResponse.trim() || !progressNoted.trim()) {
       setSnackbar({ open: true, message: 'Toate câmpurile sunt obligatorii', severity: 'error' });
@@ -388,13 +391,22 @@ const SessionReport: React.FC<SessionReportProps> = ({
       </Dialog>
 
       {/* Add Report Dialog */}
-      <Dialog open={addReportOpen} onClose={() => {
-        setAddReportOpen(false);
-        // If onCancelAddForm callback is provided, call it to show case selection
-        if (onCancelAddForm) {
-          onCancelAddForm();
-        }
-      }} maxWidth="md" fullWidth>
+      <Dialog
+        open={addReportOpen}
+        onClose={(_, reason) => {
+          if (loading) return;
+          if (reason === 'backdropClick' || reason === 'escapeKeyDown') {
+            setAddReportOpen(false);
+            if (onCancelAddForm) onCancelAddForm();
+            return;
+          }
+          setAddReportOpen(false);
+          if (onCancelAddForm) onCancelAddForm();
+        }}
+        disableEscapeKeyDown={loading}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>Raport Post-Sesiune de Consiliere</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
@@ -550,13 +562,19 @@ const SessionReport: React.FC<SessionReportProps> = ({
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => {
-            setAddReportOpen(false);
-            // If onCancelAddForm callback is provided, call it to show case selection
-            if (onCancelAddForm) {
-              onCancelAddForm();
-            }
-          }}>Anulează</Button>
+          <Button
+            onClick={() => {
+              if (loading) return;
+              setAddReportOpen(false);
+              // If onCancelAddForm callback is provided, call it to show case selection
+              if (onCancelAddForm) {
+                onCancelAddForm();
+              }
+            }}
+            disabled={loading}
+          >
+            Anulează
+          </Button>
           <Button 
             onClick={handleAddReport} 
             variant="contained" 
@@ -568,6 +586,9 @@ const SessionReport: React.FC<SessionReportProps> = ({
               ((previousTaskCompleted === 'partial' || previousTaskCompleted === 'no') && !previousTaskNotCompletedReason.trim()) ||
               (nextCommitments === 'yes' && !nextCommitmentsDetails.trim()) ||
               (nextCommitments === 'no' && !noCommitmentsReason.trim())
+            }
+            startIcon={
+              loading ? <CircularProgress size={16} color="inherit" /> : undefined
             }
             sx={{ 
               backgroundColor: '#ffc700',

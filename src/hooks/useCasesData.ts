@@ -26,6 +26,7 @@ export function useCasesData() {
   );
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [editData, setEditData] = useState({
     issueTypes: [] as IssueType[],
@@ -215,9 +216,10 @@ export function useCasesData() {
   }, []);
 
   const handleSaveCase = useCallback(async () => {
-    if (!selectedCase) return;
+    if (!selectedCase || saveLoading) return;
 
     try {
+      setSaveLoading(true);
       const oldStatus = selectedCase.status;
       const newStatus = editData.status;
 
@@ -262,10 +264,13 @@ export function useCasesData() {
         message: t.cases.updateError || 'Eroare la actualizarea cazului',
         severity: 'error',
       });
+    } finally {
+      setSaveLoading(false);
     }
-  }, [selectedCase, editData, currentUser, refetchDashboard]);
+  }, [selectedCase, editData, currentUser, refetchDashboard, saveLoading]);
 
   const handleCloseEditDialog = useCallback(() => {
+    if (saveLoading) return;
     setEditDialogOpen(false);
     setSelectedCase(null);
     setEditData({
@@ -273,7 +278,7 @@ export function useCasesData() {
       status: 'active',
       description: '',
     });
-  }, []);
+  }, [saveLoading]);
 
   const handleOpenMeetingNotes = useCallback((caseItem: Case) => {
     setSelectedCaseForNotes(caseItem);
@@ -336,6 +341,7 @@ export function useCasesData() {
     activeCasesCount,
     waitingCasesCount,
     editDialogOpen,
+    saveLoading,
     selectedCase,
     editData,
     setEditData,

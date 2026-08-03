@@ -15,6 +15,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  CircularProgress,
 } from '@mui/material';
 import { useProfileData } from '../../hooks/useProfileData';
 import { computeCaseStats } from './profileUtils';
@@ -85,13 +86,21 @@ const MyProfile: React.FC = () => {
 
       <Dialog
         open={data.editDialogOpen}
-        onClose={() => data.setEditDialogOpen(false)}
+        onClose={(_, reason) => {
+          if (data.saving) return;
+          if (reason === 'backdropClick' || reason === 'escapeKeyDown') {
+            data.setEditDialogOpen(false);
+            return;
+          }
+          data.setEditDialogOpen(false);
+        }}
+        disableEscapeKeyDown={data.saving}
         maxWidth="md"
         fullWidth
       >
         <DialogTitle>{t.profile.editProfile}</DialogTitle>
         <DialogContent>
-          <Box sx={{ pt: 1 }}>
+          <Box sx={{ pt: 1, opacity: data.saving ? 0.45 : 1, pointerEvents: data.saving ? 'none' : 'auto' }}>
             <TextField
               fullWidth
               label={t.profile.phoneNumber}
@@ -109,12 +118,13 @@ const MyProfile: React.FC = () => {
               }}
               margin="normal"
               placeholder="123 456 789"
+              disabled={data.saving}
               InputProps={{
                 startAdornment: <Typography sx={{ mr: 1, color: 'text.secondary' }}>+40</Typography>,
               }}
             />
 
-            <FormControl fullWidth margin="normal" required>
+            <FormControl fullWidth margin="normal" required disabled={data.saving}>
               <InputLabel>{t.profile.sex}</InputLabel>
               <Select
                 value={data.editData.sex}
@@ -212,11 +222,19 @@ const MyProfile: React.FC = () => {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => data.setEditDialogOpen(false)}>{t.common.cancel}</Button>
+          <Button
+            onClick={() => data.setEditDialogOpen(false)}
+            disabled={data.saving}
+          >
+            {t.common.cancel}
+          </Button>
           <Button
             onClick={data.handleSave}
             variant="contained"
-            disabled={!data.editData.sex}
+            disabled={data.saving || !data.editData.sex}
+            startIcon={
+              data.saving ? <CircularProgress size={16} color="inherit" /> : undefined
+            }
             sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B8860B' } }}
           >
             {t.common.save}

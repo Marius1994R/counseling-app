@@ -2,7 +2,6 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   HomeIcon,
-  ClockIcon,
   FolderOpenIcon,
   CalendarIcon,
   ChartBarIcon,
@@ -27,13 +26,12 @@ interface NavItem {
   roles?: Array<'counselor' | 'admin' | 'leader'>;
 }
 
-const WAITING_CASES_PATH = '/cases?status=waiting';
+const CASES_PATH = '/cases';
 const CALENDAR_PATH = '/calendar';
 
 const navItems: NavItem[] = [
   { label: 'Dashboard', path: '/', icon: HomeIcon },
-  { label: 'Cazuri în așteptare', path: WAITING_CASES_PATH, icon: ClockIcon },
-  { label: 'Toate cazurile', path: '/cases?status=all', icon: FolderOpenIcon },
+  { label: 'Cazuri', path: CASES_PATH, icon: FolderOpenIcon },
   { label: t.navigation.calendar, path: CALENDAR_PATH, icon: CalendarIcon },
   { label: t.navigation.sessionReports, path: '/session-reports', icon: ClipboardDocumentListIcon },
   { label: t.navigation.activity, path: '/activity', icon: ChartBarIcon },
@@ -43,7 +41,7 @@ function isActive(path: string, pathname: string, search: string): boolean {
   if (path === '/') return pathname === '/';
   const [base, query] = path.split('?');
   if (pathname !== base) return false;
-  if (!query) return pathname === base && !search;
+  if (!query) return true;
   return search === `?${query}`;
 }
 
@@ -99,7 +97,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, mobileOpen = false
           const active = isActive(item.path, location.pathname, location.search);
           const Icon = item.icon;
           const showWaitingBadge =
-            item.path === WAITING_CASES_PATH && waitingCasesCount > 0;
+            item.path === CASES_PATH && waitingCasesCount > 0;
           const showCalendarBadge =
             item.path === CALENDAR_PATH && futureAppointmentsCount > 0;
           const badgeCount = showWaitingBadge

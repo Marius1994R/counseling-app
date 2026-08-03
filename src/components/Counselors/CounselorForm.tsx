@@ -13,7 +13,8 @@ import {
   Box,
   Typography,
   Chip,
-  Alert
+  Alert,
+  CircularProgress,
 } from '@mui/material';
 import { collection, getDocs } from 'firebase/firestore';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -40,7 +41,9 @@ import {
 interface CounselorFormProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (counselorData: Omit<Counselor, 'id' | 'createdAt' | 'updatedAt' | 'activeCases' | 'workloadLevel'>) => void;
+  onSubmit: (
+    counselorData: Omit<Counselor, 'id' | 'createdAt' | 'updatedAt' | 'activeCases' | 'workloadLevel'>
+  ) => void | Promise<void>;
   counselorData?: Counselor | null;
   preselectedUserId?: string;
   /** After creating a counselor user — profile step cannot be skipped */
@@ -97,6 +100,7 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
   const [newSpecialty, setNewSpecialty] = useState('');
   const [newSpecialtyCategory, setNewSpecialtyCategory] = useState<IssueType | ''>('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   const selectableUsers = useMemo(() => {
     const allowIds = new Set<string>();
@@ -286,10 +290,10 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    if (submitting || !validateForm()) return;
 
     const specialtyCategories: Record<string, IssueType> = {};
     for (const specialty of formData.specialties) {
@@ -300,26 +304,29 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
 
     const firstName = formData.firstName.trim();
     const lastName = formData.lastName.trim();
-    onSubmit({
-      firstName,
-      lastName,
-      fullName: composeDisplayName(firstName, lastName),
-      email: formData.email.trim(),
-      phoneNumber: toE164RoPhone(formData.phoneNumber),
-      sex: formData.sex as Sex,
-      birthDate: parseDateInputValue(formData.birthDate),
-      specialties: formData.specialties,
-      specialtyCategories:
-        Object.keys(specialtyCategories).length > 0 ? specialtyCategories : undefined,
-      linkedUserId: formData.linkedUserId || undefined,
-      ...(counselorData?.avatarUrl ? { avatarUrl: counselorData.avatarUrl } : {}),
-    });
-
-    onClose();
+    try {
+      setSubmitting(true);
+      await onSubmit({
+        firstName,
+        lastName,
+        fullName: composeDisplayName(firstName, lastName),
+        email: formData.email.trim(),
+        phoneNumber: toE164RoPhone(formData.phoneNumber),
+        sex: formData.sex as Sex,
+        birthDate: parseDateInputValue(formData.birthDate),
+        specialties: formData.specialties,
+        specialtyCategories:
+          Object.keys(specialtyCategories).length > 0 ? specialtyCategories : undefined,
+        linkedUserId: formData.linkedUserId || undefined,
+        ...(counselorData?.avatarUrl ? { avatarUrl: counselorData.avatarUrl } : {}),
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleClose = () => {
-    if (requireProfile) return;
+    if (requireProfile || submitting) return;
     setFormData({ ...emptyForm });
     setNewSpecialty('');
     setNewSpecialtyCategory('');
@@ -328,7 +335,7 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
   };
 
   const handleSkip = () => {
-    if (requireProfile || !allowSkipProfile) return;
+    if (requireProfile || !allowSkipProfile || submitting) return;
     setFormData({ ...emptyForm });
     setNewSpecialty('');
     setNewSpecialtyCategory('');
@@ -342,7 +349,7 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
     <Dialog 
       open={open} 
       onClose={(_, reason) => {
-        if (requireProfile) return;
+        if (requireProfile || submitting) return;
         // Post-create step: only explicit skip / complete — not backdrop/escape
         if (isPostUserCreateStep) return;
         if (reason === 'backdropClick' || reason === 'escapeKeyDown') {
@@ -351,7 +358,7 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
         }
         handleClose();
       }}
-      disableEscapeKeyDown={requireProfile || isPostUserCreateStep}
+      disableEscapeKeyDown={requireProfile || isPostUserCreateStep || submitting}
       maxWidth="md" 
       fullWidth
       fullScreen={false}
@@ -651,6 +658,7 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
           {!requireProfile && (
             <Button 
               onClick={allowSkipProfile ? handleSkip : handleClose}
+              disabled={submitting}
               fullWidth={false}
               sx={{ 
                 width: { xs: '100%', sm: 'auto' },
@@ -665,6 +673,7 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
             variant="contained"
             fullWidth={false}
             disabled={
+              submitting ||
               !formData.linkedUserId ||
               !formData.lastName.trim() ||
               !formData.firstName.trim() ||
@@ -674,6 +683,9 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
               !formData.birthDate ||
               formData.specialties.length === 0 ||
               !isValidRoPhoneDigits(formData.phoneNumber)
+            }
+            startIcon={
+              submitting ? <CircularProgress size={16} color="inherit" /> : undefined
             }
             sx={{ 
               width: { xs: '100%', sm: 'auto' },

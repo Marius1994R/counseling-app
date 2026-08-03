@@ -8,7 +8,7 @@ interface CounselorsGridProps {
   counselors: Counselor[];
   getCasesForCounselor: (counselorId: string) => import('../../types').Case[];
   onEdit: (counselor: Counselor) => void;
-  onDelete: (counselorId: string) => void;
+  onDelete: (counselorId: string) => void | Promise<void>;
   canEdit: boolean;
   canDelete: boolean;
   hasFilters: boolean;

@@ -25,6 +25,7 @@ export function useProfileData() {
   const [loadError, setLoadError] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [removeAvatarConfirmOpen, setRemoveAvatarConfirmOpen] = useState(false);
   const [isLinkedCounselor, setIsLinkedCounselor] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -157,13 +158,14 @@ export function useProfileData() {
   }, [counselor]);
 
   const handleSave = useCallback(async () => {
-    if (!counselor || !isLinkedCounselor) return;
+    if (!counselor || !isLinkedCounselor || saving) return;
     if (!editData.sex) {
       showSnackbar('Selectează sexul', 'error');
       return;
     }
 
     try {
+      setSaving(true);
       const counselorRef = doc(db, 'counselors', counselor.id);
       const formattedPhone = `+40${editData.phoneNumber.replace(/[\s\-()]/g, '')}`;
       const specialtyCategories: Record<string, IssueType> = {};
@@ -197,8 +199,10 @@ export function useProfileData() {
     } catch (error) {
       console.error('Error updating profile:', error);
       showSnackbar(t.profile.updateError || 'Eroare la actualizarea profilului', 'error');
+    } finally {
+      setSaving(false);
     }
-  }, [counselor, editData, isLinkedCounselor, showSnackbar]);
+  }, [counselor, editData, isLinkedCounselor, saving, showSnackbar]);
 
   const handleAvatarClick = useCallback(() => {
     fileInputRef.current?.click();
@@ -349,6 +353,7 @@ export function useProfileData() {
     commonSpecialties: COMMON_SPECIALTIES,
     isLinkedCounselor,
     avatarUploading,
+    saving,
     fileInputRef,
     handleEditClick,
     handleSave,

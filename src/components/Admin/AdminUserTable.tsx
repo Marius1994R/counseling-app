@@ -25,6 +25,7 @@ interface AdminUserTableProps {
   onEdit: (user: User) => void;
   onDeactivate: (userId: string) => void;
   onReactivate: (userId: string) => void;
+  reactivatingUserId?: string | null;
   onDelete: (userId: string) => void;
 }
 
@@ -38,6 +39,7 @@ const AdminUserTable: React.FC<AdminUserTableProps> = ({
   onEdit,
   onDeactivate,
   onReactivate,
+  reactivatingUserId = null,
   onDelete,
 }) => {
   if (loading) {
@@ -128,11 +130,19 @@ const AdminUserTable: React.FC<AdminUserTableProps> = ({
                       <button
                         type="button"
                         onClick={() => onReactivate(user.id)}
-                        disabled={!deactivatable}
+                        disabled={!deactivatable || reactivatingUserId === user.id}
                         className="rounded-lg p-2 text-green-600 transition hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-40"
                         title={t.admin.users.reactivateUserSuccess}
                       >
-                        <CheckCircleIcon className="h-4 w-4" />
+                        {reactivatingUserId === user.id ? (
+                          <span
+                            className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent"
+                            role="status"
+                            aria-label="Se reactivează…"
+                          />
+                        ) : (
+                          <CheckCircleIcon className="h-4 w-4" />
+                        )}
                       </button>
                     )}
                     {deletable && (

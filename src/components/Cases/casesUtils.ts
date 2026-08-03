@@ -17,7 +17,7 @@ export function getStatusFilterFromUrl(searchParams: URLSearchParams): CaseStatu
   if (status && CASE_STATUS_FILTERS.includes(status as CaseStatus)) {
     return status as CaseStatus;
   }
-  return 'active';
+  return 'all';
 }
 
 const STATUS_BADGE_CLASS: Record<string, string> = {

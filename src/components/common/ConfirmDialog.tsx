@@ -14,7 +14,7 @@ export interface ConfirmDialogProps {
   cancelLabel?: string;
   variant?: ConfirmDialogVariant;
   loading?: boolean;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   onClose: () => void;
 }
 

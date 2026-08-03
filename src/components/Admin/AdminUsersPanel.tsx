@@ -16,6 +16,7 @@ interface AdminUsersPanelProps {
   onEdit: (user: User) => void;
   onDeactivate: (userId: string) => void;
   onReactivate: (userId: string) => void;
+  reactivatingUserId?: string | null;
   onDelete: (userId: string) => void;
 }
 
@@ -30,6 +31,7 @@ const AdminUsersPanel: React.FC<AdminUsersPanelProps> = ({
   onEdit,
   onDeactivate,
   onReactivate,
+  reactivatingUserId = null,
   onDelete,
 }) => (
   <div className="space-y-6">
@@ -58,6 +60,7 @@ const AdminUsersPanel: React.FC<AdminUsersPanelProps> = ({
         onEdit={onEdit}
         onDeactivate={onDeactivate}
         onReactivate={onReactivate}
+        reactivatingUserId={reactivatingUserId}
         onDelete={onDelete}
       />
     </section>

@@ -23,6 +23,7 @@ interface AdminUserDialogsProps {
   createDialogOpen: boolean;
   editDialogOpen: boolean;
   createUserLoading?: boolean;
+  editUserLoading?: boolean;
   createUserData: CreateUserData;
   editUserData: Partial<CreateUserData>;
   selectedUser: User | null;
@@ -40,6 +41,7 @@ const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
   createDialogOpen,
   editDialogOpen,
   createUserLoading = false,
+  editUserLoading = false,
   createUserData,
   editUserData,
   selectedUser,
@@ -182,10 +184,23 @@ const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
       </DialogActions>
     </Dialog>
 
-    <Dialog open={editDialogOpen} onClose={onCloseEdit} maxWidth="sm" fullWidth>
+    <Dialog
+      open={editDialogOpen}
+      onClose={(_, reason) => {
+        if (editUserLoading) return;
+        if (reason === 'backdropClick' || reason === 'escapeKeyDown') {
+          onCloseEdit();
+          return;
+        }
+        onCloseEdit();
+      }}
+      disableEscapeKeyDown={editUserLoading}
+      maxWidth="sm"
+      fullWidth
+    >
       <DialogTitle>{t.admin.users.editUser}</DialogTitle>
       <DialogContent>
-        <Box sx={{ pt: 1 }}>
+        <Box sx={{ pt: 1, opacity: editUserLoading ? 0.45 : 1, pointerEvents: editUserLoading ? 'none' : 'auto' }}>
           <TextField
             fullWidth
             label={t.admin.users.fullName}
@@ -193,8 +208,9 @@ const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
             onChange={(e) => onEditUserDataChange({ ...editUserData, fullName: e.target.value })}
             margin="normal"
             required
+            disabled={editUserLoading}
           />
-          <FormControl fullWidth margin="normal" required>
+          <FormControl fullWidth margin="normal" required disabled={editUserLoading}>
             <InputLabel>{t.admin.users.role}</InputLabel>
             <Select
               value={editUserData.role}
@@ -202,7 +218,7 @@ const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
                 onEditUserDataChange({ ...editUserData, role: e.target.value as UserRole })
               }
               label={t.admin.users.role}
-              disabled={currentUserRole === 'admin' && selectedUser?.role === 'leader'}
+              disabled={editUserLoading || (currentUserRole === 'admin' && selectedUser?.role === 'leader')}
             >
               <MenuItem value="counselor">{t.roles.counselor}</MenuItem>
               <MenuItem value="admin">{t.roles.admin}</MenuItem>
@@ -219,11 +235,16 @@ const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCloseEdit}>{t.common.cancel}</Button>
+        <Button onClick={onCloseEdit} disabled={editUserLoading}>
+          {t.common.cancel}
+        </Button>
         <Button
           onClick={onEditUser}
           variant="contained"
-          disabled={!editUserData.fullName || !editUserData.role}
+          disabled={editUserLoading || !editUserData.fullName || !editUserData.role}
+          startIcon={
+            editUserLoading ? <CircularProgress size={16} color="inherit" /> : undefined
+          }
         >
           {t.admin.users.updateUser}
         </Button>

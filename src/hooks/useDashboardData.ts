@@ -336,7 +336,7 @@ export function useDashboardData() {
     [currentUser?.id]
   );
 
-  const [assignmentActionLoading, setAssignmentActionLoading] = useState(false);
+  const [assignmentActionLoading, setAssignmentActionLoading] = useState<'accept' | 'refuse' | null>(null);
   const [assignmentActionError, setAssignmentActionError] = useState<string | null>(null);
 
   const acceptProposal = useCallback(async () => {
@@ -345,7 +345,7 @@ export function useDashboardData() {
     const activityId = newAssignmentModal.id;
 
     try {
-      setAssignmentActionLoading(true);
+      setAssignmentActionLoading('accept');
       setAssignmentActionError(null);
 
       const caseRef = doc(db, 'cases', caseId);
@@ -383,7 +383,7 @@ export function useDashboardData() {
       console.error('Accept proposal error:', err);
       setAssignmentActionError(t.assignments.acceptError);
     } finally {
-      setAssignmentActionLoading(false);
+      setAssignmentActionLoading(null);
     }
   }, [currentUser, newAssignmentModal, dismissAssignment, loadData]);
 
@@ -393,7 +393,7 @@ export function useDashboardData() {
     const activityId = newAssignmentModal.id;
 
     try {
-      setAssignmentActionLoading(true);
+      setAssignmentActionLoading('refuse');
       setAssignmentActionError(null);
 
       const caseRef = doc(db, 'cases', caseId);
@@ -423,7 +423,7 @@ export function useDashboardData() {
       console.error('Refuse proposal error:', err);
       setAssignmentActionError(t.assignments.refuseError);
     } finally {
-      setAssignmentActionLoading(false);
+      setAssignmentActionLoading(null);
     }
   }, [currentUser, newAssignmentModal, dismissAssignment, loadData]);
 

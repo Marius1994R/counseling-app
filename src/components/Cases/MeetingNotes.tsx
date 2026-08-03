@@ -13,7 +13,8 @@ import {
   IconButton,
   Chip,
   Snackbar,
-  Alert
+  Alert,
+  CircularProgress,
 } from '@mui/material';
 import {
   Add,
@@ -75,6 +76,7 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
 
   const loadMeetingNotes = useCallback(async () => {
     try {
@@ -129,9 +131,10 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
   };
 
   const handleSaveNote = async () => {
-    if (!noteContent.trim()) return;
+    if (!noteContent.trim() || saveLoading) return;
 
     try {
+      setSaveLoading(true);
       if (editingNote) {
         // Update existing note
         const noteRef = doc(db, 'meetingNotes', editingNote.id);
@@ -176,6 +179,8 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
     } catch (error) {
       console.error('Error saving meeting note:', error);
       setSnackbar({ open: true, message: t.meetingNotes.addNoteError, severity: 'error' });
+    } finally {
+      setSaveLoading(false);
     }
   };
 
@@ -197,6 +202,7 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
   };
 
   const handleCloseAddNote = () => {
+    if (saveLoading) return;
     setAddNoteOpen(false);
     setNoteContent('');
     setEditingNote(null);
@@ -329,7 +335,20 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
       </Dialog>
 
       {/* Add/Edit Note Dialog */}
-      <Dialog open={addNoteOpen} onClose={handleCloseAddNote} maxWidth="sm" fullWidth>
+      <Dialog
+        open={addNoteOpen}
+        onClose={(_, reason) => {
+          if (saveLoading) return;
+          if (reason === 'backdropClick' || reason === 'escapeKeyDown') {
+            handleCloseAddNote();
+            return;
+          }
+          handleCloseAddNote();
+        }}
+        disableEscapeKeyDown={saveLoading}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>
           {editingNote ? t.meetingNotes.editNote : t.meetingNotes.addNote}
         </DialogTitle>
@@ -341,16 +360,22 @@ const MeetingNotes: React.FC<MeetingNotesProps> = ({
             value={noteContent}
             onChange={(e) => setNoteContent(e.target.value)}
             fullWidth
+            disabled={saveLoading}
             placeholder="Descrie cum s-a desfășurat întâlnirea, ce progres a fost făcut, observații importante..."
             sx={{ mt: 1 }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseAddNote}>{t.common.cancel}</Button>
+          <Button onClick={handleCloseAddNote} disabled={saveLoading}>
+            {t.common.cancel}
+          </Button>
           <Button
             onClick={handleSaveNote}
             variant="contained"
-            disabled={!noteContent.trim()}
+            disabled={saveLoading || !noteContent.trim()}
+            startIcon={
+              saveLoading ? <CircularProgress size={16} color="inherit" /> : undefined
+            }
             sx={brandButtonSx}
           >
             {editingNote ? t.common.save : t.meetingNotes.addNote}

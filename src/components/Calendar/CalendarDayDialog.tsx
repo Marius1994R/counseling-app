@@ -47,10 +47,10 @@ interface CalendarDayDialogProps {
   events: ChurchEvent[];
   onClose: () => void;
   onEditAppointment: (appointment: Appointment) => void;
-  onDeleteAppointment: (appointmentId: string) => void;
+  onDeleteAppointment: (appointmentId: string) => void | Promise<void>;
   onScheduleAppointment: (date: Date) => void;
   onEditEvent: (event: ChurchEvent) => void;
-  onDeleteEvent: (eventId: string) => void;
+  onDeleteEvent: (eventId: string) => void | Promise<void>;
   onAddEvent: (date: Date) => void;
   canEdit: (appointment: Appointment) => boolean;
   canDelete: (appointment: Appointment) => boolean;
@@ -77,6 +77,7 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
   canManageEvents,
 }) => {
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [localAppointments, setLocalAppointments] = useState(appointments);
   const [localEvents, setLocalEvents] = useState(events);
 
@@ -90,16 +91,21 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
   const eventStyles = getEventDisplayStyles();
   const isEmpty = sortedAppointments.length === 0 && sortedEvents.length === 0;
 
-  const handleDeleteConfirm = () => {
-    if (!deleteTarget) return;
-    if (deleteTarget.kind === 'appointment') {
-      onDeleteAppointment(deleteTarget.item.id);
-      setLocalAppointments((prev) => prev.filter((a) => a.id !== deleteTarget.item.id));
-    } else {
-      onDeleteEvent(deleteTarget.item.id);
-      setLocalEvents((prev) => prev.filter((e) => e.id !== deleteTarget.item.id));
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget || deleteLoading) return;
+    try {
+      setDeleteLoading(true);
+      if (deleteTarget.kind === 'appointment') {
+        await onDeleteAppointment(deleteTarget.item.id);
+        setLocalAppointments((prev) => prev.filter((a) => a.id !== deleteTarget.item.id));
+      } else {
+        await onDeleteEvent(deleteTarget.item.id);
+        setLocalEvents((prev) => prev.filter((e) => e.id !== deleteTarget.item.id));
+      }
+      setDeleteTarget(null);
+    } finally {
+      setDeleteLoading(false);
     }
-    setDeleteTarget(null);
   };
 
   return (
@@ -351,7 +357,10 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
               )
         }
         variant="danger"
-        onClose={() => setDeleteTarget(null)}
+        loading={deleteLoading}
+        onClose={() => {
+          if (!deleteLoading) setDeleteTarget(null);
+        }}
         onConfirm={handleDeleteConfirm}
       />
     </>

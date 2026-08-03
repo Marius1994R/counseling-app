@@ -7,6 +7,7 @@ import {
   Button,
   TextField,
   Box,
+  CircularProgress,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
@@ -20,7 +21,9 @@ import { validateEventForm } from './eventUtils';
 interface EventFormProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: Omit<ChurchEvent, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>) => void;
+  onSubmit: (
+    data: Omit<ChurchEvent, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>
+  ) => void | Promise<void>;
   eventData?: ChurchEvent | null;
   preSelectedDate?: Date | null;
 }
@@ -40,6 +43,7 @@ const EventForm: React.FC<EventFormProps> = ({
   const [endTime, setEndTime] = useState<Dayjs | null>(null);
   const [registrationUrl, setRegistrationUrl] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -66,10 +70,12 @@ const EventForm: React.FC<EventFormProps> = ({
       setRegistrationUrl('');
     }
     setErrors({});
+    setSubmitting(false);
   }, [open, eventData, preSelectedDate]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
 
     const validationErrors = validateEventForm(
       { name, description, startDate, endDate, startTime, endTime, registrationUrl },
@@ -78,15 +84,24 @@ const EventForm: React.FC<EventFormProps> = ({
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) return;
 
-    onSubmit({
-      name: name.trim(),
-      description: description.trim(),
-      startDate: startDate!.toDate(),
-      endDate: endDate!.toDate(),
-      startTime: startTime!.format('HH:mm'),
-      endTime: endTime!.format('HH:mm'),
-      registrationUrl: registrationUrl.trim() || undefined,
-    });
+    try {
+      setSubmitting(true);
+      await onSubmit({
+        name: name.trim(),
+        description: description.trim(),
+        startDate: startDate!.toDate(),
+        endDate: endDate!.toDate(),
+        startTime: startTime!.format('HH:mm'),
+        endTime: endTime!.format('HH:mm'),
+        registrationUrl: registrationUrl.trim() || undefined,
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (submitting) return;
     onClose();
   };
 
@@ -106,7 +121,20 @@ const EventForm: React.FC<EventFormProps> = ({
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <Dialog
+        open={open}
+        onClose={(_, reason) => {
+          if (submitting) return;
+          if (reason === 'backdropClick' || reason === 'escapeKeyDown') {
+            handleClose();
+            return;
+          }
+          handleClose();
+        }}
+        disableEscapeKeyDown={submitting}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>
           {eventData ? t.events.editEvent : t.events.addEvent}
         </DialogTitle>
@@ -247,11 +275,16 @@ const EventForm: React.FC<EventFormProps> = ({
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={onClose}>{t.common.cancel}</Button>
+            <Button onClick={handleClose} disabled={submitting}>
+              {t.common.cancel}
+            </Button>
             <Button
               type="submit"
               variant="contained"
-              disabled={!isFormComplete}
+              disabled={submitting || !isFormComplete}
+              startIcon={
+                submitting ? <CircularProgress size={16} color="inherit" /> : undefined
+              }
               sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B8860B' } }}
             >
               {eventData ? t.common.save : t.events.save}

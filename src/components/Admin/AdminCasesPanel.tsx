@@ -22,7 +22,7 @@ interface AdminCasesPanelProps {
   onCounselorFilterChange: (value: string) => void;
   onAdd: () => void;
   onEdit: (caseItem: Case) => void;
-  onDelete: (caseId: string) => void;
+  onDelete: (caseId: string) => void | Promise<void>;
   onOpenSessionReport: (caseItem: Case) => void;
   isLeader: boolean;
 }
@@ -55,6 +55,7 @@ const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
   isLeader,
 }) => {
   const [deleteTarget, setDeleteTarget] = useState<Case | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const hasFilters =
     searchTerm.trim() !== '' || statusFilter !== 'all' || counselorFilter !== 'all';
@@ -189,11 +190,18 @@ const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
           deleteTarget?.title ?? ''
         )}
         variant="danger"
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={() => {
-          if (deleteTarget) {
-            onDelete(deleteTarget.id);
+        loading={deleteLoading}
+        onClose={() => {
+          if (!deleteLoading) setDeleteTarget(null);
+        }}
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          try {
+            setDeleteLoading(true);
+            await onDelete(deleteTarget.id);
             setDeleteTarget(null);
+          } finally {
+            setDeleteLoading(false);
           }
         }}
       />

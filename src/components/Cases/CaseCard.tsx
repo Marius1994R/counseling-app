@@ -32,11 +32,12 @@ import { Case, CaseStatus, IssueType } from '../../types';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { t } from '../../utils/translations';
+import ConfirmDialog from '../common/ConfirmDialog';
 
 interface CaseCardProps {
   caseData: Case;
   onEdit: (caseData: Case) => void;
-  onDelete: (caseId: string) => void;
+  onDelete: (caseId: string) => void | Promise<void>;
   canEdit: boolean;
   canDelete: boolean;
   latestNote?: string; // Optional latest note content for preview
@@ -60,6 +61,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
   const [allNotes, setAllNotes] = useState<any[]>([]);
@@ -83,9 +85,15 @@ const CaseCard: React.FC<CaseCardProps> = ({
     handleMenuClose();
   };
 
-  const handleDeleteConfirm = () => {
-    onDelete(caseData.id);
-    setDeleteDialogOpen(false);
+  const handleDeleteConfirm = async () => {
+    if (deleteLoading) return;
+    try {
+      setDeleteLoading(true);
+      await onDelete(caseData.id);
+      setDeleteDialogOpen(false);
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const handleViewAllNotes = async () => {
@@ -544,20 +552,17 @@ const CaseCard: React.FC<CaseCardProps> = ({
         )}
       </Menu>
 
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>{t.deleteWarnings.deleteCase}</DialogTitle>
-        <DialogContent>
-          <Typography>
-            {t.deleteWarnings.deleteCaseConfirm.replace('{title}', caseData.title)}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>{t.common.cancel}</Button>
-          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-            {t.common.delete}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title={t.deleteWarnings.deleteCase}
+        message={t.deleteWarnings.deleteCaseConfirm.replace('{title}', caseData.title)}
+        variant="danger"
+        loading={deleteLoading}
+        onClose={() => {
+          if (!deleteLoading) setDeleteDialogOpen(false);
+        }}
+        onConfirm={handleDeleteConfirm}
+      />
 
       {/* View All Notes Dialog */}
       <Dialog 

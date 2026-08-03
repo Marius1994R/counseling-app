@@ -20,7 +20,7 @@ interface CounselorListCardProps {
   counselor: Counselor;
   assignedCases: Case[];
   onEdit: (counselor: Counselor) => void;
-  onDelete: (counselorId: string) => void;
+  onDelete: (counselorId: string) => void | Promise<void>;
   canEdit: boolean;
   canDelete: boolean;
 }
@@ -35,6 +35,7 @@ const CounselorListCard: React.FC<CounselorListCardProps> = ({
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const specialties = normalizeSpecialties(counselor.specialties);
@@ -189,10 +190,18 @@ const CounselorListCard: React.FC<CounselorListCardProps> = ({
         open={deleteOpen}
         counselor={counselor}
         assignedCases={assignedCases}
-        onClose={() => setDeleteOpen(false)}
-        onConfirm={() => {
-          onDelete(counselor.id);
-          setDeleteOpen(false);
+        loading={deleteLoading}
+        onClose={() => {
+          if (!deleteLoading) setDeleteOpen(false);
+        }}
+        onConfirm={async () => {
+          try {
+            setDeleteLoading(true);
+            await onDelete(counselor.id);
+            setDeleteOpen(false);
+          } finally {
+            setDeleteLoading(false);
+          }
         }}
       />
 

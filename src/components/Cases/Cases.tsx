@@ -16,6 +16,7 @@ import {
   DialogActions,
   Snackbar,
   Typography,
+  CircularProgress,
 } from '@mui/material';
 import { useCasesData } from '../../hooks/useCasesData';
 import { CaseStatus } from '../../types';
@@ -78,11 +79,33 @@ const Cases: React.FC = () => {
         onOpenDescription={data.handleOpenDescription}
       />
 
-      <Dialog open={data.editDialogOpen} onClose={data.handleCloseEditDialog} maxWidth="md" fullWidth>
+      <Dialog
+        open={data.editDialogOpen}
+        onClose={(_, reason) => {
+          if (data.saveLoading) return;
+          if (reason === 'backdropClick' || reason === 'escapeKeyDown') {
+            data.handleCloseEditDialog();
+            return;
+          }
+          data.handleCloseEditDialog();
+        }}
+        disableEscapeKeyDown={data.saveLoading}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>{t.cases.editCase}</DialogTitle>
         <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <FormControl fullWidth>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+              mt: 1,
+              opacity: data.saveLoading ? 0.45 : 1,
+              pointerEvents: data.saveLoading ? 'none' : 'auto',
+            }}
+          >
+            <FormControl fullWidth disabled={data.saveLoading}>
               <InputLabel>{t.cases.status} *</InputLabel>
               <Select
                 value={data.editData.status}
@@ -133,11 +156,16 @@ const Cases: React.FC = () => {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={data.handleCloseEditDialog}>{t.common.cancel}</Button>
+          <Button onClick={data.handleCloseEditDialog} disabled={data.saveLoading}>
+            {t.common.cancel}
+          </Button>
           <Button
             onClick={data.handleSaveCase}
             variant="contained"
-            disabled={data.editData.issueTypes.length === 0}
+            disabled={data.saveLoading || data.editData.issueTypes.length === 0}
+            startIcon={
+              data.saveLoading ? <CircularProgress size={16} color="inherit" /> : undefined
+            }
             sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B8860B' } }}
           >
             {t.common.save}

@@ -59,6 +59,8 @@ export function useAdminData() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createUserLoading, setCreateUserLoading] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editUserLoading, setEditUserLoading] = useState(false);
+  const [reactivatingUserId, setReactivatingUserId] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [createUserData, setCreateUserData] = useState<CreateUserData>({
     email: '',
@@ -160,9 +162,12 @@ export function useAdminData() {
     }
   };
 
-  const loadCounselors = useCallback(async () => {
+  const loadCounselors = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent === true;
     try {
-      setCounselorsLoading(true);
+      if (!silent) {
+        setCounselorsLoading(true);
+      }
       setCounselorsError('');
 
       const counselorsSnapshot = await getDocs(
@@ -193,13 +198,18 @@ export function useAdminData() {
       console.error('Error loading counselors:', error);
       setCounselorsError(t.counselors.loadError);
     } finally {
-      setCounselorsLoading(false);
+      if (!silent) {
+        setCounselorsLoading(false);
+      }
     }
   }, []);
 
-  const loadCases = useCallback(async () => {
+  const loadCases = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent === true;
     try {
-      setCasesLoading(true);
+      if (!silent) {
+        setCasesLoading(true);
+      }
       setCasesError('');
 
       const casesSnapshot = await getDocs(
@@ -217,7 +227,9 @@ export function useAdminData() {
       console.error('Error loading cases:', error);
       setCasesError('Eroare la încărcarea cazurilor');
     } finally {
-      setCasesLoading(false);
+      if (!silent) {
+        setCasesLoading(false);
+      }
     }
   }, []);
 
@@ -311,7 +323,7 @@ export function useAdminData() {
         setEditingCounselor(null);
         setNewlyCreatedUserId(null);
         setPendingProfileRequired(false);
-        loadCounselors();
+        await loadCounselors({ silent: true });
       } catch (error) {
         console.error('Error saving counselor:', error);
         const message =
@@ -331,7 +343,7 @@ export function useAdminData() {
 
         await deleteDoc(doc(db, 'counselors', counselorId));
         showSnackbar('Consilier șters cu succes', 'success');
-        loadCounselors();
+        await loadCounselors({ silent: true });
       } catch (error) {
         console.error('Error deleting counselor:', error);
         const message =
@@ -463,8 +475,8 @@ export function useAdminData() {
         }
         setCaseFormOpen(false);
         setEditingCase(null);
-        await loadCases();
-        await loadCounselors();
+        await loadCases({ silent: true });
+        await loadCounselors({ silent: true });
         await refetchDashboard();
       } catch (error) {
         console.error('Error saving case:', error);
@@ -494,7 +506,7 @@ export function useAdminData() {
 
         await deleteDoc(doc(db, 'cases', caseId));
         showSnackbar('Caz șters cu succes', 'success');
-        await loadCases();
+        await loadCases({ silent: true });
         await refetchDashboard();
       } catch (error) {
         console.error('Error deleting case:', error);
@@ -543,6 +555,7 @@ export function useAdminData() {
   const handleEditUser = useCallback(async () => {
     if (!selectedUser) return;
     try {
+      setEditUserLoading(true);
       await updateUserRole(selectedUser.id, editUserData.role as UserRole);
       showSnackbar(t.admin.users.updateUserSuccess, 'success');
       setEditDialogOpen(false);
@@ -551,6 +564,8 @@ export function useAdminData() {
     } catch (error) {
       console.error('Error updating user:', error);
       showSnackbar(t.admin.users.updateUserError, 'error');
+    } finally {
+      setEditUserLoading(false);
     }
   }, [selectedUser, editUserData.role, updateUserRole, loadUsers, showSnackbar]);
 
@@ -560,8 +575,8 @@ export function useAdminData() {
         await deleteUser(userId);
         showSnackbar(t.admin.users.deleteUserSuccess, 'success');
         loadUsers();
-        loadCounselors();
-        loadCases();
+        loadCounselors({ silent: true });
+        loadCases({ silent: true });
       } catch (error) {
         console.error('Error deleting user:', error);
         showSnackbar(t.admin.users.deleteUserError, 'error');
@@ -587,12 +602,15 @@ export function useAdminData() {
   const handleReactivateUser = useCallback(
     async (userId: string) => {
       try {
+        setReactivatingUserId(userId);
         await reactivateUser(userId);
         showSnackbar(t.admin.users.reactivateUserSuccess, 'success');
         loadUsers();
       } catch (error) {
         console.error('Error reactivating user:', error);
         showSnackbar(t.admin.users.reactivateUserError, 'error');
+      } finally {
+        setReactivatingUserId(null);
       }
     },
     [reactivateUser, loadUsers, showSnackbar]
@@ -643,6 +661,8 @@ Link app: https://consiliere360.vercel.app/`;
     createDialogOpen,
     setCreateDialogOpen,
     createUserLoading,
+    editUserLoading,
+    reactivatingUserId,
     editDialogOpen,
     setEditDialogOpen,
     selectedUser,

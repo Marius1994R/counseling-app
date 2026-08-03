@@ -30,7 +30,7 @@ interface CaseProposalDialogProps {
   open: boolean;
   caseItem?: Case;
   fallbackTitle?: string;
-  loading: boolean;
+  loading: boolean | 'accept' | 'refuse' | null;
   error?: string | null;
   onAccept: () => void;
   onRefuse: () => void;
@@ -45,6 +45,9 @@ const CaseProposalDialog: React.FC<CaseProposalDialogProps> = ({
   onAccept,
   onRefuse,
 }) => {
+  const isBusy = Boolean(loading);
+  const isAccepting = loading === true || loading === 'accept';
+  const isRefusing = loading === 'refuse';
   const personDetails = caseItem
     ? [
         caseItem.age ? `${caseItem.age} ${t.cases.years}` : null,
@@ -280,10 +283,11 @@ const CaseProposalDialog: React.FC<CaseProposalDialogProps> = ({
       >
         <Button
           onClick={onRefuse}
-          disabled={loading}
+          disabled={isBusy}
           variant="outlined"
           color="inherit"
           fullWidth
+          startIcon={isRefusing ? <CircularProgress size={17} color="inherit" /> : undefined}
           sx={{ borderColor: '#CBD5E1', color: '#475569', fontWeight: 700, py: 1.1 }}
         >
           {t.dashboard.refuseProposal}
@@ -291,9 +295,9 @@ const CaseProposalDialog: React.FC<CaseProposalDialogProps> = ({
         <Button
           variant="contained"
           onClick={onAccept}
-          disabled={loading}
+          disabled={isBusy}
           fullWidth
-          startIcon={loading ? <CircularProgress size={17} color="inherit" /> : undefined}
+          startIcon={isAccepting ? <CircularProgress size={17} color="inherit" /> : undefined}
           sx={{
             py: 1.1,
             fontWeight: 700,

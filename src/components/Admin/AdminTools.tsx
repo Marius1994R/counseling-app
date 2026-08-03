@@ -63,6 +63,7 @@ const AdminTools: React.FC = () => {
           onEdit={data.openEditDialog}
           onDeactivate={(userId) => setPendingConfirm({ type: 'deactivateUser', userId })}
           onReactivate={data.handleReactivateUser}
+          reactivatingUserId={data.reactivatingUserId}
           onDelete={(userId) => {
             const isDeletingSelf = userId === data.currentUser?.id;
             setPendingConfirm({
@@ -155,6 +156,7 @@ const AdminTools: React.FC = () => {
         createDialogOpen={data.createDialogOpen}
         editDialogOpen={data.editDialogOpen}
         createUserLoading={data.createUserLoading}
+        editUserLoading={data.editUserLoading}
         createUserData={data.createUserData}
         editUserData={data.editUserData}
         selectedUser={data.selectedUser}
@@ -164,7 +166,10 @@ const AdminTools: React.FC = () => {
           data.setCreateDialogOpen(false);
           data.setCreateUserData({ email: '', password: '', fullName: '', role: 'counselor' });
         }}
-        onCloseEdit={() => data.setEditDialogOpen(false)}
+        onCloseEdit={() => {
+          if (data.editUserLoading) return;
+          data.setEditDialogOpen(false);
+        }}
         onCreateUserDataChange={data.setCreateUserData}
         onEditUserDataChange={data.setEditUserData}
         onCreateUser={data.handleCreateUser}

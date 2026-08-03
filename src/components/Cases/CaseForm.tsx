@@ -15,6 +15,7 @@ import {
   Typography,
   FormControlLabel,
   Checkbox,
+  CircularProgress,
 } from '@mui/material';
 import { Case, CaseStatus, IssueType, CivilStatus, Sex, Counselor, CasePriority, ReferralSource } from '../../types';
 import { t } from '../../utils/translations';
@@ -38,7 +39,7 @@ export type CaseFormSubmitData = Omit<Case, 'id' | 'createdAt' | 'updatedAt' | '
 interface CaseFormProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (caseData: CaseFormSubmitData) => void;
+  onSubmit: (caseData: CaseFormSubmitData) => void | Promise<void>;
   caseData?: Case | null;
   counselors: Counselor[];
   /** User IDs with isActive === false — excluded from counselor suggestions */
@@ -80,6 +81,7 @@ const CaseForm: React.FC<CaseFormProps> = ({
   );
   const [counselorTouched, setCounselorTouched] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   const issueTypeOptions: IssueType[] = ['spiritual', 'relational', 'personal'];
   const civilStatusOptions: CivilStatus[] = [
@@ -217,6 +219,7 @@ const CaseForm: React.FC<CaseFormProps> = ({
       setCounselorTouched(false);
     }
     setErrors({});
+    setSubmitting(false);
   }, [caseData, open]);
 
   // Propose by default: prefill top-ranked counselor once basics + issue type are set
@@ -324,10 +327,10 @@ const CaseForm: React.FC<CaseFormProps> = ({
     };
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    if (submitting || !validateForm()) return;
 
     const firstName = formData.firstName.trim();
     const lastName = formData.lastName.trim();
@@ -335,26 +338,30 @@ const CaseForm: React.FC<CaseFormProps> = ({
     const generatedTitle = `${counseledName} - Caz`;
     const assignment = buildAssignmentFields();
 
-    onSubmit({
-      title: generatedTitle,
-      firstName,
-      lastName,
-      counseledName,
-      age: Number(formData.age),
-      sex: formData.sex,
-      civilStatus: formData.civilStatus as CivilStatus,
-      issueTypes: formData.issueTypes,
-      phoneNumber: toE164RoPhone(formData.phoneNumber),
-      description: formData.description.trim(),
-      referralSource: formData.referralSource || null,
-      priority: formData.priority,
-      ...assignment,
-    });
-
-    onClose();
+    try {
+      setSubmitting(true);
+      await onSubmit({
+        title: generatedTitle,
+        firstName,
+        lastName,
+        counseledName,
+        age: Number(formData.age),
+        sex: formData.sex,
+        civilStatus: formData.civilStatus as CivilStatus,
+        issueTypes: formData.issueTypes,
+        phoneNumber: toE164RoPhone(formData.phoneNumber),
+        description: formData.description.trim(),
+        referralSource: formData.referralSource || null,
+        priority: formData.priority,
+        ...assignment,
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleClose = () => {
+    if (submitting) return;
     setFormData({
       firstName: '',
       lastName: '',
@@ -378,7 +385,15 @@ const CaseForm: React.FC<CaseFormProps> = ({
   return (
     <Dialog
       open={open}
-      onClose={handleClose}
+      onClose={(_, reason) => {
+        if (submitting) return;
+        if (reason === 'backdropClick' || reason === 'escapeKeyDown') {
+          handleClose();
+          return;
+        }
+        handleClose();
+      }}
+      disableEscapeKeyDown={submitting}
       maxWidth="md"
       fullWidth
       fullScreen={false}
@@ -668,6 +683,7 @@ const CaseForm: React.FC<CaseFormProps> = ({
         >
           <Button
             onClick={handleClose}
+            disabled={submitting}
             sx={{ width: { xs: '100%', sm: 'auto' }, order: { xs: 2, sm: 1 } }}
           >
             {t.common.cancel}
@@ -676,6 +692,7 @@ const CaseForm: React.FC<CaseFormProps> = ({
             type="submit"
             variant="contained"
             disabled={
+              submitting ||
               !formData.lastName.trim() ||
               !formData.firstName.trim() ||
               !formData.age ||
@@ -689,6 +706,9 @@ const CaseForm: React.FC<CaseFormProps> = ({
                 formData.status === 'finished' ||
                 forceAssign) &&
                 !formData.counselorId)
+            }
+            startIcon={
+              submitting ? <CircularProgress size={16} color="inherit" /> : undefined
             }
             sx={{ width: { xs: '100%', sm: 'auto' }, order: { xs: 1, sm: 2 } }}
           >

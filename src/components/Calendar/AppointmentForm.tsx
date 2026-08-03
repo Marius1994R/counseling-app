@@ -11,7 +11,8 @@ import {
   Select,
   MenuItem,
   Box,
-  Typography
+  Typography,
+  CircularProgress,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
@@ -55,7 +56,7 @@ const isSameScheduledDateTime = (
 interface AppointmentFormProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (appointment: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onSubmit: (appointment: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>) => void | Promise<void>;
   appointmentData?: Appointment | null;
   counselors: Counselor[];
   cases: Case[];
@@ -88,6 +89,7 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
   const [startTimePickerOpen, setStartTimePickerOpen] = useState(false);
   const [endTimePickerOpen, setEndTimePickerOpen] = useState(false);
 
@@ -275,10 +277,10 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (submitting || !validateForm()) return;
 
     const selectedCounselor = counselors.find(c => c.id === formData.counselorId);
     const selectedCase = cases.find(c => c.id === formData.caseId);
@@ -297,7 +299,16 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
       createdBy: appointmentData?.createdBy || currentUser?.id || 'unknown'
     };
 
-    onSubmit(newAppointmentData);
+    try {
+      setSubmitting(true);
+      await onSubmit(newAppointmentData);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (submitting) return;
     onClose();
   };
 
@@ -427,7 +438,20 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <Dialog
+        open={open}
+        onClose={(_, reason) => {
+          if (submitting) return;
+          if (reason === 'backdropClick' || reason === 'escapeKeyDown') {
+            handleClose();
+            return;
+          }
+          handleClose();
+        }}
+        disableEscapeKeyDown={submitting}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>
           {appointmentData ? t.appointments.editAppointment : t.appointments.scheduleAppointment}
         </DialogTitle>
@@ -644,11 +668,14 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={onClose}>{t.common.cancel}</Button>
+            <Button onClick={handleClose} disabled={submitting}>
+              {t.common.cancel}
+            </Button>
             <Button 
               type="submit" 
               variant="contained"
               disabled={
+                submitting ||
                 !formData.counselorId ||
                 !formData.caseId ||
                 !formData.room ||
@@ -656,6 +683,9 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
                 !formData.startTime ||
                 !formData.endTime ||
                 !!errors.room
+              }
+              startIcon={
+                submitting ? <CircularProgress size={16} color="inherit" /> : undefined
               }
             >
               {appointmentData ? t.common.save : t.appointments.schedule}
