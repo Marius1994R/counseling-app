@@ -13,6 +13,7 @@ interface CasesGridProps {
   onOpenNotes: (caseItem: Case) => void;
   onOpenAddReport: (caseItem: Case) => void;
   onOpenReports: (caseItem: Case) => void;
+  onOpenTimeline: (caseItem: Case) => void;
   onEdit: (caseItem: Case) => void;
   onOpenDescription: (caseItem: Case) => void;
   onDelete?: (caseItem: Case) => void;
@@ -27,6 +28,7 @@ const CasesGrid: React.FC<CasesGridProps> = ({
   onOpenNotes,
   onOpenAddReport,
   onOpenReports,
+  onOpenTimeline,
   onEdit,
   onOpenDescription,
   onDelete,
@@ -64,6 +66,7 @@ const CasesGrid: React.FC<CasesGridProps> = ({
           onOpenNotes={() => onOpenNotes(caseItem)}
           onOpenAddReport={() => onOpenAddReport(caseItem)}
           onOpenReports={() => onOpenReports(caseItem)}
+          onOpenTimeline={() => onOpenTimeline(caseItem)}
           onEdit={() => onEdit(caseItem)}
           onOpenDescription={() => onOpenDescription(caseItem)}
           onDelete={onDelete ? () => onDelete(caseItem) : undefined}

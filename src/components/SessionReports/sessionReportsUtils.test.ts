@@ -8,7 +8,7 @@ import {
   SessionReportRecord,
   shouldUseAllTimeForDeepLink,
 } from './sessionReportsUtils';
-import { getCutoffDate } from '../Activity/activityUtils';
+import { getCutoffDate } from '../../utils/timeRange';
 
 const mockCase = (id: string, title: string): Case => ({
   id,

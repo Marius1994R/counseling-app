@@ -7,6 +7,7 @@ import {
   PencilSquareIcon,
   DocumentTextIcon,
   ClipboardDocumentListIcon,
+  ClockIcon,
   TrashIcon,
 } from '@heroicons/react/24/outline';
 import { Case } from '../../types';
@@ -31,6 +32,7 @@ interface CaseListCardProps {
   onOpenNotes: () => void;
   onOpenAddReport: () => void;
   onOpenReports: () => void;
+  onOpenTimeline: () => void;
   onEdit: () => void;
   onOpenDescription: () => void;
   onDelete?: () => void;
@@ -43,6 +45,7 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
   onOpenNotes,
   onOpenAddReport,
   onOpenReports,
+  onOpenTimeline,
   onEdit,
   onOpenDescription,
   onDelete,
@@ -127,6 +130,14 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
                   {t.adminTools.manageReports}
                 </button>
               )}
+              <button
+                type="button"
+                onClick={onOpenTimeline}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                <ClockIcon className="h-4 w-4" />
+                {t.cases.timeline}
+              </button>
               <button
                 type="button"
                 onClick={onEdit}

@@ -5,6 +5,7 @@ import {
   query,
   orderBy,
   where,
+  limit,
   doc,
   getDoc,
   setDoc,
@@ -13,15 +14,16 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { Case, Appointment, CaseStatus } from '../types';
+import { Case, Appointment, CaseStatus, Counselor } from '../types';
 import { ActivityRecord } from '../components/Dashboard/dashboardUtils';
 import { countFutureAppointments } from '../components/Calendar/calendarUtils';
 import { mapFirestoreCase, isCaseVisibleToCounselor } from '../components/Cases/casesUtils';
+import { mapFirestoreCounselor, dedupeCounselors } from '../components/Counselors/counselorsUtils';
 import {
   logCaseAssigned,
   logCaseProposalDeclined,
 } from '../utils/activityLogger';
-import { filterPendingAssignments } from '../utils/assignmentNotifications';
+import { filterPendingAssignments, filterActiveProposals, filterAssignmentOutcomes } from '../utils/assignmentNotifications';
 import { t } from '../utils/translations';
 
 export interface DashboardMetricsComputed {
@@ -39,6 +41,7 @@ export function useDashboardData() {
   const [cases, setCases] = useState<Case[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [activities, setActivities] = useState<ActivityRecord[]>([]);
+  const [counselors, setCounselors] = useState<Counselor[]>([]);
   const [sessionReportCounts, setSessionReportCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,8 +49,8 @@ export function useDashboardData() {
   const [newAssignmentModal, setNewAssignmentModal] = useState<ActivityRecord | null>(null);
   const [dismissedAssignments, setDismissedAssignments] = useState<Set<string>>(new Set());
   const [dismissedAssignmentsLoaded, setDismissedAssignmentsLoaded] = useState(false);
-  const [pendingAssignments, setPendingAssignments] = useState<ActivityRecord[]>([]);
-  const [pendingAssignmentCount, setPendingAssignmentCount] = useState(0);
+  const [rawPendingAssignments, setRawPendingAssignments] = useState<ActivityRecord[]>([]);
+  const [assignmentOutcomes, setAssignmentOutcomes] = useState<ActivityRecord[]>([]);
 
   const loadDismissedAssignments = async (userId: string) => {
     try {
@@ -173,7 +176,11 @@ export function useDashboardData() {
       });
 
       const activitiesRef = collection(db, 'activities');
-      const activitiesQuery = query(activitiesRef, orderBy('timestamp', 'desc'));
+      const activitiesQuery = query(
+        activitiesRef,
+        orderBy('timestamp', 'desc'),
+        limit(30)
+      );
       const activitiesSnapshot = await getDocs(activitiesQuery);
 
       const activitiesData: ActivityRecord[] = [];
@@ -192,11 +199,7 @@ export function useDashboardData() {
       });
 
       let userActivities = activitiesData;
-      if (
-        currentUser.role === 'counselor' ||
-        currentUser.role === 'admin' ||
-        currentUser.role === 'leader'
-      ) {
+      if (currentUser.role === 'counselor') {
         userActivities = activitiesData.filter((activity) => {
           const isUserCreated = activity.userId === currentUser.id;
           const isCaseAssignedToUser =
@@ -205,6 +208,18 @@ export function useDashboardData() {
               (counselorId && activity.metadata?.assignedToUserId === counselorId));
           return isUserCreated || isCaseAssignedToUser;
         });
+      }
+      // leader / admin: keep full team pulse (already capped)
+
+      let counselorsData: Counselor[] = [];
+      if (currentUser.role === 'leader' || currentUser.role === 'admin') {
+        const counselorsSnapshot = await getDocs(collection(db, 'counselors'));
+        counselorsSnapshot.forEach((docSnap) => {
+          counselorsData.push(mapFirestoreCounselor(docSnap.id, docSnap.data()));
+        });
+        counselorsData = dedupeCounselors(counselorsData).sort((a, b) =>
+          a.fullName.localeCompare(b.fullName, 'ro')
+        );
       }
 
       const reportsRef = collection(db, 'sessionReports');
@@ -221,6 +236,7 @@ export function useDashboardData() {
       setCases(casesData);
       setAppointments(appointmentsData);
       setActivities(userActivities);
+      setCounselors(counselorsData);
       setSessionReportCounts(reportCounts);
     } catch (err) {
       setError('Failed to load dashboard data');
@@ -257,7 +273,11 @@ export function useDashboardData() {
         try {
           const activitiesQuery = query(
             activitiesRef,
-            where('type', 'in', ['case_assigned', 'case_proposed']),
+            where('type', 'in', [
+              'case_assigned',
+              'case_proposed',
+              'case_proposal_declined',
+            ]),
             orderBy('timestamp', 'desc')
           );
           const activitiesSnapshot = await getDocs(activitiesQuery);
@@ -283,7 +303,11 @@ export function useDashboardData() {
 
             allActivitiesSnapshot.forEach((actDoc) => {
               const data = actDoc.data();
-              if (data.type === 'case_assigned' || data.type === 'case_proposed') {
+              if (
+                data.type === 'case_assigned' ||
+                data.type === 'case_proposed' ||
+                data.type === 'case_proposal_declined'
+              ) {
                 allCaseAssignments.push({
                   id: actDoc.id,
                   type: data.type,
@@ -308,11 +332,18 @@ export function useDashboardData() {
           dismissedAssignments
         );
 
-        setPendingAssignments(caseAssignedActivities);
-        setPendingAssignmentCount(caseAssignedActivities.length);
-        // Do not auto-open assignment modal — users act from the bell
+        setRawPendingAssignments(caseAssignedActivities);
+        setAssignmentOutcomes(
+          filterAssignmentOutcomes(
+            allCaseAssignments,
+            currentUser.id,
+            dismissedAssignments
+          )
+        );
+        // Keep an open force-assign dialog only if still pending; proposals sync separately.
         setNewAssignmentModal((current) => {
           if (!current) return null;
+          if (current.type === 'case_proposed') return current;
           const stillPending = caseAssignedActivities.some((a) => a.id === current.id);
           return stillPending ? current : null;
         });
@@ -324,14 +355,49 @@ export function useDashboardData() {
     loadCaseAssignments();
   }, [currentUser, counselorRecordId, dismissedAssignments, dismissedAssignmentsLoaded]);
 
+  const pendingAssignments = useMemo(() => {
+    const proposals = filterActiveProposals(
+      rawPendingAssignments,
+      cases,
+      counselorRecordId
+    );
+    const assigned = rawPendingAssignments.filter((a) => a.type === 'case_assigned');
+    return [...proposals, ...assigned];
+  }, [rawPendingAssignments, cases, counselorRecordId]);
+
+  const pendingAssignmentCount = pendingAssignments.length;
+
+  // Propunere caz: auto-open and keep until Accept / Refuse (survives reload & login).
+  useEffect(() => {
+    if (loading || !dismissedAssignmentsLoaded) return;
+
+    const proposals = pendingAssignments.filter((a) => a.type === 'case_proposed');
+    const firstProposal = proposals[0] ?? null;
+
+    setNewAssignmentModal((current) => {
+      if (firstProposal) {
+        if (
+          current?.type === 'case_proposed' &&
+          proposals.some((p) => p.id === current.id)
+        ) {
+          return current;
+        }
+        if (current?.type === 'case_assigned') return current;
+        return firstProposal;
+      }
+      if (current?.type === 'case_proposed') return null;
+      return current;
+    });
+  }, [loading, dismissedAssignmentsLoaded, pendingAssignments]);
+
   const dismissAssignment = useCallback(
     async (activityId: string) => {
       if (!currentUser?.id) return;
       setDismissedAssignments((prev) => new Set(Array.from(prev).concat(activityId)));
       await saveDismissedAssignment(currentUser.id, activityId);
       setNewAssignmentModal(null);
-      setPendingAssignments((prev) => prev.filter((a) => a.id !== activityId));
-      setPendingAssignmentCount((c) => Math.max(0, c - 1));
+      setRawPendingAssignments((prev) => prev.filter((a) => a.id !== activityId));
+      setAssignmentOutcomes((prev) => prev.filter((a) => a.id !== activityId));
     },
     [currentUser?.id]
   );
@@ -361,12 +427,18 @@ export function useDashboardData() {
       const data = caseSnap.data();
       const proposedId = data.proposedCounselorId;
       const proposedName = data.proposedCounselorName || currentUser.fullName;
+      const notifyUserId =
+        (data.proposedByUserId as string | undefined) ||
+        newAssignmentModal.userId ||
+        null;
 
       await updateDoc(caseRef, {
         assignedCounselorId: proposedId,
         assignedCounselorName: proposedName,
         proposedCounselorId: null,
         proposedCounselorName: null,
+        proposedByUserId: null,
+        proposedByUserName: null,
         assignmentStatus: 'accepted',
         status: 'active',
         updatedAt: new Date(),
@@ -379,7 +451,8 @@ export function useDashboardData() {
         currentUser.fullName || currentUser.email || 'Unknown',
         currentUser.id,
         currentUser.fullName || currentUser.email || 'Unknown',
-        'proposal_accept'
+        'proposal_accept',
+        notifyUserId
       );
 
       await dismissAssignment(activityId);
@@ -407,10 +480,16 @@ export function useDashboardData() {
         throw new Error(t.assignments.refuseError);
       }
       const data = caseSnap.data();
+      const notifyUserId =
+        (data.proposedByUserId as string | undefined) ||
+        newAssignmentModal.userId ||
+        null;
 
       await updateDoc(caseRef, {
         proposedCounselorId: null,
         proposedCounselorName: null,
+        proposedByUserId: null,
+        proposedByUserName: null,
         assignmentStatus: 'none',
         updatedAt: new Date(),
       });
@@ -419,7 +498,8 @@ export function useDashboardData() {
         caseId,
         data.title || String(newAssignmentModal.metadata.caseTitle || ''),
         currentUser.id,
-        currentUser.fullName || currentUser.email || 'Unknown'
+        currentUser.fullName || currentUser.email || 'Unknown',
+        notifyUserId
       );
 
       await dismissAssignment(activityId);
@@ -479,6 +559,7 @@ export function useDashboardData() {
     cases,
     appointments,
     activities,
+    counselors,
     sessionReportCounts,
     metrics,
     upcomingAppointments,
@@ -496,6 +577,7 @@ export function useDashboardData() {
     assignmentActionError,
     pendingAssignments,
     pendingAssignmentCount,
+    assignmentOutcomes,
     refetch: loadData,
   };
 }

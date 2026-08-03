@@ -34,6 +34,45 @@ export function isBookableRoom(room: string): boolean {
   return room !== APPOINTMENT_ROOM_OUTSIDE;
 }
 
+/** Same calendar day in local time (YYYY-MM-DD). */
+export function toDateKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/** True when [startA, endA) overlaps [startB, endB) for HH:mm strings. */
+export function timesOverlap(
+  startA: string,
+  endA: string,
+  startB: string,
+  endB: string
+): boolean {
+  return startA < endB && endA > startB;
+}
+
+export function hasRoomConflict(options: {
+  appointments: Appointment[];
+  room: string;
+  date: Date;
+  startTime: string;
+  endTime: string;
+  excludeId?: string;
+}): boolean {
+  const { appointments, room, date, startTime, endTime, excludeId } = options;
+  if (!room || !isBookableRoom(room)) return false;
+
+  const dateKey = toDateKey(date);
+
+  return appointments.some((appointment) => {
+    if (excludeId && appointment.id === excludeId) return false;
+    if (appointment.room !== room) return false;
+    if (toDateKey(new Date(appointment.date)) !== dateKey) return false;
+    return timesOverlap(startTime, endTime, appointment.startTime, appointment.endTime);
+  });
+}
+
 export interface RoomColorStyles {
   bg: string;
   text: string;

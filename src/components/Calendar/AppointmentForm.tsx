@@ -27,6 +27,7 @@ import {
   APPOINTMENT_ROOMS,
   isBookableRoom,
   findCounselorForUser,
+  hasRoomConflict,
 } from './calendarUtils';
 
 const combineDateAndTime = (date: Dayjs, time: Dayjs): Dayjs =>
@@ -132,32 +133,83 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
   };
 
   // Function to check for room conflicts
-  const checkRoomConflict = (room: string, date: Dayjs, startTime: string, endTime: string, excludeId?: string) => {
-    if (!room || !date || !isBookableRoom(room)) return false;
-
-    const appointmentDate = date.format('YYYY-MM-DD');
-    const newStart = dayjs(`${appointmentDate} ${startTime}`);
-    const newEnd = dayjs(`${appointmentDate} ${endTime}`);
-
-    return existingAppointments.some(appointment => {
-      // Skip the current appointment if editing
-      if (excludeId && appointment.id === excludeId) return false;
-      
-      // Check if it's the same room and same date
-      if (appointment.room !== room) return false;
-      
-      const existingDate = dayjs(appointment.date).format('YYYY-MM-DD');
-      if (existingDate !== appointmentDate) return false;
-
-      const existingStart = dayjs(`${appointmentDate} ${appointment.startTime}`);
-      const existingEnd = dayjs(`${appointmentDate} ${appointment.endTime}`);
-
-      // Check for overlap: new appointment overlaps if it starts before existing ends AND ends after existing starts
-      return newStart.isBefore(existingEnd) && newEnd.isAfter(existingStart);
+  const checkRoomConflict = (
+    room: string,
+    date: Dayjs,
+    startTime: string,
+    endTime: string,
+    excludeId?: string
+  ) =>
+    hasRoomConflict({
+      appointments: existingAppointments,
+      room,
+      date: date.toDate(),
+      startTime,
+      endTime,
+      excludeId,
     });
-  };
+
+  // Keep conflict error in sync when another user books the same slot while the form is open.
+  // Skip while submitting: the live listener would otherwise match the appointment we just created.
+  useEffect(() => {
+    if (!open || submitting) {
+      return;
+    }
+
+    if (!formData.room || !formData.date || !formData.startTime || !formData.endTime) {
+      setErrors((prev) => {
+        if (prev.room !== t.appointments.roomConflict) return prev;
+        return { ...prev, room: '' };
+      });
+      return;
+    }
+
+    if (!isBookableRoom(formData.room)) {
+      setErrors((prev) => {
+        if (prev.room !== t.appointments.roomConflict) return prev;
+        return { ...prev, room: '' };
+      });
+      return;
+    }
+
+    const hasConflict = checkRoomConflict(
+      formData.room,
+      formData.date,
+      formData.startTime.format('HH:mm'),
+      formData.endTime.format('HH:mm'),
+      appointmentData?.id
+    );
+
+    setErrors((prev) => {
+      if (hasConflict) {
+        if (prev.room === t.appointments.roomConflict) return prev;
+        return { ...prev, room: t.appointments.roomConflict };
+      }
+      if (prev.room !== t.appointments.roomConflict) return prev;
+      return { ...prev, room: '' };
+    });
+    // checkRoomConflict closes over existingAppointments; intentionally depend on that list
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    open,
+    submitting,
+    existingAppointments,
+    formData.room,
+    formData.date,
+    formData.startTime,
+    formData.endTime,
+    appointmentData?.id,
+  ]);
 
   useEffect(() => {
+    if (!open) {
+      setStartTimePickerOpen(false);
+      setEndTimePickerOpen(false);
+      setErrors({});
+      setSubmitting(false);
+      return;
+    }
+
     if (appointmentData) {
       // For counselor users editing appointments, check if they have access to the case
       let caseId = appointmentData.caseId || '';
@@ -217,12 +269,6 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
       });
     }
     setErrors({});
-    
-    // Close time pickers when dialog opens/closes
-    if (!open) {
-      setStartTimePickerOpen(false);
-      setEndTimePickerOpen(false);
-    }
   }, [appointmentData, open, currentUser, counselors, cases, preSelectedDate, preSelectedCaseId]);
 
   const validateForm = () => {
@@ -302,6 +348,11 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
     try {
       setSubmitting(true);
       await onSubmit(newAppointmentData);
+      setErrors({});
+    } catch (err) {
+      if (err instanceof Error && err.message === t.appointments.roomConflict) {
+        setErrors((prev) => ({ ...prev, room: t.appointments.roomConflict }));
+      }
     } finally {
       setSubmitting(false);
     }

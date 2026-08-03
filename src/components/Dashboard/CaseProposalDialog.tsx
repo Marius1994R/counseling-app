@@ -59,6 +59,7 @@ const CaseProposalDialog: React.FC<CaseProposalDialogProps> = ({
   return (
     <Dialog
       open={open}
+      onClose={() => undefined}
       disableEscapeKeyDown
       maxWidth="sm"
       fullWidth

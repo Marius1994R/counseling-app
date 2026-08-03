@@ -18,6 +18,7 @@ import {
 import { Description, ArrowForward } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Case } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
 import { useDashboardDataContext } from '../../contexts/DashboardDataContext';
 import { useDashboardReport } from '../../contexts/DashboardReportContext';
 import { getActiveCases } from './dashboardUtils';
@@ -30,10 +31,12 @@ import { t } from '../../utils/translations';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const { registerOpenCaseReportModal } = useDashboardReport();
   const {
     cases,
     activities,
+    counselors,
     sessionReportCounts,
     metrics,
     upcomingAppointments,
@@ -79,6 +82,16 @@ const Dashboard: React.FC = () => {
   };
 
   const activeCases = getActiveCases(cases);
+  const showTeamPulse =
+    currentUser?.role === 'leader' || currentUser?.role === 'admin';
+
+  const handleActivityClick = (activity: (typeof activities)[number]) => {
+    const caseId =
+      typeof activity.metadata?.caseId === 'string' ? activity.metadata.caseId : undefined;
+    if (caseId) {
+      navigate(`/cases?caseId=${caseId}`);
+    }
+  };
 
   if (error) {
     return (
@@ -112,7 +125,7 @@ const Dashboard: React.FC = () => {
           onViewCalendar={() => navigate('/calendar')}
           onRaportCaz={() => setCaseSelectionModalOpen(true)}
           onSchedule={() => navigate('/calendar?new=true')}
-          onAddCase={() => navigate('/admin?tab=2')}
+          onAddCase={() => navigate('/admin?tab=2&create=true')}
           onUpdateProfile={() => navigate('/profile?edit=true')}
         />
       </div>
@@ -120,7 +133,9 @@ const Dashboard: React.FC = () => {
       <Timeline
         activities={activities}
         loading={loading}
-        onViewAll={() => navigate('/activity')}
+        counselors={counselors}
+        showCounselorFilter={showTeamPulse}
+        onActivityClick={handleActivityClick}
       />
 
       <Dialog open={caseSelectionModalOpen} onClose={handleCloseCaseSelection} maxWidth="sm" fullWidth>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { CaseStatus } from '../../types';
-import { TimeRangeFilter } from '../Activity/activityUtils';
+import { TimeRangeFilter } from '../../utils/timeRange';
 import { CounselorOption } from '../../hooks/useSessionReportsData';
 import { t } from '../../utils/translations';
 import { CASE_STATUS_FILTERS } from '../Cases/casesUtils';

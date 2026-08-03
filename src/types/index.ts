@@ -85,6 +85,9 @@ export interface Case {
   assignmentStatus?: AssignmentStatus;
   proposedCounselorId?: string | null;
   proposedCounselorName?: string | null;
+  /** User who proposed the counselor (leader/admin) — used for accept/refuse notifications */
+  proposedByUserId?: string | null;
+  proposedByUserName?: string | null;
   meetingFeedback?: string; // Notes from counseling sessions
   createdAt: Date;
   updatedAt: Date;

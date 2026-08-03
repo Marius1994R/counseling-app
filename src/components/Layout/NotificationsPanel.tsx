@@ -31,6 +31,8 @@ const accentForType = (
       return eventAccent;
     case 'assignment':
       return '#C99700';
+    case 'assignment_outcome':
+      return '#059669';
     case 'appointment':
       return '#2563EB';
     case 'stale_report':
@@ -46,6 +48,8 @@ const typeLabel = (type: AttentionNotification['type']): string => {
       return t.notifications.typeEvent;
     case 'assignment':
       return t.notifications.typeAssignment;
+    case 'assignment_outcome':
+      return t.notifications.typeProposalOutcome;
     case 'appointment':
       return t.notifications.typeAppointment;
     case 'stale_report':
@@ -116,6 +120,17 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
       const activity = item.payload.activity;
       onClose();
       onOpenAssignment(activity);
+      // Proposals must stay until Accept/Refuse — never dismiss on bell click.
+      if (activity.type !== 'case_proposed') {
+        void onDismissAssignment(activity.id);
+      }
+      return;
+    }
+
+    if (item.type === 'assignment_outcome' && item.payload.activity) {
+      const activity = item.payload.activity;
+      onClose();
+      navigate('/admin?tab=2');
       void onDismissAssignment(activity.id);
       return;
     }

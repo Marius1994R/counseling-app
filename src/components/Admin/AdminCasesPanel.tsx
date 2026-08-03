@@ -24,6 +24,7 @@ interface AdminCasesPanelProps {
   onEdit: (caseItem: Case) => void;
   onDelete: (caseId: string) => void | Promise<void>;
   onOpenSessionReport: (caseItem: Case) => void;
+  onOpenTimeline: (caseItem: Case) => void;
   isLeader: boolean;
 }
 
@@ -52,6 +53,7 @@ const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
   onEdit,
   onDelete,
   onOpenSessionReport,
+  onOpenTimeline,
   isLeader,
 }) => {
   const [deleteTarget, setDeleteTarget] = useState<Case | null>(null);
@@ -176,6 +178,7 @@ const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
           onOpenNotes={onEdit}
           onOpenAddReport={onOpenSessionReport}
           onOpenReports={onOpenSessionReport}
+          onOpenTimeline={onOpenTimeline}
           onEdit={onEdit}
           onOpenDescription={onEdit}
           onDelete={(caseItem) => setDeleteTarget(caseItem)}

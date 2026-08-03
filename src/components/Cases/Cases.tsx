@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -19,9 +19,10 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { useCasesData } from '../../hooks/useCasesData';
-import { CaseStatus } from '../../types';
+import { Case, CaseStatus } from '../../types';
 import MeetingNotes from './MeetingNotes';
 import SessionReport from './SessionReport';
+import CaseTimelineDialog from './CaseTimelineDialog';
 import CasesPageHeader from './CasesPageHeader';
 import CasesToolbar from './CasesToolbar';
 import CasesGrid from './CasesGrid';
@@ -30,6 +31,7 @@ import { t } from '../../utils/translations';
 const Cases: React.FC = () => {
   const navigate = useNavigate();
   const data = useCasesData();
+  const [timelineCase, setTimelineCase] = useState<Case | null>(null);
 
   const handleOpenReports = (caseItem: { id: string }) => {
     navigate(`/session-reports?caseId=${caseItem.id}`);
@@ -38,6 +40,17 @@ const Cases: React.FC = () => {
   const handleReportSaved = () => {
     data.handleCloseSessionReport();
     data.handleNoteAdded();
+  };
+
+  const handleOpenTimeline = (caseItem: Case) => {
+    setTimelineCase(caseItem);
+  };
+
+  const handleTimelineOpenNotes = () => {
+    if (!timelineCase) return;
+    const caseForNotes = timelineCase;
+    setTimelineCase(null);
+    data.handleOpenMeetingNotes(caseForNotes);
   };
 
   const hasActiveFilters =
@@ -75,6 +88,7 @@ const Cases: React.FC = () => {
         onOpenNotes={data.handleOpenMeetingNotes}
         onOpenAddReport={data.handleOpenSessionReport}
         onOpenReports={handleOpenReports}
+        onOpenTimeline={handleOpenTimeline}
         onEdit={data.handleEditCase}
         onOpenDescription={data.handleOpenDescription}
       />
@@ -179,6 +193,13 @@ const Cases: React.FC = () => {
         caseId={data.selectedCaseForNotes?.id || ''}
         caseTitle={data.selectedCaseForNotes?.title || ''}
         onNoteAdded={data.handleNoteAdded}
+      />
+
+      <CaseTimelineDialog
+        open={timelineCase !== null}
+        onClose={() => setTimelineCase(null)}
+        caseItem={timelineCase}
+        onOpenNotes={handleTimelineOpenNotes}
       />
 
       <SessionReport

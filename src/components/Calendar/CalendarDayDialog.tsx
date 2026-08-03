@@ -55,6 +55,7 @@ interface CalendarDayDialogProps {
   canEdit: (appointment: Appointment) => boolean;
   canDelete: (appointment: Appointment) => boolean;
   canManageEvents: boolean;
+  canViewCaseDetails?: (appointment: Appointment) => boolean;
 }
 
 type DeleteTarget =
@@ -75,6 +76,7 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
   canEdit,
   canDelete,
   canManageEvents,
+  canViewCaseDetails = () => false,
 }) => {
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -153,7 +155,9 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
                         mb={1}
                       >
                         <Typography variant="h6" component="h3">
-                          {appointment.caseTitle || appointment.title}
+                          {canViewCaseDetails(appointment)
+                            ? appointment.caseTitle || appointment.title
+                            : appointment.counselorName || appointment.title}
                         </Typography>
                         <Box display="flex" alignItems="center" gap={1}>
                           <Typography variant="body2" color="text.secondary">
@@ -212,7 +216,7 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
                         />
                       )}
 
-                      {appointment.description && (
+                      {canViewCaseDetails(appointment) && appointment.description && (
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                           {appointment.description}
                         </Typography>

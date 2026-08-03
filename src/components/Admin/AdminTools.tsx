@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Alert, Snackbar } from '@mui/material';
 import { useAdminData } from '../../hooks/useAdminData';
+import { Case } from '../../types';
 import CounselorForm from '../Counselors/CounselorForm';
 import CaseForm from '../Cases/CaseForm';
 import SessionReport from '../Cases/SessionReport';
+import CaseTimelineDialog from '../Cases/CaseTimelineDialog';
 import AdminPageHeader from './AdminPageHeader';
 import AdminTabs from './AdminTabs';
 import AdminUsersPanel from './AdminUsersPanel';
@@ -21,6 +23,7 @@ const AdminTools: React.FC = () => {
   const data = useAdminData();
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [timelineCase, setTimelineCase] = useState<Case | null>(null);
 
   const handleConfirmAction = async () => {
     if (!pendingConfirm) return;
@@ -123,6 +126,7 @@ const AdminTools: React.FC = () => {
           }}
           onDelete={data.handleDeleteCase}
           onOpenSessionReport={data.handleOpenSessionReport}
+          onOpenTimeline={setTimelineCase}
           isLeader={data.currentUser?.role === 'leader'}
         />
       )}
@@ -205,6 +209,12 @@ const AdminTools: React.FC = () => {
         onReportAdded={() => undefined}
         hideAddButton
         caseStatus={data.selectedCaseForSessionReport?.status}
+      />
+
+      <CaseTimelineDialog
+        open={timelineCase !== null}
+        onClose={() => setTimelineCase(null)}
+        caseItem={timelineCase}
       />
 
       <Snackbar

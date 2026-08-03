@@ -15,7 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useDashboardDataContext } from '../contexts/DashboardDataContext';
 import { db } from '../firebase';
 import { Case, Counselor, User, UserRole } from '../types';
-import { logCaseAssigned, logCaseProposed } from '../utils/activityLogger';
+import { logCaseAssigned, logCaseProposed, logCaseCreated } from '../utils/activityLogger';
 import { t } from '../utils/translations';
 import { mapFirestoreCase } from '../components/Cases/casesUtils';
 import {
@@ -116,6 +116,18 @@ export function useAdminData() {
   useEffect(() => {
     setActiveTab(parseAdminTabFromUrl(searchParams.get('tab')));
   }, [searchParams]);
+
+  useEffect(() => {
+    if (searchParams.get('create') !== 'true') return;
+    if (parseAdminTabFromUrl(searchParams.get('tab')) !== 2) return;
+
+    setEditingCase(null);
+    setCaseFormOpen(true);
+
+    const next = new URLSearchParams(searchParams);
+    next.delete('create');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -368,6 +380,14 @@ export function useAdminData() {
           proposedCounselorId: caseData.proposedCounselorId ?? null,
           proposedCounselorName: caseData.proposedCounselorName ?? null,
           assignmentStatus: caseData.assignmentStatus ?? 'none',
+          proposedByUserId:
+            caseData.assignmentStatus === 'pending' && currentUser
+              ? currentUser.id
+              : null,
+          proposedByUserName:
+            caseData.assignmentStatus === 'pending' && currentUser
+              ? currentUser.fullName || currentUser.email || null
+              : null,
           referralSource: caseData.referralSource ?? null,
           priority: caseData.priority ?? 'normal',
           firstName: caseData.firstName ?? null,
@@ -455,6 +475,15 @@ export function useAdminData() {
             createdBy: currentUser?.id || '',
             createdAt: new Date(),
           });
+
+          if (currentUser) {
+            await logCaseCreated(
+              docRef.id,
+              caseData.title,
+              currentUser.id,
+              currentUser.fullName || currentUser.email || 'Utilizator'
+            );
+          }
 
           if (caseData.assignmentStatus === 'pending' && caseData.proposedCounselorId) {
             await notifyCounselor(

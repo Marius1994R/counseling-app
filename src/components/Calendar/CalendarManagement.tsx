@@ -148,6 +148,7 @@ const CalendarManagement: React.FC = () => {
         appointments={data.filteredAppointments}
         events={events}
         onDateClick={data.handleDateClick}
+        canViewCaseDetails={data.canViewAppointmentCaseDetails}
       />
 
       <CalendarDayDialog
@@ -164,6 +165,7 @@ const CalendarManagement: React.FC = () => {
         canEdit={data.canEditAppointment}
         canDelete={data.canDeleteAppointment}
         canManageEvents={canManageEvents}
+        canViewCaseDetails={data.canViewAppointmentCaseDetails}
       />
 
       <AppointmentForm

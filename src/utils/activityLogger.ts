@@ -32,6 +32,8 @@ export interface ActivityLog {
     assignedToUserName?: string;
     assignmentSource?: 'direct' | 'proposal_accept';
     sessionNumber?: number;
+    /** Leader/admin who should see accept/refuse in the bell */
+    notifyUserId?: string;
   };
 }
 
@@ -147,7 +149,8 @@ export const logCaseAssigned = async (
   assignedToUserName: string,
   assignedByUserId: string,
   assignedByUserName: string,
-  assignmentSource: 'direct' | 'proposal_accept' = 'direct'
+  assignmentSource: 'direct' | 'proposal_accept' = 'direct',
+  notifyUserId?: string | null
 ): Promise<void> => {
   await logActivity({
     type: 'case_assigned',
@@ -164,6 +167,7 @@ export const logCaseAssigned = async (
       assignedToUserId,
       assignedToUserName,
       assignmentSource,
+      ...(notifyUserId ? { notifyUserId } : {}),
     },
   });
 };
@@ -198,7 +202,8 @@ export const logCaseProposalDeclined = async (
   caseId: string,
   caseTitle: string,
   counselorUserId: string,
-  counselorUserName: string
+  counselorUserName: string,
+  notifyUserId?: string | null
 ): Promise<void> => {
   await logActivity({
     type: 'case_proposal_declined',
@@ -214,6 +219,7 @@ export const logCaseProposalDeclined = async (
       caseTitle,
       assignedToUserId: counselorUserId,
       assignedToUserName: counselorUserName,
+      ...(notifyUserId ? { notifyUserId } : {}),
     },
   });
 };

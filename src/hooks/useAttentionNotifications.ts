@@ -17,6 +17,7 @@ import { t } from '../utils/translations';
 export type AttentionNotificationType =
   | 'event'
   | 'assignment'
+  | 'assignment_outcome'
   | 'appointment'
   | 'stale_report';
 
@@ -89,6 +90,7 @@ export function useAttentionNotifications() {
     cases,
     sessionReportCounts,
     pendingAssignments,
+    assignmentOutcomes,
   } = useDashboardDataContext();
 
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
@@ -146,6 +148,31 @@ export function useAttentionNotifications() {
       });
     }
 
+    for (const activity of assignmentOutcomes) {
+      const caseTitle = String(activity.metadata?.caseTitle || activity.title || '');
+      const counselorName = String(
+        activity.metadata?.assignedToUserName || activity.userName || ''
+      );
+      const accepted =
+        activity.type === 'case_assigned' &&
+        activity.metadata?.assignmentSource === 'proposal_accept';
+      list.push({
+        id: `assignment_outcome:${activity.id}`,
+        type: 'assignment_outcome',
+        title: accepted
+          ? t.notifications.proposalAcceptedTitle
+          : t.notifications.proposalRejectedTitle,
+        detail: (accepted
+          ? t.notifications.proposalAcceptedDetail
+          : t.notifications.proposalRejectedDetail
+        )
+          .replace('{name}', counselorName || 'Consilierul')
+          .replace('{title}', caseTitle || 'caz'),
+        payload: { activity },
+        createdAt: activity.timestamp,
+      });
+    }
+
     const in24h = now + DAY_MS;
     for (const apt of upcomingAppointments) {
       const when = appointmentDateTime(apt);
@@ -190,6 +217,7 @@ export function useAttentionNotifications() {
   }, [
     unreadEvents,
     pendingAssignments,
+    assignmentOutcomes,
     upcomingAppointments,
     cases,
     sessionReportCounts,

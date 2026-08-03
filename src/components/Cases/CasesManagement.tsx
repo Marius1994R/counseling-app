@@ -25,7 +25,7 @@ import {
 import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy, where } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase';
-import { logCaseAssigned, logCaseProposed } from '../../utils/activityLogger';
+import { logCaseAssigned, logCaseProposed, logCaseCreated } from '../../utils/activityLogger';
 import CaseForm from './CaseForm';
 import CaseCard from './CaseCard';
 import { Case, CaseStatus, IssueType, Counselor } from '../../types';
@@ -183,6 +183,14 @@ const CasesManagement: React.FC = () => {
         proposedCounselorId: caseData.proposedCounselorId ?? null,
         proposedCounselorName: caseData.proposedCounselorName ?? null,
         assignmentStatus: caseData.assignmentStatus ?? 'none',
+        proposedByUserId:
+          caseData.assignmentStatus === 'pending' && currentUser
+            ? currentUser.id
+            : null,
+        proposedByUserName:
+          caseData.assignmentStatus === 'pending' && currentUser
+            ? currentUser.fullName || currentUser.email || null
+            : null,
         referralSource: caseData.referralSource ?? null,
         priority: caseData.priority ?? 'normal',
         firstName: caseData.firstName ?? null,
@@ -252,6 +260,15 @@ const CasesManagement: React.FC = () => {
           createdAt: new Date(),
           createdBy: currentUser?.id || 'unknown',
         });
+
+        if (currentUser) {
+          await logCaseCreated(
+            docRef.id,
+            caseData.title,
+            currentUser.id,
+            currentUser.fullName || currentUser.email || 'Utilizator'
+          );
+        }
 
         if (caseData.assignmentStatus === 'pending' && caseData.proposedCounselorId) {
           await notify(docRef.id, caseData.title, caseData.proposedCounselorId, 'proposed');

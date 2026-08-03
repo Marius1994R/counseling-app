@@ -11,7 +11,6 @@ import Dashboard from './components/Dashboard/Dashboard';
 import Cases from './components/Cases/Cases';
 import CounselorsManagement from './components/Counselors/CounselorsManagement';
 import CalendarManagement from './components/Calendar/CalendarManagement';
-import ActivityTimeline from './components/Activity/ActivityTimeline';
 import SessionReportsPage from './components/SessionReports/SessionReportsPage';
 import AdminTools from './components/Admin/AdminTools';
 import MyProfile from './components/Profile/MyProfile';
@@ -127,14 +126,6 @@ const AppContent: React.FC = () => {
         element={
           <ProtectedRoute>
             <CalendarManagement />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/activity"
-        element={
-          <ProtectedRoute>
-            <ActivityTimeline />
           </ProtectedRoute>
         }
       />

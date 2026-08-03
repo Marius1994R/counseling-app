@@ -4,7 +4,6 @@ import {
   HomeIcon,
   FolderOpenIcon,
   CalendarIcon,
-  ChartBarIcon,
   ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
@@ -34,7 +33,6 @@ const navItems: NavItem[] = [
   { label: 'Cazuri', path: CASES_PATH, icon: FolderOpenIcon },
   { label: t.navigation.calendar, path: CALENDAR_PATH, icon: CalendarIcon },
   { label: t.navigation.sessionReports, path: '/session-reports', icon: ClipboardDocumentListIcon },
-  { label: t.navigation.activity, path: '/activity', icon: ChartBarIcon },
 ];
 
 function isActive(path: string, pathname: string, search: string): boolean {

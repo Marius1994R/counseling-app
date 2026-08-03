@@ -148,6 +148,8 @@ export function mapFirestoreCase(
     assignmentStatus: data.assignmentStatus || 'none',
     proposedCounselorId: data.proposedCounselorId ?? null,
     proposedCounselorName: data.proposedCounselorName ?? null,
+    proposedByUserId: data.proposedByUserId ?? null,
+    proposedByUserName: data.proposedByUserName ?? null,
     meetingFeedback: data.meetingFeedback || '',
     createdAt: data.createdAt?.toDate?.() ?? new Date(),
     updatedAt: data.updatedAt?.toDate?.() ?? new Date(),

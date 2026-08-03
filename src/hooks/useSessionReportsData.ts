@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import { Case, CaseStatus } from '../types';
 import { loadVisibleCasesForUser } from '../components/Cases/casesUtils';
-import { TimeRangeFilter } from '../components/Activity/activityUtils';
+import { TimeRangeFilter } from '../utils/timeRange';
 import {
   buildCaseListSummaries,
   buildCaseSummaries,

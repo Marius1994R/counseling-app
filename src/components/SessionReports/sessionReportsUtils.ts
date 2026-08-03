@@ -1,5 +1,5 @@
 import { Case, CaseStatus } from '../../types';
-import { getCutoffDate, TimeRangeFilter } from '../Activity/activityUtils';
+import { getCutoffDate, TimeRangeFilter } from '../../utils/timeRange';
 
 export interface SessionReportRecord {
   id: string;

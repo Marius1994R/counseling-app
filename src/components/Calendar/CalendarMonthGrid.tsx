@@ -25,11 +25,13 @@ interface CalendarMonthGridProps {
   appointments: Appointment[];
   events: ChurchEvent[];
   onDateClick: (date: Date) => void;
+  canViewCaseDetails?: (appointment: Appointment) => boolean;
 }
 
 function buildDayItems(
   dayAppointments: Appointment[],
-  dayEvents: ChurchEvent[]
+  dayEvents: ChurchEvent[],
+  canViewCaseDetails: (appointment: Appointment) => boolean
 ): CalendarDayItem[] {
   const items: CalendarDayItem[] = [
     ...dayAppointments.map((appointment) => {
@@ -38,7 +40,9 @@ function buildDayItems(
         kind: 'appointment' as const,
         id: appointment.id,
         startTime: appointment.startTime,
-        label: appointment.caseTitle || appointment.counselorName,
+        label: canViewCaseDetails(appointment)
+          ? appointment.caseTitle || appointment.counselorName
+          : appointment.counselorName,
         styles: { bg: colors.bg, text: colors.text, border: colors.border },
       };
     }),
@@ -61,6 +65,7 @@ const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
   appointments,
   events,
   onDateClick,
+  canViewCaseDetails = () => false,
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const days = getDaysInMonth(currentDate);
@@ -121,7 +126,7 @@ const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
 
           const dayAppointments = sortAppointmentsByTime(getAppointmentsForDate(appointments, date));
           const dayEvents = sortEventsByTime(getEventsForDate(events, date));
-          const dayItems = buildDayItems(dayAppointments, dayEvents);
+          const dayItems = buildDayItems(dayAppointments, dayEvents, canViewCaseDetails);
           const currentDay = isToday(date);
           const past = isPastDate(date);
           const totalCount = dayAppointments.length + dayEvents.length;
