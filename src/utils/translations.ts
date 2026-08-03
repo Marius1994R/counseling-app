@@ -539,12 +539,12 @@ export const t = {
 
   // Issue Types
   issueTypes: {
-    personal: 'Personal',
+    personal: 'Personală',
     family: 'Familie',
-    relational: 'Relațional',
+    relational: 'Relațională',
     marriage: 'Căsătorie',
     emotional: 'Emoțional',
-    spiritual: 'Spiritual',
+    spiritual: 'Spirituală',
     financial: 'Financiar',
     other: 'Altul'
   },

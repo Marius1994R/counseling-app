@@ -322,7 +322,7 @@ const CaseForm: React.FC<CaseFormProps> = ({
                 {issueTypeOptions.map((issueType) => (
                   <Chip
                     key={issueType}
-                    label={issueType.charAt(0).toUpperCase() + issueType.slice(1)}
+                    label={t.issueTypes[issueType]}
                     onClick={() => handleIssueTypeChange(issueType)}
                     color={formData.issueTypes.includes(issueType) ? 'primary' : 'default'}
                     variant={formData.issueTypes.includes(issueType) ? 'filled' : 'outlined'}

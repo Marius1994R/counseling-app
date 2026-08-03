@@ -1,5 +1,5 @@
 import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
-import { Case, CaseStatus } from '../../types';
+import { Case, CaseStatus, IssueType } from '../../types';
 import { db } from '../../firebase';
 import { getCaseDisplayId, getInitials, getStatusLabel } from '../Dashboard/dashboardUtils';
 import { t } from '../../utils/translations';
@@ -77,6 +77,25 @@ export const AVATAR_COLORS = [
 
 export function getAvatarColorClass(name: string): string {
   return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+}
+
+const ISSUE_TYPE_BADGE_CLASS: Record<IssueType, string> = {
+  personal: 'bg-slate-100 text-slate-700',
+  relational: 'bg-sky-50 text-sky-700',
+  spiritual: 'bg-violet-50 text-violet-700',
+};
+
+export function translateIssueType(issueType: IssueType): string {
+  const labels: Record<IssueType, string> = {
+    personal: t.issueTypes.personal,
+    relational: t.issueTypes.relational,
+    spiritual: t.issueTypes.spiritual,
+  };
+  return labels[issueType] || issueType;
+}
+
+export function getIssueTypeBadgeClass(issueType: IssueType): string {
+  return ISSUE_TYPE_BADGE_CLASS[issueType] ?? 'bg-slate-100 text-slate-600';
 }
 
 export async function loadVisibleCasesForUser(userId: string): Promise<Case[]> {

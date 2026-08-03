@@ -5,7 +5,6 @@ import {
   ClockIcon,
   FolderOpenIcon,
   CalendarIcon,
-  UserGroupIcon,
   ChartBarIcon,
   ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline';
@@ -37,7 +36,6 @@ const navItems: NavItem[] = [
   { label: 'Toate cazurile', path: '/cases?status=all', icon: FolderOpenIcon },
   { label: t.navigation.calendar, path: CALENDAR_PATH, icon: CalendarIcon },
   { label: t.navigation.sessionReports, path: '/session-reports', icon: ClipboardDocumentListIcon },
-  { label: 'Echipa', path: '/counselors', icon: UserGroupIcon, roles: ['admin', 'leader'] },
   { label: t.navigation.activity, path: '/activity', icon: ChartBarIcon },
 ];
 

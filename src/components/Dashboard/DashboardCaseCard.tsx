@@ -2,6 +2,10 @@ import React from 'react';
 import { DocumentTextIcon } from '@heroicons/react/24/outline';
 import { Case } from '../../types';
 import { getCaseDisplayId, getInitials, getStatusLabel } from './dashboardUtils';
+import {
+  translateIssueType,
+  getIssueTypeBadgeClass,
+} from '../Cases/casesUtils';
 import { t } from '../../utils/translations';
 
 interface DashboardCaseCardProps {
@@ -66,6 +70,14 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
             >
               {getStatusLabel(caseItem.status)}
             </span>
+            {caseItem.issueTypes.map((issueType) => (
+              <span
+                key={issueType}
+                className={`rounded-full px-2 py-0.5 text-xs font-medium ${getIssueTypeBadgeClass(issueType)}`}
+              >
+                {translateIssueType(issueType)}
+              </span>
+            ))}
             <span className="text-xs text-slate-400">Ultima activitate: {lastActivityLabel}</span>
           </div>
 

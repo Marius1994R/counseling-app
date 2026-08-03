@@ -110,7 +110,7 @@ const Cases: React.FC = () => {
                 {data.commonIssueTypes.map((issueType) => (
                   <Chip
                     key={issueType}
-                    label={issueType}
+                    label={t.issueTypes[issueType]}
                     clickable
                     color={data.editData.issueTypes.includes(issueType) ? 'primary' : 'default'}
                     onClick={() => data.handleIssueTypeToggle(issueType)}

@@ -19,6 +19,8 @@ import {
   getAvatarColorClass,
   translateSex,
   translateCivilStatus,
+  translateIssueType,
+  getIssueTypeBadgeClass,
 } from './casesUtils';
 
 interface CaseListCardProps {
@@ -74,6 +76,19 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
                 {getStatusLabel(caseItem.status)}
               </span>
             </div>
+
+            {caseItem.issueTypes.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {caseItem.issueTypes.map((issueType) => (
+                  <span
+                    key={issueType}
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${getIssueTypeBadgeClass(issueType)}`}
+                  >
+                    {translateIssueType(issueType)}
+                  </span>
+                ))}
+              </div>
+            )}
 
             <div className="mt-4 flex flex-wrap gap-2">
               {caseItem.status === 'active' && (
