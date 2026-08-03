@@ -21,6 +21,7 @@ import {
   logCaseAssigned,
   logCaseProposalDeclined,
 } from '../utils/activityLogger';
+import { filterPendingAssignments } from '../utils/assignmentNotifications';
 import { t } from '../utils/translations';
 
 export interface DashboardMetricsComputed {
@@ -45,6 +46,7 @@ export function useDashboardData() {
   const [newAssignmentModal, setNewAssignmentModal] = useState<ActivityRecord | null>(null);
   const [dismissedAssignments, setDismissedAssignments] = useState<Set<string>>(new Set());
   const [dismissedAssignmentsLoaded, setDismissedAssignmentsLoaded] = useState(false);
+  const [pendingAssignments, setPendingAssignments] = useState<ActivityRecord[]>([]);
   const [pendingAssignmentCount, setPendingAssignmentCount] = useState(0);
 
   const loadDismissedAssignments = async (userId: string) => {
@@ -299,24 +301,21 @@ export function useDashboardData() {
           }
         }
 
-        const caseAssignedActivities = allCaseAssignments.filter((activity) => {
-          const matchesUser = activity.metadata?.assignedToUserId === currentUser.id;
-          const matchesCounselor =
-            counselorRecordId && activity.metadata?.assignedToUserId === counselorRecordId;
-          const notDismissed = !dismissedAssignments.has(activity.id);
-          const isProposalAcceptance =
-            activity.type === 'case_assigned' &&
-            activity.metadata?.assignmentSource === 'proposal_accept';
-          return (matchesUser || matchesCounselor) && notDismissed && !isProposalAcceptance;
-        });
+        const caseAssignedActivities = filterPendingAssignments(
+          allCaseAssignments,
+          currentUser.id,
+          counselorRecordId,
+          dismissedAssignments
+        );
 
+        setPendingAssignments(caseAssignedActivities);
         setPendingAssignmentCount(caseAssignedActivities.length);
-
-        if (caseAssignedActivities.length > 0) {
-          setNewAssignmentModal(caseAssignedActivities[0]);
-        } else {
-          setNewAssignmentModal(null);
-        }
+        // Do not auto-open assignment modal — users act from the bell
+        setNewAssignmentModal((current) => {
+          if (!current) return null;
+          const stillPending = caseAssignedActivities.some((a) => a.id === current.id);
+          return stillPending ? current : null;
+        });
       } catch (err) {
         console.error('Error loading case assignments:', err);
       }
@@ -331,6 +330,7 @@ export function useDashboardData() {
       setDismissedAssignments((prev) => new Set(Array.from(prev).concat(activityId)));
       await saveDismissedAssignment(currentUser.id, activityId);
       setNewAssignmentModal(null);
+      setPendingAssignments((prev) => prev.filter((a) => a.id !== activityId));
       setPendingAssignmentCount((c) => Math.max(0, c - 1));
     },
     [currentUser?.id]
@@ -338,6 +338,11 @@ export function useDashboardData() {
 
   const [assignmentActionLoading, setAssignmentActionLoading] = useState<'accept' | 'refuse' | null>(null);
   const [assignmentActionError, setAssignmentActionError] = useState<string | null>(null);
+
+  const openAssignment = useCallback((activity: ActivityRecord) => {
+    setAssignmentActionError(null);
+    setNewAssignmentModal(activity);
+  }, []);
 
   const acceptProposal = useCallback(async () => {
     if (!currentUser || !newAssignmentModal?.metadata?.caseId) return;
@@ -483,11 +488,13 @@ export function useDashboardData() {
     counselorRecordId,
     newAssignmentModal,
     setNewAssignmentModal,
+    openAssignment,
     dismissAssignment,
     acceptProposal,
     refuseProposal,
     assignmentActionLoading,
     assignmentActionError,
+    pendingAssignments,
     pendingAssignmentCount,
     refetch: loadData,
   };

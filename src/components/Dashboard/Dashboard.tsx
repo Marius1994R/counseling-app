@@ -15,7 +15,7 @@ import {
   Chip,
   Alert,
 } from '@mui/material';
-import { Assignment, Description, ArrowForward } from '@mui/icons-material';
+import { Description, ArrowForward } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Case } from '../../types';
 import { useDashboardDataContext } from '../../contexts/DashboardDataContext';
@@ -25,7 +25,6 @@ import KpiRow from './KpiRow';
 import RecentActiveCases from './RecentActiveCases';
 import QuickPanel from './QuickPanel';
 import Timeline from './Timeline';
-import CaseProposalDialog from './CaseProposalDialog';
 import SessionReport from '../Cases/SessionReport';
 import { t } from '../../utils/translations';
 
@@ -40,12 +39,6 @@ const Dashboard: React.FC = () => {
     upcomingAppointments,
     loading,
     error,
-    newAssignmentModal,
-    dismissAssignment,
-    acceptProposal,
-    refuseProposal,
-    assignmentActionLoading,
-    assignmentActionError,
     refetch,
   } = useDashboardDataContext();
 
@@ -57,19 +50,6 @@ const Dashboard: React.FC = () => {
     registerOpenCaseReportModal(() => setCaseSelectionModalOpen(true));
     return () => registerOpenCaseReportModal(null);
   }, [registerOpenCaseReportModal]);
-
-  const handleSeeCase = async () => {
-    if (newAssignmentModal?.metadata?.caseId) {
-      const activityId = newAssignmentModal.id;
-      const caseId = newAssignmentModal.metadata.caseId as string;
-      await dismissAssignment(activityId);
-      navigate('/cases?status=active');
-      setTimeout(() => {
-        const caseElement = document.getElementById(`case-${caseId}`);
-        caseElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 100);
-    }
-  };
 
   const handleCloseCaseSelection = () => setCaseSelectionModalOpen(false);
 
@@ -99,9 +79,6 @@ const Dashboard: React.FC = () => {
   };
 
   const activeCases = getActiveCases(cases);
-  const proposedCase = cases.find(
-    (caseItem) => caseItem.id === String(newAssignmentModal?.metadata?.caseId ?? '')
-  );
 
   if (error) {
     return (
@@ -145,50 +122,6 @@ const Dashboard: React.FC = () => {
         loading={loading}
         onViewAll={() => navigate('/activity')}
       />
-
-      <CaseProposalDialog
-        open={newAssignmentModal?.type === 'case_proposed'}
-        caseItem={proposedCase}
-        fallbackTitle={
-          newAssignmentModal?.metadata?.caseTitle
-            ? String(newAssignmentModal.metadata.caseTitle)
-            : undefined
-        }
-        loading={assignmentActionLoading}
-        error={assignmentActionError}
-        onAccept={acceptProposal}
-        onRefuse={refuseProposal}
-      />
-
-      <Dialog
-        open={!!newAssignmentModal && newAssignmentModal.type !== 'case_proposed'}
-        disableEscapeKeyDown
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center' }}>
-          <Assignment sx={{ mr: 1, color: 'primary.main' }} />
-          {t.dashboard.newCaseAssigned}
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1">
-            {t.dashboard.newCaseAssignedMessage}
-            {newAssignmentModal?.metadata?.caseTitle
-              ? ` ${t.cases.caseTitle}: ${String(newAssignmentModal.metadata.caseTitle)}`
-              : ''}
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ flexWrap: 'wrap', gap: 1, px: 3, pb: 2 }}>
-          <Button
-            variant="contained"
-            onClick={handleSeeCase}
-            startIcon={<Assignment />}
-            sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B8860B' } }}
-          >
-            {t.dashboard.seeCase}
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       <Dialog open={caseSelectionModalOpen} onClose={handleCloseCaseSelection} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center' }}>

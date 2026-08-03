@@ -82,9 +82,11 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
   const [localEvents, setLocalEvents] = useState(events);
 
   React.useEffect(() => {
+    // Keep the day list stable while the confirm dialog is loading
+    if (deleteLoading) return;
     setLocalAppointments(appointments);
     setLocalEvents(events);
-  }, [appointments, events]);
+  }, [appointments, events, deleteLoading]);
 
   const sortedAppointments = sortAppointmentsByTime(localAppointments);
   const sortedEvents = sortEventsByTime(localEvents);
@@ -93,16 +95,19 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget || deleteLoading) return;
+    const target = deleteTarget;
     try {
       setDeleteLoading(true);
-      if (deleteTarget.kind === 'appointment') {
-        await onDeleteAppointment(deleteTarget.item.id);
-        setLocalAppointments((prev) => prev.filter((a) => a.id !== deleteTarget.item.id));
+      if (target.kind === 'appointment') {
+        await onDeleteAppointment(target.item.id);
+        setLocalAppointments((prev) => prev.filter((a) => a.id !== target.item.id));
       } else {
-        await onDeleteEvent(deleteTarget.item.id);
-        setLocalEvents((prev) => prev.filter((e) => e.id !== deleteTarget.item.id));
+        await onDeleteEvent(target.item.id);
+        setLocalEvents((prev) => prev.filter((e) => e.id !== target.item.id));
       }
       setDeleteTarget(null);
+    } catch {
+      // Parent shows snackbar; keep confirm open so the user can retry or cancel
     } finally {
       setDeleteLoading(false);
     }

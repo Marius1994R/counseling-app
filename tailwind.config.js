@@ -28,6 +28,22 @@ module.exports = {
           700: '#B8860B',
         },
       },
+      keyframes: {
+        'bell-dance': {
+          '0%, 55%, 100%': { transform: 'rotate(0deg)' },
+          '5%': { transform: 'rotate(14deg)' },
+          '10%': { transform: 'rotate(-12deg)' },
+          '15%': { transform: 'rotate(10deg)' },
+          '20%': { transform: 'rotate(-8deg)' },
+          '25%': { transform: 'rotate(6deg)' },
+          '30%': { transform: 'rotate(-4deg)' },
+          '35%': { transform: 'rotate(2deg)' },
+          '40%': { transform: 'rotate(0deg)' },
+        },
+      },
+      animation: {
+        'bell-dance': 'bell-dance 2.4s ease-in-out infinite',
+      },
     },
   },
   plugins: [],

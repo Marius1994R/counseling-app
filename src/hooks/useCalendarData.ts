@@ -45,19 +45,25 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
   useEffect(() => {
     const newParam = searchParams.get('new');
     const dateParam = searchParams.get('date');
+
     if (newParam === 'true') {
       setFormOpen(true);
       const caseId = searchParams.get('caseId');
       if (caseId) {
         setPreSelectedCaseId(caseId);
       }
-      setSearchParams({}, { replace: true });
+      const next = new URLSearchParams(searchParams);
+      next.delete('new');
+      next.delete('caseId');
+      setSearchParams(next, { replace: true });
     } else if (dateParam) {
       const parsed = new Date(`${dateParam}T12:00:00`);
       if (!Number.isNaN(parsed.getTime())) {
         setSelectedDate(parsed);
       }
-      setSearchParams({}, { replace: true });
+      const next = new URLSearchParams(searchParams);
+      next.delete('date');
+      setSearchParams(next, { replace: true });
     }
   }, [searchParams, setSearchParams]);
 
@@ -219,16 +225,17 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
         currentUser.role !== 'admin'
       ) {
         setError('You can only delete appointments created by you');
-        return;
+        throw new Error('You can only delete appointments created by you');
       }
 
       try {
         await deleteDoc(doc(db, 'appointments', appointmentId));
         setAppointments((prev) => prev.filter((a) => a.id !== appointmentId));
-        await refetchDashboard();
+        void refetchDashboard();
       } catch (err) {
         console.error('Delete error:', err);
         setError('Failed to delete appointment');
+        throw err;
       }
     },
     [appointments, currentUser, refetchDashboard]

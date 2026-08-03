@@ -1,17 +1,27 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Typography,
+} from '@mui/material';
+import { Assignment } from '@mui/icons-material';
+import {
   BellIcon,
   Bars3Icon,
   ChevronDownIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
-import { useEvents } from '../../contexts/EventsContext';
 import { useDashboardReport } from '../../contexts/DashboardReportContext';
 import { useDashboardDataContext } from '../../contexts/DashboardDataContext';
+import { useAttentionNotifications } from '../../hooks/useAttentionNotifications';
 import { t } from '../../utils/translations';
 import UserAvatar from '../common/UserAvatar';
-import EventNotificationsModal from '../Events/EventNotificationsModal';
+import NotificationsPanel from './NotificationsPanel';
+import CaseProposalDialog from '../Dashboard/CaseProposalDialog';
 
 interface TopbarProps {
   title?: string;
@@ -27,13 +37,25 @@ const Topbar: React.FC<TopbarProps> = ({
   showReportActions = true,
 }) => {
   const { currentUser, logout } = useAuth();
-  const { unreadEventCount } = useEvents();
   const navigate = useNavigate();
   const { openCaseReportModal } = useDashboardReport();
-  const { refetch } = useDashboardDataContext();
+  const {
+    cases,
+    refetch,
+    newAssignmentModal,
+    openAssignment,
+    dismissAssignment,
+    acceptProposal,
+    refuseProposal,
+    assignmentActionLoading,
+    assignmentActionError,
+  } = useDashboardDataContext();
+  const { count: notificationCount, items: notificationItems, dismiss: dismissNotification } =
+    useAttentionNotifications();
   const [menuOpen, setMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
 
   const firstName = currentUser?.fullName?.split(' ')[0] ?? 'Utilizator';
   const roleLabel =
@@ -43,14 +65,32 @@ const Topbar: React.FC<TopbarProps> = ({
         ? 'Coordonator'
         : 'Consilier';
 
+  const proposedCase = cases.find(
+    (caseItem) => caseItem.id === String(newAssignmentModal?.metadata?.caseId ?? '')
+  );
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (menuRef.current && !menuRef.current.contains(target)) {
+        setMenuOpen(false);
+      }
+      if (notificationsRef.current && !notificationsRef.current.contains(target)) {
+        setNotificationsOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setNotificationsOpen(false);
         setMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -63,6 +103,14 @@ const Topbar: React.FC<TopbarProps> = ({
     navigate('/');
     refetch();
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSeeCase = async () => {
+    if (!newAssignmentModal?.metadata?.caseId) return;
+    const activityId = newAssignmentModal.id;
+    const caseId = String(newAssignmentModal.metadata.caseId);
+    await dismissAssignment(activityId);
+    navigate(`/cases?caseId=${caseId}`);
   };
 
   return (
@@ -119,29 +167,93 @@ const Topbar: React.FC<TopbarProps> = ({
           </>
         )}
 
-        <button
-          type="button"
-          className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-          aria-label="Notificări"
-          onClick={() => setNotificationsOpen(true)}
-        >
-          <BellIcon className="h-5 w-5" />
-          {unreadEventCount > 0 && (
-            <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-white">
-              {unreadEventCount > 9 ? '9+' : unreadEventCount}
-            </span>
-          )}
-        </button>
+        <div className="relative" ref={notificationsRef}>
+          <button
+            type="button"
+            className={`relative rounded-lg p-2 hover:bg-slate-100 ${
+              notificationsOpen ? 'bg-slate-100 text-brand-700' : 'text-slate-500'
+            }`}
+            aria-label="Notificări"
+            aria-expanded={notificationsOpen}
+            aria-haspopup="dialog"
+            onClick={() => {
+              setMenuOpen(false);
+              setNotificationsOpen((o) => !o);
+            }}
+          >
+            <BellIcon
+              className={`h-5 w-5 origin-top ${
+                notificationCount > 0 && !notificationsOpen ? 'animate-bell-dance' : ''
+              }`}
+            />
+            {notificationCount > 0 && (
+              <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-white">
+                {notificationCount > 9 ? '9+' : notificationCount}
+              </span>
+            )}
+          </button>
 
-        <EventNotificationsModal
-          open={notificationsOpen}
-          onClose={() => setNotificationsOpen(false)}
+          <NotificationsPanel
+            open={notificationsOpen}
+            onClose={() => setNotificationsOpen(false)}
+            items={notificationItems}
+            onDismiss={dismissNotification}
+            onOpenAssignment={openAssignment}
+            onDismissAssignment={dismissAssignment}
+          />
+        </div>
+
+        <CaseProposalDialog
+          open={newAssignmentModal?.type === 'case_proposed'}
+          caseItem={proposedCase}
+          fallbackTitle={
+            newAssignmentModal?.metadata?.caseTitle
+              ? String(newAssignmentModal.metadata.caseTitle)
+              : undefined
+          }
+          loading={assignmentActionLoading}
+          error={assignmentActionError}
+          onAccept={acceptProposal}
+          onRefuse={refuseProposal}
         />
+
+        <Dialog
+          open={Boolean(newAssignmentModal && newAssignmentModal.type !== 'case_proposed')}
+          disableEscapeKeyDown
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle sx={{ display: 'flex', alignItems: 'center' }}>
+            <Assignment sx={{ mr: 1, color: 'primary.main' }} />
+            {t.dashboard.newCaseAssigned}
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body1">
+              {t.dashboard.newCaseAssignedMessage}
+              {newAssignmentModal?.metadata?.caseTitle
+                ? ` ${t.cases.caseTitle}: ${String(newAssignmentModal.metadata.caseTitle)}`
+                : ''}
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ flexWrap: 'wrap', gap: 1, px: 3, pb: 2 }}>
+            <Button
+              variant="contained"
+              onClick={handleSeeCase}
+              startIcon={<Assignment />}
+              sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B8860B' } }}
+            >
+              {t.dashboard.seeCase}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         <div className="relative" ref={menuRef}>
           <button
             type="button"
-            onClick={() => setMenuOpen((o) => !o)}
+            onClick={() => {
+              setNotificationsOpen(false);
+              setMenuOpen((o) => !o);
+            }}
             className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 hover:bg-slate-50"
           >
             <UserAvatar

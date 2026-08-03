@@ -68,6 +68,27 @@ export const t = {
     contactAdmin: '*Contactează administratorul pentru credențiale sau restarea parolei'
   },
 
+  // Notifications (topbar bell)
+  notifications: {
+    title: 'Notificări',
+    subtitle: 'Ce necesită atenția ta',
+    empty: 'Nu ai notificări noi',
+    dismiss: 'Ascunde',
+    typeEvent: 'Eveniment',
+    typeAssignment: 'Alocare',
+    typeAppointment: 'Programare',
+    typeStaleReport: 'Raport',
+    eventDetail: 'Eveniment nou pe care nu l-ai văzut încă',
+    assignmentProposedTitle: 'Caz propus pentru tine',
+    assignmentAssignedTitle: 'Caz nou alocat',
+    assignmentDetail: 'Caz: {title}',
+    assignmentDetailFallback: 'Ai o alocare care așteaptă răspunsul tău',
+    appointmentTitle: 'Programare în curând',
+    appointmentDetail: '{case} · {time}',
+    staleReportTitle: 'Raport de sesiune lipsă',
+    staleReportDetail: 'Cazul „{name}” nu are raport de peste 30 de zile',
+  },
+
   // Dashboard
   dashboard: {
     title: 'Panou de Control',
@@ -273,6 +294,8 @@ export const t = {
     },
     noAppointments: 'Nu există programări',
     noAppointmentsMessage: 'Nu există programări disponibile momentan.',
+    deleteSuccess: 'Programare ștearsă cu succes',
+    deleteError: 'Eroare la ștergerea programării',
     noAppointmentsDay: 'Nu există programări pentru această zi',
     moreOnDay: 'în plus',
     pastDateError: 'Nu poți programa în trecut',

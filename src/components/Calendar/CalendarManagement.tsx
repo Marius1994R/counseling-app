@@ -16,6 +16,7 @@ import { t } from '../../utils/translations';
 
 const CalendarManagement: React.FC = () => {
   const data = useCalendarData();
+  const { handleDeleteAppointment: deleteAppointment } = data;
   const {
     events,
     canManageEvents,
@@ -93,9 +94,23 @@ const CalendarManagement: React.FC = () => {
       } catch (error) {
         console.error('Event delete error:', error);
         showSnackbar(t.events.deleteError, 'error');
+        throw error;
       }
     },
     [deleteEvent, showSnackbar]
+  );
+
+  const handleDeleteAppointment = useCallback(
+    async (appointmentId: string) => {
+      try {
+        await deleteAppointment(appointmentId);
+        showSnackbar(t.appointments.deleteSuccess, 'success');
+      } catch (error) {
+        showSnackbar(t.appointments.deleteError, 'error');
+        throw error;
+      }
+    },
+    [deleteAppointment, showSnackbar]
   );
 
   if (data.loading) {
@@ -141,7 +156,7 @@ const CalendarManagement: React.FC = () => {
         events={selectedDayEvents}
         onClose={() => data.setSelectedDate(null)}
         onEditAppointment={data.handleEditAppointment}
-        onDeleteAppointment={data.handleDeleteAppointment}
+        onDeleteAppointment={handleDeleteAppointment}
         onScheduleAppointment={data.handleScheduleFromDate}
         onEditEvent={handleEditEvent}
         onDeleteEvent={handleDeleteEvent}
