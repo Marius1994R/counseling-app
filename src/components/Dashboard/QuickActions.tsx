@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   PlusIcon,
   CalendarIcon,
@@ -30,6 +31,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
   onUpdateProfile,
 }) => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
 
   const actions: QuickAction[] = [
     {
@@ -46,7 +48,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
     {
       label: 'Raport lunar',
       icon: DocumentChartBarIcon,
-      disabled: true,
+      onClick: () => navigate('/monthly-report'),
     },
     {
       label: 'Raport caz',
@@ -79,8 +81,8 @@ const QuickActions: React.FC<QuickActionsProps> = ({
               title={action.disabled ? 'În curând' : undefined}
               className={`flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2.5 text-left text-sm font-medium transition duration-200 ease-out active:scale-[0.98] ${
                 action.disabled
-                  ? 'cursor-not-allowed text-slate-400 opacity-60'
-                  : 'text-slate-700 hover:bg-brand-50 hover:text-brand-700'
+                  ? 'cursor-not-allowed text-slate-400 opacity-70'
+                  : 'text-slate-700 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-800'
               }`}
             >
               <Icon className="h-4 w-4 shrink-0" />

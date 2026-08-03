@@ -152,8 +152,8 @@ const Topbar: React.FC<TopbarProps> = ({
           <>
             <button
               type="button"
-              title="În curând"
-              className="hidden cursor-not-allowed rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-400 opacity-70 sm:inline-flex active:scale-[0.98]"
+              onClick={() => navigate('/monthly-report')}
+              className="hidden rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition duration-200 ease-out hover:bg-slate-50 active:scale-[0.98] sm:inline-flex"
             >
               + Raport lunar
             </button>

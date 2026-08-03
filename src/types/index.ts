@@ -140,6 +140,37 @@ export interface ChurchEvent {
   updatedAt: Date;
 }
 
+/** Marital status for monthly accountability report */
+export type MonthlyReportMaritalStatus = 'casatorit' | 'necasatorit';
+
+/** Answers for the monthly dare-de-socoteală form */
+export interface MonthlyReportAnswers {
+  relationshipWithGod: string;
+  mostAliveDiscipline: string;
+  disciplineNeedsStrengthening: string;
+  maritalStatus: MonthlyReportMaritalStatus;
+  marriageFamilyNotes: string;
+  closeRelationshipsNotes: string;
+  needsPersonalRelationshipSupport: string;
+  heartState: string;
+  feelsTiredOrBurdened: string;
+  howLeaderOrTeamCanHelp: string;
+  departmentImprovements: string;
+}
+
+/** Monthly accountability report (Raport lunar) */
+export interface MonthlyReport {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  monthKey: string; // YYYY-MM of the reported month
+  answers: MonthlyReportAnswers;
+  submittedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Dashboard metrics
 export interface DashboardMetrics {
   totalCases: number;

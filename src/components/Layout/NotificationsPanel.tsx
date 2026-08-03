@@ -37,6 +37,8 @@ const accentForType = (
       return '#2563EB';
     case 'stale_report':
       return '#D97706';
+    case 'monthly_report':
+      return '#7C3AED';
     default:
       return '#94A3B8';
   }
@@ -54,6 +56,8 @@ const typeLabel = (type: AttentionNotification['type']): string => {
       return t.notifications.typeAppointment;
     case 'stale_report':
       return t.notifications.typeStaleReport;
+    case 'monthly_report':
+      return t.notifications.typeMonthlyReport;
     default:
       return '';
   }
@@ -151,6 +155,13 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
       const caseId = item.payload.caseItem.id;
       onClose();
       navigate(`/cases?caseId=${caseId}`);
+      void onDismiss(item.id);
+      return;
+    }
+
+    if (item.type === 'monthly_report') {
+      onClose();
+      navigate('/monthly-report');
       void onDismiss(item.id);
     }
   };

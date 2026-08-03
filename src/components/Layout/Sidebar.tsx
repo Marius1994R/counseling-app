@@ -150,8 +150,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, mobileOpen = false
             <div className="flex flex-wrap justify-center gap-1.5 px-3 pb-4 sm:hidden">
               <button
                 type="button"
-                title="În curând"
-                className="inline-flex cursor-not-allowed rounded-full border border-slate-200 px-2.5 py-1 text-[11px] font-medium text-slate-400 opacity-70"
+                onClick={() => {
+                  navigate('/monthly-report');
+                  onMobileClose?.();
+                }}
+                className="inline-flex rounded-full border border-slate-200 px-2.5 py-1 text-[11px] font-medium text-slate-700 transition duration-200 ease-out hover:bg-slate-50 active:scale-[0.98]"
               >
                 + Raport lunar
               </button>

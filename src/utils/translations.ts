@@ -92,6 +92,11 @@ export const t = {
     appointmentDetail: '{case} · {time}',
     staleReportTitle: 'Raport de sesiune lipsă',
     staleReportDetail: 'Cazul „{name}” nu are raport de peste 30 de zile',
+    typeMonthlyReport: 'Raport lunar',
+    monthlyReportDueTitle: 'Completează raportul lunar',
+    monthlyReportDueDetail: 'Te rugăm să completezi raportul pentru {month}',
+    monthlyReportOverdueTitle: 'Raportul lunar este restant',
+    monthlyReportOverdueDetail: 'Raportul pentru {month} nu a fost trimis. Completează-l acum.',
   },
 
   // Dashboard
@@ -727,6 +732,54 @@ export const t = {
     deleteNoteSuccess: 'Notă de ședință ștearsă cu succes',
     deleteNoteError: 'Eroare la ștergerea notei de ședință',
     updateSuccess: 'Notă de ședință actualizată cu succes'
+  },
+
+  // Monthly accountability report (dare de socoteală)
+  monthlyReport: {
+    title: 'Raport lunar',
+    subtitle: 'Formular confidențial de dare de socoteală',
+    intro:
+      'Acest formular este confidențial și se completează lunar. Scopul lui este creșterea spirituală și sănătatea echipei.',
+    reportFor: 'Raport pentru {month}',
+    dueWindowHint: 'Te rugăm să trimiți raportul în primele {days} zile ale lunii.',
+    yourInfo: 'Datele tale',
+    name: 'Nume și prenume',
+    email: 'Email',
+    sectionSpiritual: 'Viața spirituală',
+    relationshipWithGod: 'Cum descrii relația ta cu Dumnezeu în ultima perioadă?',
+    mostAliveDiscipline: 'Care disciplină spirituală a fost cea mai vie pentru tine luna aceasta?',
+    disciplineNeedsStrengthening: 'Care domeniu (disciplină) are nevoie de întărire?',
+    sectionRelationships: 'Relații',
+    maritalStatus: 'Stare civilă',
+    married: 'Căsătorit(ă)',
+    unmarried: 'Necăsătorit(ă)',
+    marriageFamilyNotes: 'Dacă ești căsătorit(ă): cum apreciezi relația cu soțul/soția și familia?',
+    closeRelationshipsNotes:
+      'Dacă nu ești căsătorit(ă): cum merg relațiile apropiate (prieteni, curtenie)?',
+    needsPersonalRelationshipSupport: 'Ai nevoie de sprijin într-o relație personală?',
+    sectionSelfCare: 'Îngrijirea personală',
+    heartState: 'Cum apreciezi starea inimii tale?',
+    feelsTiredOrBurdened: 'Te simți obosit(ă) sau împovărat(ă)?',
+    howLeaderOrTeamCanHelp: 'Este un mod în care liderul sau echipa poate să îți vină în ajutor?',
+    departmentImprovements:
+      'Ce crezi că ar fi benefic pentru departament să fie îmbunătățit, schimbat sau adăugat, astfel încât această slujire să fie mai eficientă?',
+    submit: 'Trimite raportul',
+    submitSuccess: 'Raportul lunar a fost trimis cu succes',
+    submitError: 'Eroare la trimiterea raportului',
+    loadError: 'Eroare la încărcarea raportului lunar',
+    alreadySubmitted: 'Ai trimis deja raportul pentru această lună',
+    submittedAt: 'Trimis pe {date}',
+    required: 'Câmp obligatoriu',
+    leaderTitle: 'Rapoarte primite',
+    leaderSubtitle: 'Vizualizează dările de socoteală ale echipei',
+    selectMonth: 'Luna raportată',
+    noSubmissions: 'Nu există rapoarte pentru această lună',
+    viewReport: 'Vezi raport',
+    submissionsCount: '{count} rapoarte',
+    downloadPdf: 'Descarcă PDF',
+    downloadingPdf: 'Se generează PDF…',
+    downloadPdfError: 'Eroare la generarea PDF-ului',
+    backToForm: 'Înapoi la formularul meu',
   },
 
   // Validation Errors

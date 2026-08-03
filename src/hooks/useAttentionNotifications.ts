@@ -13,13 +13,22 @@ import { useDashboardDataContext } from '../contexts/DashboardDataContext';
 import { ActivityRecord } from '../components/Dashboard/dashboardUtils';
 import { Appointment, Case, ChurchEvent } from '../types';
 import { t } from '../utils/translations';
+import {
+  formatMonthKeyLabel,
+  getDueReportMonthKey,
+  getMonthlyReportReminderPhase,
+  monthlyReportDocId,
+  monthlyReportDueDismissalId,
+  monthlyReportOverdueDismissalId,
+} from '../components/MonthlyReport/monthlyReportUtils';
 
 export type AttentionNotificationType =
   | 'event'
   | 'assignment'
   | 'assignment_outcome'
   | 'appointment'
-  | 'stale_report';
+  | 'stale_report'
+  | 'monthly_report';
 
 export interface AttentionNotification {
   id: string;
@@ -32,6 +41,7 @@ export interface AttentionNotification {
     activity?: ActivityRecord;
     appointment?: Appointment;
     caseItem?: Case;
+    monthKey?: string;
   };
   createdAt: Date;
 }
@@ -95,6 +105,8 @@ export function useAttentionNotifications() {
 
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [dismissalsLoaded, setDismissalsLoaded] = useState(false);
+  const [monthlyReportMissing, setMonthlyReportMissing] = useState(false);
+  const dueMonthKey = getDueReportMonthKey();
 
   useEffect(() => {
     if (!currentUser?.id || currentUser.id.startsWith('demo-')) {
@@ -115,6 +127,38 @@ export function useAttentionNotifications() {
       cancelled = true;
     };
   }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (!currentUser?.id || currentUser.id.startsWith('demo-')) {
+      setMonthlyReportMissing(false);
+      return;
+    }
+
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const id = monthlyReportDocId(currentUser.id, dueMonthKey);
+        const snap = await getDoc(doc(db, 'monthlyReports', id));
+        if (!cancelled) {
+          setMonthlyReportMissing(!snap.exists());
+        }
+      } catch (err) {
+        console.error('Error checking monthly report:', err);
+        if (!cancelled) setMonthlyReportMissing(false);
+      }
+    };
+    void check();
+
+    const onSubmitted = () => {
+      void check();
+    };
+    window.addEventListener('monthly-report-submitted', onSubmitted);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('monthly-report-submitted', onSubmitted);
+    };
+  }, [currentUser?.id, dueMonthKey]);
 
   const items = useMemo(() => {
     const list: AttentionNotification[] = [];
@@ -213,6 +257,31 @@ export function useAttentionNotifications() {
       });
     }
 
+    if (monthlyReportMissing) {
+      const phase = getMonthlyReportReminderPhase();
+      const id =
+        phase === 'due'
+          ? monthlyReportDueDismissalId(dueMonthKey)
+          : monthlyReportOverdueDismissalId(dueMonthKey);
+      if (!dismissedIds.has(id)) {
+        const monthLabel = formatMonthKeyLabel(dueMonthKey);
+        list.push({
+          id,
+          type: 'monthly_report',
+          title:
+            phase === 'due'
+              ? t.notifications.monthlyReportDueTitle
+              : t.notifications.monthlyReportOverdueTitle,
+          detail: (phase === 'due'
+            ? t.notifications.monthlyReportDueDetail
+            : t.notifications.monthlyReportOverdueDetail
+          ).replace('{month}', monthLabel),
+          payload: { monthKey: dueMonthKey },
+          createdAt: new Date(),
+        });
+      }
+    }
+
     return list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }, [
     unreadEvents,
@@ -222,6 +291,8 @@ export function useAttentionNotifications() {
     cases,
     sessionReportCounts,
     dismissedIds,
+    monthlyReportMissing,
+    dueMonthKey,
   ]);
 
   const dismiss = useCallback(
