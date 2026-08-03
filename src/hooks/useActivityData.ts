@@ -78,6 +78,7 @@ export function useActivityData() {
             fullName: data.fullName,
             email: data.email,
             phoneNumber: data.phoneNumber,
+            sex: data.sex === 'feminin' || data.sex === 'masculin' ? data.sex : undefined,
             specialties: data.specialties || [],
             activeCases: data.activeCases || 0,
             workloadLevel: data.workloadLevel || 'low',

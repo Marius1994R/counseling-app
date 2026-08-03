@@ -3,14 +3,24 @@ import { db } from '../firebase';
 
 export interface ActivityLog {
   id?: string;
-  type: 'case_created' | 'case_status_changed' | 'case_assigned' | 'meeting_notes_added' | 'session_report_added' | 'appointment_created' | 'appointment_updated' | 'appointment_deleted';
+  type:
+    | 'case_created'
+    | 'case_status_changed'
+    | 'case_assigned'
+    | 'case_proposed'
+    | 'case_proposal_declined'
+    | 'meeting_notes_added'
+    | 'session_report_added'
+    | 'appointment_created'
+    | 'appointment_updated'
+    | 'appointment_deleted';
   title: string;
   description: string;
   timestamp: Date;
   userId: string;
   userName: string;
-  relatedId: string; // ID of the case, appointment, etc.
-  relatedTitle: string; // Title of the case, appointment, etc.
+  relatedId: string;
+  relatedTitle: string;
   metadata?: {
     oldStatus?: string;
     newStatus?: string;
@@ -20,6 +30,7 @@ export interface ActivityLog {
     caseTitle?: string;
     assignedToUserId?: string;
     assignedToUserName?: string;
+    assignmentSource?: 'direct' | 'proposal_accept';
     sessionNumber?: number;
   };
 }
@@ -28,11 +39,10 @@ export const logActivity = async (activity: Omit<ActivityLog, 'id'>): Promise<vo
   try {
     await addDoc(collection(db, 'activities'), {
       ...activity,
-      timestamp: activity.timestamp
+      timestamp: activity.timestamp,
     });
   } catch (error) {
     console.error('Error logging activity:', error);
-    // Don't throw error to avoid breaking the main functionality
   }
 };
 
@@ -57,8 +67,8 @@ export const logCaseStatusChange = async (
       oldStatus,
       newStatus,
       caseId,
-      caseTitle
-    }
+      caseTitle,
+    },
   });
 };
 
@@ -79,8 +89,8 @@ export const logMeetingNotesAdded = async (
     relatedTitle: caseTitle,
     metadata: {
       caseId,
-      caseTitle
-    }
+      caseTitle,
+    },
   });
 };
 
@@ -103,8 +113,8 @@ export const logSessionReportAdded = async (
     metadata: {
       caseId,
       caseTitle,
-      sessionNumber
-    }
+      sessionNumber,
+    },
   });
 };
 
@@ -125,8 +135,8 @@ export const logCaseCreated = async (
     relatedTitle: caseTitle,
     metadata: {
       caseId,
-      caseTitle
-    }
+      caseTitle,
+    },
   });
 };
 
@@ -136,7 +146,8 @@ export const logCaseAssigned = async (
   assignedToUserId: string,
   assignedToUserName: string,
   assignedByUserId: string,
-  assignedByUserName: string
+  assignedByUserName: string,
+  assignmentSource: 'direct' | 'proposal_accept' = 'direct'
 ): Promise<void> => {
   await logActivity({
     type: 'case_assigned',
@@ -151,8 +162,59 @@ export const logCaseAssigned = async (
       caseId,
       caseTitle,
       assignedToUserId,
-      assignedToUserName
-    }
+      assignedToUserName,
+      assignmentSource,
+    },
+  });
+};
+
+export const logCaseProposed = async (
+  caseId: string,
+  caseTitle: string,
+  assignedToUserId: string,
+  assignedToUserName: string,
+  assignedByUserId: string,
+  assignedByUserName: string
+): Promise<void> => {
+  await logActivity({
+    type: 'case_proposed',
+    title: 'Caz Propus',
+    description: `Cazul "${caseTitle}" a fost propus către ${assignedToUserName}`,
+    timestamp: new Date(),
+    userId: assignedByUserId,
+    userName: assignedByUserName,
+    relatedId: caseId,
+    relatedTitle: caseTitle,
+    metadata: {
+      caseId,
+      caseTitle,
+      assignedToUserId,
+      assignedToUserName,
+    },
+  });
+};
+
+export const logCaseProposalDeclined = async (
+  caseId: string,
+  caseTitle: string,
+  counselorUserId: string,
+  counselorUserName: string
+): Promise<void> => {
+  await logActivity({
+    type: 'case_proposal_declined',
+    title: 'Propunere Refuzată',
+    description: `${counselorUserName} a refuzat propunerea pentru cazul "${caseTitle}"`,
+    timestamp: new Date(),
+    userId: counselorUserId,
+    userName: counselorUserName,
+    relatedId: caseId,
+    relatedTitle: caseTitle,
+    metadata: {
+      caseId,
+      caseTitle,
+      assignedToUserId: counselorUserId,
+      assignedToUserName: counselorUserName,
+    },
   });
 };
 
@@ -175,7 +237,7 @@ export const logAppointmentCreated = async (
     relatedTitle: appointmentTitle,
     metadata: {
       caseId,
-      caseTitle
-    }
+      caseTitle,
+    },
   });
 };

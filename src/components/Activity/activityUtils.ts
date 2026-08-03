@@ -9,6 +9,8 @@ export type ActivityType =
   | 'case_created'
   | 'case_status_changed'
   | 'case_assigned'
+  | 'case_proposed'
+  | 'case_proposal_declined'
   | 'case_updated'
   | 'case_deleted'
   | 'counselor_created'

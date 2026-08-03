@@ -12,6 +12,7 @@ import {
   MenuItem,
   Box,
   Typography,
+  CircularProgress,
 } from '@mui/material';
 import { ContentCopy } from '@mui/icons-material';
 import { User, UserRole } from '../../types';
@@ -21,45 +22,54 @@ import { t } from '../../utils/translations';
 interface AdminUserDialogsProps {
   createDialogOpen: boolean;
   editDialogOpen: boolean;
-  showNextStepDialog: boolean;
+  createUserLoading?: boolean;
   createUserData: CreateUserData;
   editUserData: Partial<CreateUserData>;
   selectedUser: User | null;
   currentUserRole?: UserRole;
   onCloseCreate: () => void;
   onCloseEdit: () => void;
-  onCloseNextStep: () => void;
   onCreateUserDataChange: (data: CreateUserData) => void;
   onEditUserDataChange: (data: Partial<CreateUserData>) => void;
   onCreateUser: () => void;
   onEditUser: () => void;
   onCopyCredentials: () => void;
-  onNextStepToCounselor: () => void;
 }
 
 const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
   createDialogOpen,
   editDialogOpen,
-  showNextStepDialog,
+  createUserLoading = false,
   createUserData,
   editUserData,
   selectedUser,
   currentUserRole,
   onCloseCreate,
   onCloseEdit,
-  onCloseNextStep,
   onCreateUserDataChange,
   onEditUserDataChange,
   onCreateUser,
   onEditUser,
   onCopyCredentials,
-  onNextStepToCounselor,
 }) => (
   <>
-    <Dialog open={createDialogOpen} onClose={onCloseCreate} maxWidth="sm" fullWidth>
+    <Dialog
+      open={createDialogOpen}
+      onClose={(_, reason) => {
+        if (createUserLoading) return;
+        if (reason === 'backdropClick' || reason === 'escapeKeyDown') {
+          onCloseCreate();
+          return;
+        }
+        onCloseCreate();
+      }}
+      disableEscapeKeyDown={createUserLoading}
+      maxWidth="sm"
+      fullWidth
+    >
       <DialogTitle>{t.admin.users.createNewUser}</DialogTitle>
-      <DialogContent>
-        <Box sx={{ pt: 1 }}>
+      <DialogContent sx={{ position: 'relative' }}>
+        <Box sx={{ pt: 1, opacity: createUserLoading ? 0.45 : 1, pointerEvents: createUserLoading ? 'none' : 'auto' }}>
           <TextField
             fullWidth
             label={t.admin.users.fullName}
@@ -74,6 +84,7 @@ const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
             }}
             margin="normal"
             required
+            disabled={createUserLoading}
           />
           <TextField
             fullWidth
@@ -85,6 +96,7 @@ const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
             }
             margin="normal"
             required
+            disabled={createUserLoading}
           />
           <TextField
             fullWidth
@@ -93,8 +105,9 @@ const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
             margin="normal"
             InputProps={{ readOnly: true }}
             helperText={t.admin.users.passwordHelperText}
+            disabled={createUserLoading}
           />
-          <FormControl fullWidth margin="normal" required>
+          <FormControl fullWidth margin="normal" required disabled={createUserLoading}>
             <InputLabel>{t.admin.users.role}</InputLabel>
             <Select
               value={createUserData.role}
@@ -112,14 +125,39 @@ const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
             </Select>
           </FormControl>
         </Box>
+
+        {createUserLoading && (
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 1.5,
+              bgcolor: 'rgba(255,255,255,0.72)',
+              zIndex: 1,
+            }}
+            role="status"
+            aria-live="polite"
+          >
+            <CircularProgress size={36} sx={{ color: '#C99700' }} />
+            <Typography variant="body2" color="text.secondary">
+              {t.admin.users.createUserInProgress}
+            </Typography>
+          </Box>
+        )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCloseCreate}>{t.common.cancel}</Button>
+        <Button onClick={onCloseCreate} disabled={createUserLoading}>
+          {t.common.cancel}
+        </Button>
         <Button
           onClick={onCopyCredentials}
           variant="outlined"
           startIcon={<ContentCopy />}
-          disabled={!createUserData.email || !createUserData.password}
+          disabled={createUserLoading || !createUserData.email || !createUserData.password}
           sx={{ mr: 1 }}
         >
           {t.admin.users.copyCredentials}
@@ -127,7 +165,17 @@ const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
         <Button
           onClick={onCreateUser}
           variant="contained"
-          disabled={!createUserData.email || !createUserData.fullName || !createUserData.password}
+          disabled={
+            createUserLoading ||
+            !createUserData.email ||
+            !createUserData.fullName ||
+            !createUserData.password
+          }
+          startIcon={
+            createUserLoading ? (
+              <CircularProgress size={16} color="inherit" />
+            ) : undefined
+          }
         >
           {t.admin.users.createUser}
         </Button>
@@ -178,25 +226,6 @@ const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
           disabled={!editUserData.fullName || !editUserData.role}
         >
           {t.admin.users.updateUser}
-        </Button>
-      </DialogActions>
-    </Dialog>
-
-    <Dialog open={showNextStepDialog} onClose={onCloseNextStep} maxWidth="sm" fullWidth>
-      <DialogTitle>Utilizator creat cu succes!</DialogTitle>
-      <DialogContent>
-        <Typography variant="body1" sx={{ mb: 2 }}>
-          Utilizatorul a fost creat cu succes. Dorești să îl legi la un cont de consilier?
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Poți lega utilizatorul la un cont de consilier acum sau poți face acest lucru mai târziu
-          din secțiunea de gestionare a consilierilor.
-        </Typography>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onCloseNextStep}>{t.common.cancel}</Button>
-        <Button onClick={onNextStepToCounselor} variant="contained">
-          {t.counselors.addCounselor}
         </Button>
       </DialogActions>
     </Dialog>

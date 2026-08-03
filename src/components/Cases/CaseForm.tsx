@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -6,24 +6,43 @@ import {
   DialogActions,
   TextField,
   Button,
-  
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   Chip,
   Box,
-  Typography
+  Typography,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
-import { Case, CaseStatus, IssueType, CivilStatus, Sex } from '../../types';
+import { Case, CaseStatus, IssueType, CivilStatus, Sex, Counselor, CasePriority, ReferralSource } from '../../types';
 import { t } from '../../utils/translations';
+import {
+  filterAssignableCounselors,
+  formatCounselorOptionLabel,
+  rankCounselorsForCase,
+} from './assignmentUtils';
+import { REFERRAL_SOURCE_OPTIONS } from './casesUtils';
+import {
+  composeDisplayName,
+  formatPhoneDigitsInput,
+  isValidRoPhoneDigits,
+  resolvePersonName,
+  stripRoPhonePrefix,
+  toE164RoPhone,
+} from '../../utils/nameUtils';
+
+export type CaseFormSubmitData = Omit<Case, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>;
 
 interface CaseFormProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (caseData: Omit<Case, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>) => void;
+  onSubmit: (caseData: CaseFormSubmitData) => void;
   caseData?: Case | null;
-  counselors: Array<{ id: string; fullName: string }>;
+  counselors: Counselor[];
+  /** User IDs with isActive === false — excluded from counselor suggestions */
+  inactiveUserIds?: ReadonlySet<string> | string[];
 }
 
 const CaseForm: React.FC<CaseFormProps> = ({
@@ -31,35 +50,82 @@ const CaseForm: React.FC<CaseFormProps> = ({
   onClose,
   onSubmit,
   caseData,
-  counselors
+  counselors,
+  inactiveUserIds,
 }) => {
-  const [formData, setFormData] = useState({
-    counseledName: caseData?.counseledName || '',
-    age: caseData?.age || '',
-    sex: caseData?.sex || 'masculin' as Sex,
-    civilStatus: caseData?.civilStatus || 'unmarried',
-    issueTypes: caseData?.issueTypes || [],
-    phoneNumber: caseData?.phoneNumber || '',
-    description: caseData?.description || '',
-    status: caseData?.status || 'waiting',
-    assignedCounselorId: caseData?.assignedCounselorId || ''
+  const initialCaseName = resolvePersonName({
+    firstName: caseData?.firstName,
+    lastName: caseData?.lastName,
+    fullName: caseData?.counseledName,
   });
-
+  const [formData, setFormData] = useState({
+    firstName: initialCaseName.firstName,
+    lastName: initialCaseName.lastName,
+    age: caseData?.age || '',
+    sex: (caseData?.sex || 'masculin') as Sex,
+    civilStatus: caseData?.civilStatus || 'unmarried',
+    issueTypes: caseData?.issueTypes || ([] as IssueType[]),
+    phoneNumber: caseData?.phoneNumber ? stripRoPhonePrefix(caseData.phoneNumber) : '',
+    description: caseData?.description || '',
+    referralSource: (caseData?.referralSource || '') as ReferralSource | '',
+    priority: (caseData?.priority || 'normal') as CasePriority,
+    status: (caseData?.status || 'waiting') as CaseStatus,
+    counselorId:
+      caseData?.proposedCounselorId ||
+      caseData?.assignedCounselorId ||
+      '',
+  });
+  const [forceAssign, setForceAssign] = useState(
+    caseData?.assignmentStatus === 'forced' || caseData?.assignmentStatus === 'accepted'
+  );
+  const [counselorTouched, setCounselorTouched] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const issueTypeOptions: IssueType[] = ['spiritual', 'relational', 'personal'];
-  const civilStatusOptions: CivilStatus[] = ['unmarried', 'married', 'divorced', 'engaged', 'widowed'];
-  const statusOptions: CaseStatus[] = ['waiting', 'active', 'unfinished', 'finished', 'cancelled'];
+  const civilStatusOptions: CivilStatus[] = [
+    'unmarried',
+    'married',
+    'divorced',
+    'engaged',
+    'widowed',
+  ];
+  const statusOptions: CaseStatus[] = [
+    'waiting',
+    'active',
+    'unfinished',
+    'finished',
+    'cancelled',
+  ];
 
-  // Translation functions - gender-aware
+  const rankedCounselors = useMemo(() => {
+    const inactive =
+      inactiveUserIds instanceof Set
+        ? inactiveUserIds
+        : new Set(inactiveUserIds ?? []);
+    const keep = new Set(
+      [caseData?.proposedCounselorId, caseData?.assignedCounselorId].filter(
+        (id): id is string => Boolean(id)
+      )
+    );
+    const assignable = filterAssignableCounselors(counselors, inactive, keep);
+    return rankCounselorsForCase(formData.issueTypes, assignable, formData.sex);
+  }, [
+    formData.issueTypes,
+    formData.sex,
+    counselors,
+    inactiveUserIds,
+    caseData?.proposedCounselorId,
+    caseData?.assignedCounselorId,
+  ]);
+
   const translateCivilStatus = (status: string, sex?: Sex) => {
     const isFeminin = sex === 'feminin';
     const statusMap: Record<string, { masculin: string; feminin: string }> = {
-      'unmarried': { masculin: 'Necăsătorit', feminin: 'Necăsătorită' },
-      'married': { masculin: 'Căsătorit', feminin: 'Căsătorită' },
-      'divorced': { masculin: 'Divorțat', feminin: 'Divorțată' },
-      'engaged': { masculin: 'Logodit', feminin: 'Logodită' },
-      'widowed': { masculin: 'Văduv', feminin: 'Văduvă' }
+      unmarried: { masculin: 'Necăsătorit', feminin: 'Necăsătorită' },
+      married: { masculin: 'Căsătorit', feminin: 'Căsătorită' },
+      divorced: { masculin: 'Divorțat', feminin: 'Divorțată' },
+      engaged: { masculin: 'Logodit', feminin: 'Logodită' },
+      widowed: { masculin: 'Văduv', feminin: 'Văduvă' },
     };
     const translations = statusMap[status];
     if (translations) {
@@ -70,111 +136,219 @@ const CaseForm: React.FC<CaseFormProps> = ({
 
   const translateStatus = (status: string) => {
     const statusMap: Record<string, string> = {
-      'waiting': 'În Așteptare',
-      'active': 'Activ',
-      'unfinished': 'Nefinalizat',
-      'finished': 'Terminat',
-      'cancelled': 'Anulat'
+      waiting: 'În Așteptare',
+      active: 'Activ',
+      unfinished: 'Nefinalizat',
+      finished: 'Terminat',
+      cancelled: 'Anulat',
     };
     return statusMap[status] || status;
   };
 
-  const handleChange = (field: string) => (event: any) => {
-    const value = event.target.value;
-    setFormData(prev => ({
+  const handleChange = (field: string) => (event: { target: { value: unknown } }) => {
+    let value = event.target.value;
+    if (field === 'phoneNumber') {
+      value = formatPhoneDigitsInput(String(value ?? ''));
+    }
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
-    
-    // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [field]: ''
+        [field]: '',
       }));
     }
   };
 
   const handleIssueTypeChange = (issueType: IssueType) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       issueTypes: prev.issueTypes.includes(issueType)
-        ? prev.issueTypes.filter(type => type !== issueType)
-        : [...prev.issueTypes, issueType]
+        ? prev.issueTypes.filter((type) => type !== issueType)
+        : [...prev.issueTypes, issueType],
     }));
   };
 
-  // Populate form with existing data when editing
   useEffect(() => {
     if (caseData) {
+      const name = resolvePersonName({
+        firstName: caseData.firstName,
+        lastName: caseData.lastName,
+        fullName: caseData.counseledName,
+      });
       setFormData({
-        counseledName: caseData.counseledName,
+        firstName: name.firstName,
+        lastName: name.lastName,
         age: caseData.age,
         sex: caseData.sex || 'masculin',
         civilStatus: caseData.civilStatus,
         issueTypes: caseData.issueTypes,
-        phoneNumber: caseData.phoneNumber,
+        phoneNumber: stripRoPhonePrefix(caseData.phoneNumber || ''),
         status: caseData.status,
-        assignedCounselorId: caseData.assignedCounselorId || '',
-        description: caseData.description
+        counselorId:
+          caseData.proposedCounselorId || caseData.assignedCounselorId || '',
+        description: caseData.description,
+        referralSource: caseData.referralSource || '',
+        priority: caseData.priority || 'normal',
       });
+      setForceAssign(
+        caseData.assignmentStatus === 'forced' ||
+          (caseData.assignmentStatus === 'accepted' && Boolean(caseData.assignedCounselorId))
+      );
+      setCounselorTouched(true);
     } else {
-      // Reset form for new case
       setFormData({
-        counseledName: '',
+        firstName: '',
+        lastName: '',
         age: '',
         sex: 'masculin',
         civilStatus: 'unmarried',
         issueTypes: [],
         phoneNumber: '',
         status: 'waiting',
-        assignedCounselorId: '',
-        description: ''
+        counselorId: '',
+        description: '',
+        referralSource: '',
+        priority: 'normal',
       });
+      setForceAssign(false);
+      setCounselorTouched(false);
     }
     setErrors({});
   }, [caseData, open]);
 
+  // Propose by default: prefill top-ranked counselor once basics + issue type are set
+  useEffect(() => {
+    if (caseData || counselorTouched) return;
+
+    const basicsReady =
+      formData.firstName.trim().length > 0 &&
+      formData.lastName.trim().length > 0 &&
+      Boolean(formData.age) &&
+      Number(formData.age) >= 1 &&
+      Number(formData.age) <= 120 &&
+      formData.issueTypes.length > 0;
+
+    if (!basicsReady) {
+      setFormData((prev) => (prev.counselorId ? { ...prev, counselorId: '' } : prev));
+      return;
+    }
+
+    const suggestedId = rankedCounselors[0]?.id;
+    if (!suggestedId) return;
+
+    setFormData((prev) =>
+      prev.counselorId === suggestedId ? prev : { ...prev, counselorId: suggestedId }
+    );
+  }, [
+    caseData,
+    counselorTouched,
+    formData.firstName,
+    formData.lastName,
+    formData.age,
+    formData.issueTypes,
+    rankedCounselors,
+  ]);
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.counseledName.trim()) newErrors.counseledName = 'Name is required';
-    if (!formData.age || Number(formData.age) < 1 || Number(formData.age) > 120) newErrors.age = 'Valid age is required';
+    if (!formData.lastName.trim()) newErrors.lastName = 'Numele este obligatoriu';
+    if (!formData.firstName.trim()) newErrors.firstName = 'Prenumele este obligatoriu';
+    if (!formData.age || Number(formData.age) < 1 || Number(formData.age) > 120) {
+      newErrors.age = 'Valid age is required';
+    }
     if (formData.issueTypes.length === 0) newErrors.issueTypes = 'At least one issue type is required';
     if (!formData.phoneNumber.trim()) newErrors.phoneNumber = 'Phone number is required';
+    else if (!isValidRoPhoneDigits(formData.phoneNumber)) {
+      newErrors.phoneNumber = 'Introdu exact 9 cifre pentru numărul de telefon românesc';
+    }
     if (!formData.description.trim()) newErrors.description = 'Problem description is required';
-    
-    // Counselor is required for active and finished cases
-    if ((formData.status === 'active' || formData.status === 'finished') && !formData.assignedCounselorId) {
-      newErrors.assignedCounselorId = 'Counselor is required for active and finished cases';
+
+    if (
+      (formData.status === 'active' || formData.status === 'finished' || forceAssign) &&
+      !formData.counselorId
+    ) {
+      newErrors.counselorId = 'Counselor is required for active and finished cases';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  const buildAssignmentFields = (): Pick<
+    Case,
+    | 'assignedCounselorId'
+    | 'assignedCounselorName'
+    | 'proposedCounselorId'
+    | 'proposedCounselorName'
+    | 'assignmentStatus'
+    | 'status'
+  > => {
+    const selected = counselors.find((c) => c.id === formData.counselorId);
+    const name = selected?.fullName;
+
+    if (!formData.counselorId || !selected) {
+      return {
+        assignedCounselorId: undefined,
+        assignedCounselorName: undefined,
+        proposedCounselorId: null,
+        proposedCounselorName: null,
+        assignmentStatus: 'none',
+        status: formData.status as CaseStatus,
+      };
+    }
+
+    if (forceAssign) {
+      return {
+        assignedCounselorId: formData.counselorId,
+        assignedCounselorName: name,
+        proposedCounselorId: null,
+        proposedCounselorName: null,
+        assignmentStatus: 'forced',
+        status:
+          formData.status === 'waiting' ? 'active' : (formData.status as CaseStatus),
+      };
+    }
+
+    // Propose: keep waiting until counselor accepts
+    return {
+      assignedCounselorId: undefined,
+      assignedCounselorName: undefined,
+      proposedCounselorId: formData.counselorId,
+      proposedCounselorName: name ?? null,
+      assignmentStatus: 'pending',
+      status: 'waiting',
+    };
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
-    // Auto-generate title from counseled name
-    const generatedTitle = `${formData.counseledName.trim()} - Caz`;
+    const firstName = formData.firstName.trim();
+    const lastName = formData.lastName.trim();
+    const counseledName = composeDisplayName(firstName, lastName);
+    const generatedTitle = `${counseledName} - Caz`;
+    const assignment = buildAssignmentFields();
 
     onSubmit({
       title: generatedTitle,
-      counseledName: formData.counseledName.trim(),
+      firstName,
+      lastName,
+      counseledName,
       age: Number(formData.age),
       sex: formData.sex,
       civilStatus: formData.civilStatus as CivilStatus,
       issueTypes: formData.issueTypes,
-      phoneNumber: formData.phoneNumber.trim(),
+      phoneNumber: toE164RoPhone(formData.phoneNumber),
       description: formData.description.trim(),
-      status: formData.status as CaseStatus,
-      assignedCounselorId: formData.assignedCounselorId || undefined,
-      assignedCounselorName: formData.assignedCounselorId 
-        ? counselors.find(c => c.id === formData.assignedCounselorId)?.fullName
-        : undefined
+      referralSource: formData.referralSource || null,
+      priority: formData.priority,
+      ...assignment,
     });
 
     onClose();
@@ -182,67 +356,91 @@ const CaseForm: React.FC<CaseFormProps> = ({
 
   const handleClose = () => {
     setFormData({
-      counseledName: '',
+      firstName: '',
+      lastName: '',
       sex: 'masculin',
       age: '',
       civilStatus: 'unmarried',
       issueTypes: [],
       phoneNumber: '',
       description: '',
+      referralSource: '',
+      priority: 'normal',
       status: 'waiting',
-      assignedCounselorId: ''
+      counselorId: '',
     });
+    setForceAssign(false);
+    setCounselorTouched(false);
     setErrors({});
     onClose();
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={handleClose} 
-      maxWidth="md" 
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="md"
       fullWidth
       fullScreen={false}
       sx={{
         '& .MuiDialog-paper': {
           m: { xs: 1, sm: 2 },
-          maxHeight: { xs: '95vh', sm: '90vh' }
-        }
+          maxHeight: { xs: '95vh', sm: '90vh' },
+        },
       }}
     >
-      <DialogTitle sx={{ 
-        fontSize: { xs: '1.25rem', sm: '1.5rem' },
-        pb: { xs: 1, sm: 2 }
-      }}>
+      <DialogTitle
+        sx={{
+          fontSize: { xs: '1.25rem', sm: '1.5rem' },
+          pb: { xs: 1, sm: 2 },
+        }}
+      >
         {caseData ? t.cases.editCase : t.cases.createCase}
       </DialogTitle>
       <form onSubmit={handleSubmit}>
-        <DialogContent sx={{ 
-          px: { xs: 1.5, sm: 3 },
-          py: { xs: 1, sm: 2 }
-        }}>
-          <Box sx={{ 
-            display: "flex", 
-            flexDirection: "column", 
-            gap: { xs: 1.5, sm: 2 }, 
-            mt: 1 
-          }}>
-            <Box sx={{ 
-              display: "flex", 
-              flexDirection: { xs: 'column', sm: 'row' },
-              gap: { xs: 1.5, sm: 2 }
-            }}>
+        <DialogContent
+          sx={{
+            px: { xs: 1.5, sm: 3 },
+            py: { xs: 1, sm: 2 },
+          }}
+        >
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 }, pt: 1 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                gap: { xs: 1.5, sm: 2 },
+              }}
+            >
               <TextField
                 fullWidth
-                label={t.cases.counseledName}
-                value={formData.counseledName}
-                onChange={handleChange('counseledName')}
-                error={!!errors.counseledName}
-                helperText={errors.counseledName}
+                label={t.cases.lastName}
+                value={formData.lastName}
+                onChange={handleChange('lastName')}
+                error={!!errors.lastName}
+                helperText={errors.lastName}
                 required
                 size="small"
               />
-              
+              <TextField
+                fullWidth
+                label={t.cases.firstName}
+                value={formData.firstName}
+                onChange={handleChange('firstName')}
+                error={!!errors.firstName}
+                helperText={errors.firstName}
+                required
+                size="small"
+              />
+            </Box>
+
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                gap: { xs: 1.5, sm: 2 },
+              }}
+            >
               <TextField
                 fullWidth
                 label={t.cases.age}
@@ -252,30 +450,22 @@ const CaseForm: React.FC<CaseFormProps> = ({
                 error={!!errors.age}
                 helperText={errors.age}
                 required
-                inputProps={{ min: 1, max: 120 }}
                 size="small"
-                sx={{ maxWidth: { xs: '100%', sm: '150px' } }}
               />
-            </Box>
-            
-            <Box sx={{ 
-              display: "flex", 
-              flexDirection: { xs: 'column', sm: 'row' },
-              gap: { xs: 1.5, sm: 2 }
-            }}>
-              <FormControl fullWidth required size="small">
-                <InputLabel>{t.cases.sex || 'Sex'}</InputLabel>
+
+              <FormControl fullWidth size="small">
+                <InputLabel>{t.cases.sex}</InputLabel>
                 <Select
                   value={formData.sex}
                   onChange={handleChange('sex')}
-                  label={t.cases.sex || 'Sex'}
+                  label={t.cases.sex}
                 >
-                  <MenuItem value="masculin">{t.cases.sexMasculin || 'Masculin'}</MenuItem>
-                  <MenuItem value="feminin">{t.cases.sexFeminin || 'Feminin'}</MenuItem>
+                  <MenuItem value="masculin">{t.cases.sexMasculin}</MenuItem>
+                  <MenuItem value="feminin">{t.cases.sexFeminin}</MenuItem>
                 </Select>
               </FormControl>
-              
-              <FormControl fullWidth required size="small">
+
+              <FormControl fullWidth size="small">
                 <InputLabel>{t.cases.civilStatus}</InputLabel>
                 <Select
                   value={formData.civilStatus}
@@ -289,36 +479,17 @@ const CaseForm: React.FC<CaseFormProps> = ({
                   ))}
                 </Select>
               </FormControl>
-              
-              <FormControl fullWidth required size="small">
-                <InputLabel>{t.cases.status}</InputLabel>
-                <Select
-                  value={formData.status}
-                  onChange={handleChange('status')}
-                  label={t.cases.status}
-                >
-                  {statusOptions.map((status) => (
-                    <MenuItem key={status} value={status}>
-                      {translateStatus(status)}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
             </Box>
-            
+
             <Box>
-              <Typography 
-                variant="subtitle2" 
+              <Typography
+                variant="subtitle2"
                 gutterBottom
                 sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
               >
                 {t.cases.issueTypes} *
               </Typography>
-              <Box sx={{ 
-                display: 'flex', 
-                flexWrap: 'wrap', 
-                gap: { xs: 0.75, sm: 1 }
-              }}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 0.75, sm: 1 } }}>
                 {issueTypeOptions.map((issueType) => (
                   <Chip
                     key={issueType}
@@ -327,91 +498,150 @@ const CaseForm: React.FC<CaseFormProps> = ({
                     color={formData.issueTypes.includes(issueType) ? 'primary' : 'default'}
                     variant={formData.issueTypes.includes(issueType) ? 'filled' : 'outlined'}
                     size="small"
-                    sx={{ 
-                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                      minHeight: { xs: '28px', sm: '32px' }
-                    }}
                   />
                 ))}
               </Box>
               {errors.issueTypes && (
-                <Typography 
-                  color="error" 
-                  variant="caption"
-                  sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
-                >
+                <Typography color="error" variant="caption">
                   {errors.issueTypes}
                 </Typography>
               )}
             </Box>
-            
-            <Box sx={{ 
-              display: "flex", 
-              flexDirection: { xs: 'column', sm: 'row' },
-              gap: { xs: 1.5, sm: 2 }
-            }}>
+
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                gap: { xs: 1.5, sm: 2 },
+              }}
+            >
+              <FormControl fullWidth size="small">
+                <InputLabel>{t.cases.referralSourceOptional}</InputLabel>
+                <Select
+                  value={formData.referralSource}
+                  onChange={handleChange('referralSource')}
+                  label={t.cases.referralSourceOptional}
+                >
+                  <MenuItem value="">
+                    <em>{t.referralSources.none}</em>
+                  </MenuItem>
+                  {REFERRAL_SOURCE_OPTIONS.map((source) => (
+                    <MenuItem key={source} value={source}>
+                      {t.referralSources[source]}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl fullWidth size="small">
+                <InputLabel>{t.cases.priority}</InputLabel>
+                <Select
+                  value={formData.priority}
+                  onChange={handleChange('priority')}
+                  label={t.cases.priority}
+                >
+                  <MenuItem value="normal">{t.casePriority.normal}</MenuItem>
+                  <MenuItem value="high">{t.casePriority.high}</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+
+            <FormControl fullWidth size="small">
+              <InputLabel>{t.cases.status}</InputLabel>
+              <Select
+                value={formData.status}
+                onChange={handleChange('status')}
+                label={t.cases.status}
+              >
+                {statusOptions.map((status) => (
+                  <MenuItem key={status} value={status}>
+                    {translateStatus(status)}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                gap: { xs: 1.5, sm: 2 },
+              }}
+            >
               <TextField
                 fullWidth
                 label={t.cases.phoneNumber}
                 value={formData.phoneNumber}
                 onChange={handleChange('phoneNumber')}
                 error={!!errors.phoneNumber}
-                helperText={errors.phoneNumber}
+                helperText={errors.phoneNumber || 'Introdu 9 cifre după +40'}
                 required
                 size="small"
+                placeholder="700 123 456"
+                InputProps={{
+                  startAdornment: (
+                    <Typography sx={{ mr: 1, color: 'text.secondary' }}>+40</Typography>
+                  ),
+                }}
               />
-              
-              <FormControl 
-                fullWidth 
-                error={!!errors.assignedCounselorId}
-                size="small"
-              >
+
+              <FormControl fullWidth error={!!errors.counselorId} size="small">
                 <InputLabel sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                   {t.cases.assignedCounselor}
-                  {(formData.status === 'active' || formData.status === 'finished') && ' *'}
+                  {(formData.status === 'active' ||
+                    formData.status === 'finished' ||
+                    forceAssign) &&
+                    ' *'}
                 </InputLabel>
-                  <Select
-                    value={formData.assignedCounselorId}
-                    onChange={handleChange('assignedCounselorId')}
-                    label={t.cases.assignedCounselor}
-                  >
+                <Select
+                  value={formData.counselorId}
+                  onChange={(event) => {
+                    setCounselorTouched(true);
+                    handleChange('counselorId')(event);
+                  }}
+                  label={t.cases.assignedCounselor}
+                >
                   <MenuItem value="">
                     <em>Nealocat</em>
                   </MenuItem>
-                  {counselors.map((counselor) => (
+                  {rankedCounselors.map((counselor, index) => (
                     <MenuItem key={counselor.id} value={counselor.id}>
-                      {counselor.fullName}
+                      {formatCounselorOptionLabel(counselor, { recommended: index === 0 })}
                     </MenuItem>
                   ))}
                 </Select>
-                {errors.assignedCounselorId ? (
-                  <Typography 
-                    variant="caption" 
-                    color="error" 
-                    sx={{ 
-                      mt: 0.5, 
-                      ml: 1.75,
-                      fontSize: { xs: '0.7rem', sm: '0.75rem' }
-                    }}
+                {errors.counselorId && (
+                  <Typography
+                    variant="caption"
+                    color="error"
+                    sx={{ mt: 0.5, ml: 1.75, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
                   >
-                    {errors.assignedCounselorId}
+                    {errors.counselorId}
                   </Typography>
-                ) : (formData.status === 'active' || formData.status === 'finished') ? (
-                  <Typography 
-                    variant="caption" 
-                    color="text.secondary" 
-                    sx={{ 
-                      mt: 0.5, 
-                      ml: 1.75,
-                      fontSize: { xs: '0.7rem', sm: '0.75rem' }
-                    }}
-                  >
-                    Required for active and finished cases
-                  </Typography>
-                ) : null}
+                )}
               </FormControl>
             </Box>
-            
+
+            {formData.counselorId && (
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={forceAssign}
+                    onChange={(e) => setForceAssign(e.target.checked)}
+                    size="small"
+                  />
+                }
+                label={
+                  <Box>
+                    <Typography variant="body2">{t.assignments.forceAssign}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {t.assignments.forceAssignHint}
+                    </Typography>
+                  </Box>
+                }
+              />
+            )}
+
             <TextField
               fullWidth
               label={t.cases.description}
@@ -427,41 +657,40 @@ const CaseForm: React.FC<CaseFormProps> = ({
             />
           </Box>
         </DialogContent>
-        
-        <DialogActions sx={{ 
-          px: { xs: 1.5, sm: 3 },
-          py: { xs: 1, sm: 2 },
-          flexDirection: { xs: 'column-reverse', sm: 'row' },
-          gap: { xs: 1, sm: 0 }
-        }}>
-          <Button 
+
+        <DialogActions
+          sx={{
+            px: { xs: 1.5, sm: 3 },
+            py: { xs: 1, sm: 2 },
+            flexDirection: { xs: 'column-reverse', sm: 'row' },
+            gap: { xs: 1, sm: 0 },
+          }}
+        >
+          <Button
             onClick={handleClose}
-            fullWidth={false}
-            sx={{ 
-              width: { xs: '100%', sm: 'auto' },
-              order: { xs: 2, sm: 1 }
-            }}
+            sx={{ width: { xs: '100%', sm: 'auto' }, order: { xs: 2, sm: 1 } }}
           >
             {t.common.cancel}
           </Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             variant="contained"
-            fullWidth={false}
             disabled={
-              !formData.counseledName.trim() ||
+              !formData.lastName.trim() ||
+              !formData.firstName.trim() ||
               !formData.age ||
               Number(formData.age) < 1 ||
               Number(formData.age) > 120 ||
               formData.issueTypes.length === 0 ||
               !formData.phoneNumber.trim() ||
+              !isValidRoPhoneDigits(formData.phoneNumber) ||
               !formData.description.trim() ||
-              ((formData.status === 'active' || formData.status === 'finished') && !formData.assignedCounselorId)
+              ((formData.status === 'active' ||
+                formData.status === 'finished' ||
+                forceAssign) &&
+                !formData.counselorId)
             }
-            sx={{ 
-              width: { xs: '100%', sm: 'auto' },
-              order: { xs: 1, sm: 2 }
-            }}
+            sx={{ width: { xs: '100%', sm: 'auto' }, order: { xs: 1, sm: 2 } }}
           >
             {caseData ? t.common.save : t.common.add}
           </Button>

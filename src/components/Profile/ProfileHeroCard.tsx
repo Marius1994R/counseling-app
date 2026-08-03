@@ -84,6 +84,11 @@ const ProfileHeroCard: React.FC<ProfileHeroCardProps> = ({
             <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700">
               {getRoleLabel(role)}
             </span>
+            {counselor.sex && (
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                {counselor.sex === 'feminin' ? t.cases.sexFeminin : t.cases.sexMasculin}
+              </span>
+            )}
             <span
               className={`rounded-full px-3 py-1 text-xs font-medium ${getWorkloadBadgeClass(counselor.workloadLevel)}`}
             >

@@ -1,6 +1,59 @@
-import { Case, Counselor } from '../../types';
+import { Case, Counselor, Sex } from '../../types';
+import { normalizeSpecialties } from '../Profile/profileUtils';
+import { resolvePersonName } from '../../utils/nameUtils';
 
 export type WorkloadFilter = 'all' | 'low' | 'moderate' | 'high';
+
+export function parseCounselorBirthDate(value: unknown): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value === 'object' && value !== null && 'toDate' in value) {
+    const maybeTimestamp = value as { toDate?: () => Date };
+    if (typeof maybeTimestamp.toDate === 'function') {
+      try {
+        // Must call as method — unbound toDate() loses `this` and throws toMillis
+        const date = maybeTimestamp.toDate();
+        return Number.isNaN(date.getTime()) ? null : date;
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+/** Map a Firestore counselor doc into the Counselor type (legacy fullName safe). */
+export function mapFirestoreCounselor(
+  id: string,
+  data: Record<string, any>,
+  overrides?: Partial<Counselor>
+): Counselor {
+  const name = resolvePersonName({
+    firstName: data.firstName,
+    lastName: data.lastName,
+    fullName: data.fullName,
+  });
+
+  return {
+    id,
+    fullName: name.fullName,
+    firstName: name.firstName || undefined,
+    lastName: name.lastName || undefined,
+    email: data.email || '',
+    phoneNumber: data.phoneNumber || '',
+    sex: data.sex === 'feminin' || data.sex === 'masculin' ? (data.sex as Sex) : undefined,
+    birthDate: parseCounselorBirthDate(data.birthDate),
+    specialties: normalizeSpecialties(data.specialties || []),
+    specialtyCategories: data.specialtyCategories || undefined,
+    activeCases: data.activeCases || 0,
+    workloadLevel: data.workloadLevel || 'low',
+    linkedUserId: data.linkedUserId || undefined,
+    avatarUrl: data.avatarUrl || undefined,
+    createdAt: data.createdAt?.toDate?.() ?? new Date(),
+    updatedAt: data.updatedAt?.toDate?.() ?? new Date(),
+    ...overrides,
+  };
+}
 
 export function computeWorkload(activeCases: number): {
   activeCases: number;

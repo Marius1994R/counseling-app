@@ -145,9 +145,6 @@ const AdminTools: React.FC = () => {
             : t.admin.users.deactivateUser
         }
         loading={confirmLoading}
-        loadingMessage={
-          pendingConfirm?.type === 'deleteUser' ? t.admin.users.deleteUserInProgress : undefined
-        }
         onClose={() => {
           if (!confirmLoading) setPendingConfirm(null);
         }}
@@ -157,23 +154,22 @@ const AdminTools: React.FC = () => {
       <AdminUserDialogs
         createDialogOpen={data.createDialogOpen}
         editDialogOpen={data.editDialogOpen}
-        showNextStepDialog={data.showNextStepDialog}
+        createUserLoading={data.createUserLoading}
         createUserData={data.createUserData}
         editUserData={data.editUserData}
         selectedUser={data.selectedUser}
         currentUserRole={data.currentUser?.role}
         onCloseCreate={() => {
+          if (data.createUserLoading) return;
           data.setCreateDialogOpen(false);
           data.setCreateUserData({ email: '', password: '', fullName: '', role: 'counselor' });
         }}
         onCloseEdit={() => data.setEditDialogOpen(false)}
-        onCloseNextStep={data.handleSkipCounselorLink}
         onCreateUserDataChange={data.setCreateUserData}
         onEditUserDataChange={data.setEditUserData}
         onCreateUser={data.handleCreateUser}
         onEditUser={data.handleEditUser}
         onCopyCredentials={data.copyUserCredentials}
-        onNextStepToCounselor={data.handleNextStepToCounselor}
       />
 
       <CounselorForm
@@ -182,6 +178,9 @@ const AdminTools: React.FC = () => {
         onSubmit={data.handleCounselorSubmit}
         counselorData={data.editingCounselor}
         preselectedUserId={data.editingCounselor ? undefined : data.newlyCreatedUserId || undefined}
+        requireProfile={Boolean(data.newlyCreatedUserId && data.pendingProfileRequired)}
+        allowSkipProfile={Boolean(data.newlyCreatedUserId && !data.pendingProfileRequired)}
+        onSkipProfile={data.handleSkipCounselorProfile}
       />
 
       <CaseForm
@@ -189,7 +188,8 @@ const AdminTools: React.FC = () => {
         onClose={data.handleCloseCaseForm}
         onSubmit={data.handleCaseSubmit}
         caseData={data.editingCase}
-        counselors={data.counselors.map((c) => ({ id: c.id, fullName: c.fullName }))}
+        counselors={data.counselors}
+        inactiveUserIds={data.users.filter((u) => !u.isActive).map((u) => u.id)}
       />
 
       <SessionReport

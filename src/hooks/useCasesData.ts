@@ -7,7 +7,7 @@ import { db } from '../firebase';
 import { Case, CaseStatus, IssueType } from '../types';
 import { logCaseStatusChange } from '../utils/activityLogger';
 import { t } from '../utils/translations';
-import { getStatusFilterFromUrl } from '../components/Cases/casesUtils';
+import { getStatusFilterFromUrl, mapFirestoreCase, isCaseVisibleToCounselor } from '../components/Cases/casesUtils';
 
 const COMMON_ISSUE_TYPES: IssueType[] = ['spiritual', 'relational', 'personal'];
 
@@ -123,31 +123,8 @@ export function useCasesData() {
 
       const casesData: Case[] = [];
       casesSnapshot.forEach((caseDoc) => {
-        const data = caseDoc.data();
-        const caseItem: Case = {
-          id: caseDoc.id,
-          title: data.title,
-          counseledName: data.counseledName,
-          age: data.age,
-          sex: data.sex,
-          civilStatus: data.civilStatus,
-          issueTypes: data.issueTypes || [],
-          phoneNumber: data.phoneNumber || '',
-          description: data.description,
-          status: data.status,
-          assignedCounselorId: data.assignedCounselorId,
-          assignedCounselorName: data.assignedCounselorName,
-          meetingFeedback: data.meetingFeedback || '',
-          createdAt: data.createdAt.toDate(),
-          updatedAt: data.updatedAt.toDate(),
-          createdBy: data.createdBy || '',
-        };
-
-        const shouldInclude = counselorId
-          ? caseItem.assignedCounselorId === counselorId
-          : caseItem.assignedCounselorId === currentUser.id;
-
-        if (shouldInclude) {
+        const caseItem = mapFirestoreCase(caseDoc.id, caseDoc.data());
+        if (isCaseVisibleToCounselor(caseItem, counselorId, currentUser.id)) {
           casesData.push(caseItem);
         }
       });

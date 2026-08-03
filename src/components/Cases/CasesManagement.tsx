@@ -25,15 +25,18 @@ import {
 import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy, where } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase';
-import { logCaseAssigned } from '../../utils/activityLogger';
+import { logCaseAssigned, logCaseProposed } from '../../utils/activityLogger';
 import CaseForm from './CaseForm';
 import CaseCard from './CaseCard';
-import { Case, CaseStatus, IssueType } from '../../types';
+import { Case, CaseStatus, IssueType, Counselor } from '../../types';
+import { mapFirestoreCase } from './casesUtils';
+import { mapFirestoreCounselor } from '../Counselors/counselorsUtils';
 
 const CasesManagement: React.FC = () => {
   const { currentUser } = useAuth();
   const [cases, setCases] = useState<Case[]>([]);
-  const [counselors, setCounselors] = useState<{ id: string; fullName: string; linkedUserId?: string }[]>([]);
+  const [counselors, setCounselors] = useState<Counselor[]>([]);
+  const [inactiveUserIds, setInactiveUserIds] = useState<string[]>([]);
   const [filteredCases, setFilteredCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -57,25 +60,8 @@ const CasesManagement: React.FC = () => {
         const casesSnapshot = await getDocs(casesQuery);
         
         const casesData: Case[] = [];
-        casesSnapshot.forEach((doc) => {
-          const data = doc.data();
-          casesData.push({
-            id: doc.id,
-            title: data.title,
-            counseledName: data.counseledName,
-            age: data.age,
-            sex: data.sex,
-            civilStatus: data.civilStatus,
-            issueTypes: data.issueTypes,
-            phoneNumber: data.phoneNumber,
-            description: data.description || '',
-            status: data.status,
-            assignedCounselorId: data.assignedCounselorId,
-            assignedCounselorName: data.assignedCounselorName,
-            createdAt: data.createdAt.toDate(),
-            updatedAt: data.updatedAt.toDate(),
-            createdBy: data.createdBy
-          });
+        casesSnapshot.forEach((docSnap) => {
+          casesData.push(mapFirestoreCase(docSnap.id, docSnap.data()));
         });
         
         // Load counselors
@@ -83,19 +69,25 @@ const CasesManagement: React.FC = () => {
         const counselorsQuery = query(counselorsRef, orderBy('fullName', 'asc'));
         const counselorsSnapshot = await getDocs(counselorsQuery);
         
-        const counselorsData: { id: string; fullName: string; linkedUserId?: string }[] = [];
-        counselorsSnapshot.forEach((doc) => {
-          const data = doc.data();
-          counselorsData.push({
-            id: doc.id,
-            fullName: data.fullName,
-            linkedUserId: data.linkedUserId
-          });
+        const counselorsData: Counselor[] = [];
+        counselorsSnapshot.forEach((docSnap) => {
+          counselorsData.push(
+            mapFirestoreCounselor(docSnap.id, docSnap.data(), {
+              activeCases: 0,
+              workloadLevel: 'low',
+            })
+          );
         });
         
+        const inactiveUsersSnapshot = await getDocs(
+          query(collection(db, 'users'), where('isActive', '==', false))
+        );
+        const inactiveIds = inactiveUsersSnapshot.docs.map((userDoc) => userDoc.id);
+
         setCases(casesData);
         setFilteredCases(casesData);
         setCounselors(counselorsData);
+        setInactiveUserIds(inactiveIds);
       } catch (err) {
         setError('Failed to load data');
         console.error('Data loading error:', err);
@@ -184,87 +176,97 @@ const CasesManagement: React.FC = () => {
 
   const handleFormSubmit = async (caseData: Omit<Case, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>) => {
     try {
-      // Find counselor name if counselor is assigned
-      const assignedCounselor = counselors.find(c => c.id === caseData.assignedCounselorId);
-      const assignedCounselorName = assignedCounselor ? assignedCounselor.fullName : undefined;
+      const firestorePayload = {
+        ...caseData,
+        assignedCounselorId: caseData.assignedCounselorId ?? null,
+        assignedCounselorName: caseData.assignedCounselorName ?? null,
+        proposedCounselorId: caseData.proposedCounselorId ?? null,
+        proposedCounselorName: caseData.proposedCounselorName ?? null,
+        assignmentStatus: caseData.assignmentStatus ?? 'none',
+        referralSource: caseData.referralSource ?? null,
+        priority: caseData.priority ?? 'normal',
+        firstName: caseData.firstName ?? null,
+        lastName: caseData.lastName ?? null,
+        counseledName: caseData.counseledName,
+        updatedAt: new Date(),
+      };
 
-      if (editingCase) {
-        // Check if counselor assignment changed
-        const counselorChanged = editingCase.assignedCounselorId !== caseData.assignedCounselorId && caseData.assignedCounselorId;
-        
-        // Update existing case in Firebase
-        const caseRef = doc(db, 'cases', editingCase.id);
-        await updateDoc(caseRef, {
-          ...caseData,
-          assignedCounselorId: caseData.assignedCounselorId || null,
-          assignedCounselorName: assignedCounselorName || null,
-          updatedAt: new Date()
-        });
-        
-        // Log case assignment if counselor was changed/assigned
-        if (counselorChanged && currentUser && assignedCounselor) {
-          // Get the counselor's linked user ID
-          const assignedToUserId = assignedCounselor.linkedUserId || caseData.assignedCounselorId!;
-          
-          
-          await logCaseAssigned(
-            editingCase.id,
-            editingCase.title,
+      const notify = async (
+        caseId: string,
+        title: string,
+        counselorId: string | undefined,
+        mode: 'proposed' | 'assigned'
+      ) => {
+        if (!counselorId || !currentUser) return;
+        const counselor = counselors.find((c) => c.id === counselorId);
+        const assignedToUserId = counselor?.linkedUserId || counselorId;
+        const assignedToUserName = counselor?.fullName || 'Unknown Counselor';
+        if (mode === 'proposed') {
+          await logCaseProposed(
+            caseId,
+            title,
             assignedToUserId,
-            assignedCounselorName || 'Unknown Counselor',
+            assignedToUserName,
+            currentUser.id,
+            currentUser.fullName || currentUser.email || 'Unknown User'
+          );
+        } else {
+          await logCaseAssigned(
+            caseId,
+            title,
+            assignedToUserId,
+            assignedToUserName,
             currentUser.id,
             currentUser.fullName || currentUser.email || 'Unknown User'
           );
         }
-        
-        // Update local state
+      };
+
+      if (editingCase) {
+        await updateDoc(doc(db, 'cases', editingCase.id), firestorePayload);
+
+        if (
+          caseData.assignmentStatus === 'pending' &&
+          caseData.proposedCounselorId &&
+          caseData.proposedCounselorId !== editingCase.proposedCounselorId
+        ) {
+          await notify(editingCase.id, editingCase.title, caseData.proposedCounselorId, 'proposed');
+        } else if (
+          caseData.assignedCounselorId &&
+          caseData.assignedCounselorId !== editingCase.assignedCounselorId
+        ) {
+          await notify(editingCase.id, editingCase.title, caseData.assignedCounselorId, 'assigned');
+        }
+
         const updatedCase: Case = {
           ...editingCase,
           ...caseData,
-          assignedCounselorName: assignedCounselorName,
-          updatedAt: new Date()
-        };
-        setCases(prev => prev.map(caseItem => 
-          caseItem.id === editingCase.id ? updatedCase : caseItem
-        ));
-      } else {
-        // Create new case in Firebase
-        const casesRef = collection(db, 'cases');
-        const docRef = await addDoc(casesRef, {
-          ...caseData,
-          assignedCounselorId: caseData.assignedCounselorId || null,
-          assignedCounselorName: assignedCounselorName || null,
-          createdAt: new Date(),
           updatedAt: new Date(),
-          createdBy: currentUser?.id || 'unknown'
+        };
+        setCases((prev) =>
+          prev.map((caseItem) => (caseItem.id === editingCase.id ? updatedCase : caseItem))
+        );
+      } else {
+        const docRef = await addDoc(collection(db, 'cases'), {
+          ...firestorePayload,
+          createdAt: new Date(),
+          createdBy: currentUser?.id || 'unknown',
         });
-        
-        // Log case assignment if a counselor was assigned
-        if (caseData.assignedCounselorId && currentUser && assignedCounselor) {
-          // Get the counselor's linked user ID
-          const assignedToUserId = assignedCounselor.linkedUserId || caseData.assignedCounselorId;
-          
-          
-          await logCaseAssigned(
-            docRef.id,
-            caseData.title,
-            assignedToUserId,
-            assignedCounselorName || 'Unknown Counselor',
-            currentUser.id,
-            currentUser.fullName || currentUser.email || 'Unknown User'
-          );
+
+        if (caseData.assignmentStatus === 'pending' && caseData.proposedCounselorId) {
+          await notify(docRef.id, caseData.title, caseData.proposedCounselorId, 'proposed');
+        } else if (caseData.assignedCounselorId) {
+          await notify(docRef.id, caseData.title, caseData.assignedCounselorId, 'assigned');
         }
-        
-        // Update local state
+
         const newCase: Case = {
           ...caseData,
           id: docRef.id,
-          assignedCounselorName: assignedCounselorName,
           createdAt: new Date(),
           updatedAt: new Date(),
-          createdBy: currentUser?.id || 'unknown'
+          createdBy: currentUser?.id || 'unknown',
         };
-        setCases(prev => [newCase, ...prev]);
+        setCases((prev) => [newCase, ...prev]);
       }
       setFormOpen(false);
       setEditingCase(null);
@@ -492,6 +494,7 @@ const CasesManagement: React.FC = () => {
         onSubmit={handleFormSubmit}
         caseData={editingCase}
         counselors={counselors}
+        inactiveUserIds={inactiveUserIds}
       />
     </Container>
   );

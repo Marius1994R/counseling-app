@@ -236,6 +236,15 @@ const CaseCard: React.FC<CaseCardProps> = ({
               flexDirection={{ xs: 'column', sm: 'row' }}
               alignSelf={{ xs: 'flex-start', sm: 'flex-start' }}
             >
+              {caseData.priority === 'high' && (
+                <Chip
+                  label={t.cases.priorityBadge}
+                  color="error"
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}
+                />
+              )}
               <Chip
                 label={caseData.status.charAt(0).toUpperCase() + caseData.status.slice(1)}
                 color={getStatusColor(caseData.status)}
@@ -329,6 +338,19 @@ const CaseCard: React.FC<CaseCardProps> = ({
               {translateCivilStatus(caseData.civilStatus, caseData.sex)}
             </Typography>
           </Box>
+
+          {caseData.referralSource && (
+            <Box mb={2}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+              >
+                {t.cases.referralSource}:{' '}
+                {t.referralSources[caseData.referralSource] ?? caseData.referralSource}
+              </Typography>
+            </Box>
+          )}
 
           {caseData.assignedCounselorName && (
             <Box mb={2}>

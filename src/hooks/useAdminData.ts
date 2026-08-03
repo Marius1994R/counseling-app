@@ -15,8 +15,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useDashboardDataContext } from '../contexts/DashboardDataContext';
 import { db } from '../firebase';
 import { Case, Counselor, User, UserRole } from '../types';
-import { logCaseAssigned } from '../utils/activityLogger';
+import { logCaseAssigned, logCaseProposed } from '../utils/activityLogger';
 import { t } from '../utils/translations';
+import { mapFirestoreCase } from '../components/Cases/casesUtils';
 import {
   CreateUserData,
   AdminTab,
@@ -29,9 +30,8 @@ import {
   filterAdminCases,
   enrichCounselorsList,
 } from '../components/Admin/adminUtils';
-import { countByWorkload, dedupeCounselors } from '../components/Counselors/counselorsUtils';
+import { countByWorkload, dedupeCounselors, mapFirestoreCounselor } from '../components/Counselors/counselorsUtils';
 import { syncLinkedUserAvatar } from '../utils/avatarUtils';
-import { normalizeSpecialties } from '../components/Profile/profileUtils';
 import { assertUserHasRole } from '../utils/roleAuth';
 
 export function useAdminData() {
@@ -57,6 +57,7 @@ export function useAdminData() {
   });
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createUserLoading, setCreateUserLoading] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [createUserData, setCreateUserData] = useState<CreateUserData>({
@@ -70,7 +71,7 @@ export function useAdminData() {
     role: 'counselor',
   });
   const [newlyCreatedUserId, setNewlyCreatedUserId] = useState<string | null>(null);
-  const [showNextStepDialog, setShowNextStepDialog] = useState(false);
+  const [pendingProfileRequired, setPendingProfileRequired] = useState(false);
 
   const [counselors, setCounselors] = useState<Counselor[]>([]);
   const [counselorCases, setCounselorCases] = useState<Case[]>([]);
@@ -173,42 +174,17 @@ export function useAdminData() {
 
       const casesData: Case[] = [];
       casesSnapshot.forEach((caseDoc) => {
-        const data = caseDoc.data();
-        casesData.push({
-          id: caseDoc.id,
-          title: data.title,
-          counseledName: data.counseledName,
-          age: data.age,
-          sex: data.sex,
-          civilStatus: data.civilStatus,
-          issueTypes: data.issueTypes || [],
-          phoneNumber: data.phoneNumber || '',
-          description: data.description,
-          status: data.status,
-          assignedCounselorId: data.assignedCounselorId,
-          assignedCounselorName: data.assignedCounselorName,
-          createdAt: data.createdAt.toDate(),
-          updatedAt: data.updatedAt.toDate(),
-          createdBy: data.createdBy || '',
-        });
+        casesData.push(mapFirestoreCase(caseDoc.id, caseDoc.data()));
       });
 
       const counselorsData: Counselor[] = [];
       counselorsSnapshot.forEach((counselorDoc) => {
-        const data = counselorDoc.data();
-        counselorsData.push({
-          id: counselorDoc.id,
-          fullName: data.fullName,
-          email: data.email,
-          phoneNumber: data.phoneNumber || '',
-          specialties: normalizeSpecialties(data.specialties || []),
-          activeCases: 0,
-          workloadLevel: 'low',
-          linkedUserId: data.linkedUserId || undefined,
-          avatarUrl: data.avatarUrl || undefined,
-          createdAt: data.createdAt.toDate(),
-          updatedAt: data.updatedAt.toDate(),
-        });
+        counselorsData.push(
+          mapFirestoreCounselor(counselorDoc.id, counselorDoc.data(), {
+            activeCases: 0,
+            workloadLevel: 'low',
+          })
+        );
       });
 
       setCounselorCases(casesData);
@@ -232,24 +208,7 @@ export function useAdminData() {
 
       const casesData: Case[] = [];
       casesSnapshot.forEach((caseDoc) => {
-        const data = caseDoc.data();
-        casesData.push({
-          id: caseDoc.id,
-          title: data.title,
-          counseledName: data.counseledName,
-          age: data.age,
-          sex: data.sex,
-          civilStatus: data.civilStatus,
-          issueTypes: data.issueTypes || [],
-          phoneNumber: data.phoneNumber || '',
-          description: data.description,
-          status: data.status,
-          assignedCounselorId: data.assignedCounselorId,
-          assignedCounselorName: data.assignedCounselorName,
-          createdAt: data.createdAt.toDate(),
-          updatedAt: data.updatedAt.toDate(),
-          createdBy: data.createdBy || '',
-        });
+        casesData.push(mapFirestoreCase(caseDoc.id, caseDoc.data()));
       });
 
       setAllCases(casesData);
@@ -315,9 +274,14 @@ export function useAdminData() {
         if (editingCounselor) {
           await updateDoc(doc(db, 'counselors', editingCounselor.id), {
             fullName: counselorData.fullName,
+            firstName: counselorData.firstName ?? null,
+            lastName: counselorData.lastName ?? null,
             email: counselorData.email,
             phoneNumber: counselorData.phoneNumber,
+            sex: counselorData.sex ?? null,
+            birthDate: counselorData.birthDate ?? null,
             specialties: counselorData.specialties,
+            specialtyCategories: counselorData.specialtyCategories ?? null,
             linkedUserId: counselorData.linkedUserId ?? null,
             avatarUrl: counselorData.avatarUrl ?? null,
             updatedAt: new Date(),
@@ -327,9 +291,14 @@ export function useAdminData() {
         } else {
           await addDoc(collection(db, 'counselors'), {
             fullName: counselorData.fullName,
+            firstName: counselorData.firstName ?? null,
+            lastName: counselorData.lastName ?? null,
             email: counselorData.email,
             phoneNumber: counselorData.phoneNumber,
+            sex: counselorData.sex ?? null,
+            birthDate: counselorData.birthDate ?? null,
             specialties: counselorData.specialties,
+            specialtyCategories: counselorData.specialtyCategories ?? null,
             linkedUserId: counselorData.linkedUserId ?? null,
             avatarUrl: counselorData.avatarUrl ?? null,
             createdAt: new Date(),
@@ -341,6 +310,7 @@ export function useAdminData() {
         setCounselorFormOpen(false);
         setEditingCounselor(null);
         setNewlyCreatedUserId(null);
+        setPendingProfileRequired(false);
         loadCounselors();
       } catch (error) {
         console.error('Error saving counselor:', error);
@@ -379,51 +349,114 @@ export function useAdminData() {
       try {
         await requireAdminAccess();
 
-        if (editingCase) {
-          const counselorChanged =
-            editingCase.assignedCounselorId !== caseData.assignedCounselorId &&
-            caseData.assignedCounselorId;
+        const firestorePayload = {
+          ...caseData,
+          assignedCounselorId: caseData.assignedCounselorId ?? null,
+          assignedCounselorName: caseData.assignedCounselorName ?? null,
+          proposedCounselorId: caseData.proposedCounselorId ?? null,
+          proposedCounselorName: caseData.proposedCounselorName ?? null,
+          assignmentStatus: caseData.assignmentStatus ?? 'none',
+          referralSource: caseData.referralSource ?? null,
+          priority: caseData.priority ?? 'normal',
+          firstName: caseData.firstName ?? null,
+          lastName: caseData.lastName ?? null,
+          counseledName: caseData.counseledName,
+          updatedAt: new Date(),
+        };
 
-          await updateDoc(doc(db, 'cases', editingCase.id), {
-            ...caseData,
-            updatedAt: new Date(),
-          });
-
-          if (counselorChanged && caseData.assignedCounselorId && currentUser) {
-            const assignedCounselor = counselors.find((c) => c.id === caseData.assignedCounselorId);
-            const assignedToUserId =
-              assignedCounselor?.linkedUserId || caseData.assignedCounselorId;
-
-            await logCaseAssigned(
-              editingCase.id,
-              editingCase.title,
+        const notifyCounselor = async (
+          caseId: string,
+          caseTitle: string,
+          counselorId: string | undefined,
+          mode: 'proposed' | 'assigned'
+        ) => {
+          if (!counselorId || !currentUser) return;
+          const counselor = counselors.find((c) => c.id === counselorId);
+          const assignedToUserId = counselor?.linkedUserId || counselorId;
+          const assignedToUserName = counselor?.fullName || 'Unknown Counselor';
+          const byId = currentUser.id;
+          const byName = currentUser.fullName || currentUser.email || 'Unknown User';
+          if (mode === 'proposed') {
+            await logCaseProposed(
+              caseId,
+              caseTitle,
               assignedToUserId,
-              assignedCounselor?.fullName || 'Unknown Counselor',
-              currentUser.id,
-              currentUser.fullName || currentUser.email || 'Unknown User'
+              assignedToUserName,
+              byId,
+              byName
+            );
+          } else {
+            await logCaseAssigned(
+              caseId,
+              caseTitle,
+              assignedToUserId,
+              assignedToUserName,
+              byId,
+              byName
             );
           }
+        };
+
+        if (editingCase) {
+          const wasPending = editingCase.assignmentStatus === 'pending';
+          const nowPending = caseData.assignmentStatus === 'pending';
+          const nowForcedOrAssigned =
+            caseData.assignmentStatus === 'forced' ||
+            (caseData.assignmentStatus === 'accepted' && caseData.assignedCounselorId);
+          const proposalChanged =
+            nowPending &&
+            caseData.proposedCounselorId &&
+            caseData.proposedCounselorId !== editingCase.proposedCounselorId;
+          const forceChanged =
+            Boolean(caseData.assignedCounselorId) &&
+            caseData.assignedCounselorId !== editingCase.assignedCounselorId &&
+            (caseData.assignmentStatus === 'forced' ||
+              (!wasPending && Boolean(caseData.assignedCounselorId)));
+
+          await updateDoc(doc(db, 'cases', editingCase.id), firestorePayload);
+
+          if (proposalChanged) {
+            await notifyCounselor(
+              editingCase.id,
+              editingCase.title,
+              caseData.proposedCounselorId || undefined,
+              'proposed'
+            );
+          } else if (
+            forceChanged ||
+            (nowForcedOrAssigned &&
+              caseData.assignedCounselorId &&
+              caseData.assignedCounselorId !== editingCase.assignedCounselorId)
+          ) {
+            await notifyCounselor(
+              editingCase.id,
+              editingCase.title,
+              caseData.assignedCounselorId,
+              'assigned'
+            );
+          }
+
           showSnackbar(t.cases.updateSuccess, 'success');
         } else {
           const docRef = await addDoc(collection(db, 'cases'), {
-            ...caseData,
+            ...firestorePayload,
             createdBy: currentUser?.id || '',
             createdAt: new Date(),
-            updatedAt: new Date(),
           });
 
-          if (caseData.assignedCounselorId && currentUser) {
-            const assignedCounselor = counselors.find((c) => c.id === caseData.assignedCounselorId);
-            const assignedToUserId =
-              assignedCounselor?.linkedUserId || caseData.assignedCounselorId;
-
-            await logCaseAssigned(
+          if (caseData.assignmentStatus === 'pending' && caseData.proposedCounselorId) {
+            await notifyCounselor(
               docRef.id,
               caseData.title,
-              assignedToUserId,
-              assignedCounselor?.fullName || 'Unknown Counselor',
-              currentUser.id,
-              currentUser.fullName || currentUser.email || 'Unknown User'
+              caseData.proposedCounselorId,
+              'proposed'
+            );
+          } else if (caseData.assignedCounselorId) {
+            await notifyCounselor(
+              docRef.id,
+              caseData.title,
+              caseData.assignedCounselorId,
+              'assigned'
             );
           }
           showSnackbar('Caz creat cu succes', 'success');
@@ -431,6 +464,7 @@ export function useAdminData() {
         setCaseFormOpen(false);
         setEditingCase(null);
         await loadCases();
+        await loadCounselors();
         await refetchDashboard();
       } catch (error) {
         console.error('Error saving case:', error);
@@ -441,7 +475,16 @@ export function useAdminData() {
         showSnackbar(message, 'error');
       }
     },
-    [editingCase, counselors, currentUser, loadCases, requireAdminAccess, showSnackbar, refetchDashboard]
+    [
+      editingCase,
+      counselors,
+      currentUser,
+      loadCases,
+      loadCounselors,
+      requireAdminAccess,
+      showSnackbar,
+      refetchDashboard,
+    ]
   );
 
   const handleDeleteCase = useCallback(
@@ -467,17 +510,22 @@ export function useAdminData() {
 
   const handleCreateUser = useCallback(async () => {
     try {
+      setCreateUserLoading(true);
+      const createdRole = createUserData.role;
       const newUserId = await createUser(
         createUserData.email,
         createUserData.password,
         createUserData.fullName,
-        createUserData.role
+        createdRole
       );
       showSnackbar(t.admin.users.createUserSuccess, 'success');
       setCreateDialogOpen(false);
       setNewlyCreatedUserId(newUserId);
-      setShowNextStepDialog(true);
+      setPendingProfileRequired(createdRole === 'counselor');
       setCreateUserData({ email: '', password: '', fullName: '', role: 'counselor' });
+      setEditingCounselor(null);
+      setTab(1);
+      setCounselorFormOpen(true);
       loadUsers();
     } catch (error: unknown) {
       const err = error as { code?: string; message?: string };
@@ -487,8 +535,10 @@ export function useAdminData() {
       } else {
         showSnackbar(err.message ?? t.admin.users.createUserError, 'error');
       }
+    } finally {
+      setCreateUserLoading(false);
     }
-  }, [createUser, createUserData, loadUsers, showSnackbar]);
+  }, [createUser, createUserData, loadUsers, showSnackbar, setTab]);
 
   const handleEditUser = useCallback(async () => {
     if (!selectedUser) return;
@@ -565,12 +615,13 @@ Link app: https://consiliere360.vercel.app/`;
     setEditDialogOpen(true);
   }, []);
 
-  const handleNextStepToCounselor = useCallback(() => {
-    setShowNextStepDialog(false);
-    setTab(1);
+  const handleSkipCounselorProfile = useCallback(() => {
+    if (pendingProfileRequired) return;
+    setCounselorFormOpen(false);
+    setNewlyCreatedUserId(null);
+    setPendingProfileRequired(false);
     setEditingCounselor(null);
-    setCounselorFormOpen(true);
-  }, [setTab]);
+  }, [pendingProfileRequired]);
 
   const getCasesForCounselor = useCallback(
     (counselorId: string) => counselorCases.filter((c) => c.assignedCounselorId === counselorId),
@@ -591,6 +642,7 @@ Link app: https://consiliere360.vercel.app/`;
     showSnackbar,
     createDialogOpen,
     setCreateDialogOpen,
+    createUserLoading,
     editDialogOpen,
     setEditDialogOpen,
     selectedUser,
@@ -599,8 +651,7 @@ Link app: https://consiliere360.vercel.app/`;
     editUserData,
     setEditUserData,
     newlyCreatedUserId,
-    showNextStepDialog,
-    setShowNextStepDialog,
+    pendingProfileRequired,
     counselors,
     counselorsLoading,
     counselorsError,
@@ -645,15 +696,13 @@ Link app: https://consiliere360.vercel.app/`;
     handleReactivateUser,
     copyUserCredentials,
     openEditDialog,
-    handleNextStepToCounselor,
-    handleSkipCounselorLink: () => {
-      setShowNextStepDialog(false);
-      setNewlyCreatedUserId(null);
-    },
+    handleSkipCounselorProfile,
     handleCloseCounselorForm: () => {
+      if (pendingProfileRequired && newlyCreatedUserId) return;
       setCounselorFormOpen(false);
       setEditingCounselor(null);
       setNewlyCreatedUserId(null);
+      setPendingProfileRequired(false);
     },
     handleCloseCaseForm: () => {
       setCaseFormOpen(false);

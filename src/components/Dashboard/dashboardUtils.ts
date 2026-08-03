@@ -169,6 +169,10 @@ export function getActivityColor(type: string): string {
       return 'bg-purple-500';
     case 'case_assigned':
       return 'bg-brand-500';
+    case 'case_proposed':
+      return 'bg-indigo-500';
+    case 'case_proposal_declined':
+      return 'bg-rose-500';
     case 'meeting_notes_added':
       return 'bg-sky-500';
     case 'case_status_changed':

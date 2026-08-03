@@ -16,6 +16,7 @@ import { db } from '../firebase';
 import { Appointment, Case, Counselor } from '../types';
 import { logAppointmentCreated } from '../utils/activityLogger';
 import { getAppointmentsForDate } from '../components/Calendar/calendarUtils';
+import { mapFirestoreCase } from '../components/Cases/casesUtils';
 
 interface UseCalendarDataOptions {
   /** @deprecated unused — kept for call-site compatibility */
@@ -77,6 +78,7 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
             fullName: data.fullName,
             email: data.email,
             phoneNumber: data.phoneNumber || '',
+            sex: data.sex === 'feminin' || data.sex === 'masculin' ? data.sex : undefined,
             specialties: data.specialties || [],
             activeCases: data.activeCases || 0,
             workloadLevel: data.workloadLevel || 'low',
@@ -91,24 +93,7 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
 
         const casesData: Case[] = [];
         casesSnapshot.forEach((caseDoc) => {
-          const data = caseDoc.data();
-          casesData.push({
-            id: caseDoc.id,
-            title: data.title,
-            counseledName: data.counseledName,
-            age: data.age,
-            sex: data.sex,
-            civilStatus: data.civilStatus,
-            issueTypes: data.issueTypes,
-            phoneNumber: data.phoneNumber,
-            description: data.description || '',
-            status: data.status,
-            assignedCounselorId: data.assignedCounselorId,
-            assignedCounselorName: data.assignedCounselorName,
-            createdAt: data.createdAt.toDate(),
-            updatedAt: data.updatedAt.toDate(),
-            createdBy: data.createdBy,
-          });
+          casesData.push(mapFirestoreCase(caseDoc.id, caseDoc.data()));
         });
 
         const appointmentsRef = collection(db, 'appointments');

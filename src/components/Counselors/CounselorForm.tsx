@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -15,10 +15,27 @@ import {
   Chip,
   Alert
 } from '@mui/material';
-import { Counselor, User } from '../../types';
+import { collection, getDocs } from 'firebase/firestore';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
+import { Counselor, User, IssueType, Sex } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import { db } from '../../firebase';
 import { t } from '../../utils/translations';
 import { COMMON_SPECIALTIES, normalizeSpecialties } from '../Profile/profileUtils';
+import { isCommonSpecialty } from '../Cases/assignmentUtils';
+import {
+  composeDisplayName,
+  formatPhoneDigitsInput,
+  isValidRoPhoneDigits,
+  parseDateInputValue,
+  resolvePersonName,
+  stripRoPhonePrefix,
+  toDateInputValue,
+  toE164RoPhone,
+} from '../../utils/nameUtils';
 
 interface CounselorFormProps {
   open: boolean;
@@ -26,51 +43,98 @@ interface CounselorFormProps {
   onSubmit: (counselorData: Omit<Counselor, 'id' | 'createdAt' | 'updatedAt' | 'activeCases' | 'workloadLevel'>) => void;
   counselorData?: Counselor | null;
   preselectedUserId?: string;
+  /** After creating a counselor user — profile step cannot be skipped */
+  requireProfile?: boolean;
+  /** After creating admin/leader — show skip CTA */
+  allowSkipProfile?: boolean;
+  onSkipProfile?: () => void;
 }
+
+const CaseCategoryOptions: { value: IssueType; label: string }[] = [
+  { value: 'personal', label: t.issueTypes.personal },
+  { value: 'relational', label: t.issueTypes.relational },
+  { value: 'spiritual', label: t.issueTypes.spiritual },
+];
+
+const emptyForm = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  phoneNumber: '',
+  sex: '' as Sex | '',
+  birthDate: '',
+  specialties: [] as string[],
+  specialtyCategories: {} as Record<string, IssueType>,
+  linkedUserId: '',
+};
 
 const CounselorForm: React.FC<CounselorFormProps> = ({
   open,
   onClose,
   onSubmit,
   counselorData,
-  preselectedUserId
+  preselectedUserId,
+  requireProfile = false,
+  allowSkipProfile = false,
+  onSkipProfile,
 }) => {
   const { getAllUsers } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
+  const [linkedUserIdsWithProfile, setLinkedUserIdsWithProfile] = useState<Set<string>>(new Set());
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [formData, setFormData] = useState<{
-    fullName: string;
+    firstName: string;
+    lastName: string;
     email: string;
     phoneNumber: string;
+    sex: Sex | '';
+    birthDate: string;
     specialties: string[];
+    specialtyCategories: Record<string, IssueType>;
     linkedUserId?: string;
-  }>({
-    fullName: '',
-    email: '',
-    phoneNumber: '',
-    specialties: [],
-    linkedUserId: '',
-  });
+  }>({ ...emptyForm });
 
   const [newSpecialty, setNewSpecialty] = useState('');
+  const [newSpecialtyCategory, setNewSpecialtyCategory] = useState<IssueType | ''>('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Load users when component mounts
+  const selectableUsers = useMemo(() => {
+    const allowIds = new Set<string>();
+    if (counselorData?.linkedUserId) allowIds.add(counselorData.linkedUserId);
+    if (preselectedUserId) allowIds.add(preselectedUserId);
+
+    return users.filter(
+      (user) => allowIds.has(user.id) || !linkedUserIdsWithProfile.has(user.id)
+    );
+  }, [users, linkedUserIdsWithProfile, counselorData?.linkedUserId, preselectedUserId]);
+
+  // Load users + existing counselor links when dialog opens
   useEffect(() => {
     const loadUsers = async () => {
       setLoadingUsers(true);
       try {
-        const allUsers = await getAllUsers();
-        // Show all users (not just counselors) so they can be linked to counselors
+        const [allUsers, counselorsSnapshot] = await Promise.all([
+          getAllUsers(),
+          getDocs(collection(db, 'counselors')),
+        ]);
+        const taken = new Set<string>();
+        counselorsSnapshot.forEach((counselorDoc) => {
+          const linkedUserId = counselorDoc.data().linkedUserId;
+          if (typeof linkedUserId === 'string' && linkedUserId) {
+            taken.add(linkedUserId);
+          }
+        });
+        setLinkedUserIdsWithProfile(taken);
         setUsers(allUsers);
       } catch (error) {
         console.error('Error loading users:', error);
         setUsers([]);
+        setLinkedUserIdsWithProfile(new Set());
       } finally {
         setLoadingUsers(false);
       }
     };
-    
+
     if (open) {
       loadUsers();
     }
@@ -79,67 +143,55 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
   // Populate form data when editing or when preselectedUserId is provided
   useEffect(() => {
     if (counselorData) {
-      // Remove +40 prefix from existing phone number for editing
-      const phoneWithoutPrefix = counselorData.phoneNumber?.replace(/^\+40\s?/, '') || '';
+      const name = resolvePersonName({
+        firstName: counselorData.firstName,
+        lastName: counselorData.lastName,
+        fullName: counselorData.fullName,
+      });
       setFormData({
-        fullName: counselorData.fullName || '',
+        firstName: name.firstName,
+        lastName: name.lastName,
         email: counselorData.email || '',
-        phoneNumber: phoneWithoutPrefix,
+        phoneNumber: stripRoPhonePrefix(counselorData.phoneNumber || ''),
+        sex: counselorData.sex || '',
+        birthDate: toDateInputValue(counselorData.birthDate),
         specialties: normalizeSpecialties(counselorData.specialties || []),
+        specialtyCategories: counselorData.specialtyCategories || {},
         linkedUserId: counselorData.linkedUserId || '',
       });
     } else if (preselectedUserId && users.length > 0) {
-      // Pre-select the user if preselectedUserId is provided
       const preselectedUser = users.find(u => u.id === preselectedUserId);
       if (preselectedUser) {
+        const name = resolvePersonName({ fullName: preselectedUser.fullName || '' });
         setFormData({
-          fullName: preselectedUser.fullName || '',
+          ...emptyForm,
+          firstName: name.firstName,
+          lastName: name.lastName,
           email: preselectedUser.email || '',
-          phoneNumber: '',
-          specialties: [],
           linkedUserId: preselectedUserId,
         });
       } else {
-        // Reset form for new counselor
         setFormData({
-          fullName: '',
-          email: '',
-          phoneNumber: '',
-          specialties: [],
+          ...emptyForm,
           linkedUserId: preselectedUserId,
         });
       }
     } else {
-      // Reset form for new counselor
       setFormData({
-        fullName: '',
-        email: '',
-        phoneNumber: '',
-        specialties: [],
+        ...emptyForm,
         linkedUserId: preselectedUserId || '',
       });
     }
     setNewSpecialty('');
+    setNewSpecialtyCategory('');
     setErrors({});
   }, [counselorData, preselectedUserId, users]);
 
   const handleChange = (field: string) => (event: any) => {
     let value = event.target.value;
     
-    // Format phone number input
     if (field === 'phoneNumber') {
-      // Remove all non-digits
-      const digits = value.replace(/\D/g, '');
-      // Limit to 9 digits
-      const limitedDigits = digits.slice(0, 9);
-      // Format as XXX XXX XXX
-      if (limitedDigits.length > 6) {
-        value = `${limitedDigits.slice(0, 3)} ${limitedDigits.slice(3, 6)} ${limitedDigits.slice(6)}`;
-      } else if (limitedDigits.length > 3) {
-        value = `${limitedDigits.slice(0, 3)} ${limitedDigits.slice(3)}`;
-      } else {
-        value = limitedDigits;
-      }
+      value = formatPhoneDigitsInput(String(value));
     }
     
     setFormData(prev => ({
@@ -159,37 +211,57 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
   const handleUserSelect = (userId: string) => {
     const selectedUser = users.find(user => user.id === userId);
     if (selectedUser) {
+      const name = resolvePersonName({ fullName: selectedUser.fullName || '' });
       setFormData(prev => ({
         ...prev,
         linkedUserId: userId,
-        fullName: selectedUser.fullName,
+        firstName: name.firstName,
+        lastName: name.lastName,
         email: selectedUser.email,
       }));
     }
   };
 
   const handleAddSpecialty = () => {
-    if (newSpecialty.trim() && !formData.specialties.includes(newSpecialty.trim())) {
-      setFormData(prev => ({
+    const trimmed = newSpecialty.trim();
+    if (!trimmed || formData.specialties.includes(trimmed)) return;
+    if (!newSpecialtyCategory) {
+      setErrors((prev) => ({
         ...prev,
-        specialties: [...prev.specialties, newSpecialty.trim()]
+        specialtyCategory: t.assignments.specialtyCategoryRequired,
       }));
-      setNewSpecialty('');
+      return;
     }
+    setFormData((prev) => ({
+      ...prev,
+      specialties: [...prev.specialties, trimmed],
+      specialtyCategories: {
+        ...prev.specialtyCategories,
+        [trimmed]: newSpecialtyCategory,
+      },
+    }));
+    setNewSpecialty('');
+    setNewSpecialtyCategory('');
+    setErrors((prev) => ({ ...prev, specialtyCategory: '', specialties: '' }));
   };
 
   const handleRemoveSpecialty = (specialty: string) => {
-    setFormData(prev => ({
-      ...prev,
-      specialties: prev.specialties.filter(s => s !== specialty)
-    }));
+    setFormData((prev) => {
+      const nextCategories = { ...prev.specialtyCategories };
+      delete nextCategories[specialty];
+      return {
+        ...prev,
+        specialties: prev.specialties.filter((s) => s !== specialty),
+        specialtyCategories: nextCategories,
+      };
+    });
   };
 
   const handleAddCommonSpecialty = (specialty: string) => {
     if (!formData.specialties.includes(specialty)) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        specialties: [...prev.specialties, specialty]
+        specialties: [...prev.specialties, specialty],
       }));
     }
   };
@@ -198,16 +270,16 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
     const newErrors: Record<string, string> = {};
 
     if (!formData.linkedUserId) newErrors.linkedUserId = 'User account selection is required';
-    if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
+    if (!formData.lastName.trim()) newErrors.lastName = 'Numele este obligatoriu';
+    if (!formData.firstName.trim()) newErrors.firstName = 'Prenumele este obligatoriu';
     if (!formData.email.trim()) newErrors.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Valid email is required';
     if (!formData.phoneNumber.trim()) newErrors.phoneNumber = 'Phone number is required';
-    else {
-      const digits = formData.phoneNumber.replace(/\D/g, '');
-      if (digits.length !== 9) {
-        newErrors.phoneNumber = 'Introdu exact 9 cifre pentru numărul de telefon românesc';
-      }
+    else if (!isValidRoPhoneDigits(formData.phoneNumber)) {
+      newErrors.phoneNumber = 'Introdu exact 9 cifre pentru numărul de telefon românesc';
     }
+    if (!formData.sex) newErrors.sex = 'Sexul este obligatoriu';
+    if (!formData.birthDate) newErrors.birthDate = 'Data nașterii este obligatorie';
     if (formData.specialties.length === 0) newErrors.specialties = 'Este necesară cel puțin o specialitate';
 
     setErrors(newErrors);
@@ -216,14 +288,29 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
+    const specialtyCategories: Record<string, IssueType> = {};
+    for (const specialty of formData.specialties) {
+      if (!isCommonSpecialty(specialty) && formData.specialtyCategories[specialty]) {
+        specialtyCategories[specialty] = formData.specialtyCategories[specialty];
+      }
+    }
+
+    const firstName = formData.firstName.trim();
+    const lastName = formData.lastName.trim();
     onSubmit({
-      fullName: formData.fullName.trim(),
+      firstName,
+      lastName,
+      fullName: composeDisplayName(firstName, lastName),
       email: formData.email.trim(),
-      phoneNumber: `+40${formData.phoneNumber.replace(/[\s\-()]/g, '')}`,
+      phoneNumber: toE164RoPhone(formData.phoneNumber),
+      sex: formData.sex as Sex,
+      birthDate: parseDateInputValue(formData.birthDate),
       specialties: formData.specialties,
+      specialtyCategories:
+        Object.keys(specialtyCategories).length > 0 ? specialtyCategories : undefined,
       linkedUserId: formData.linkedUserId || undefined,
       ...(counselorData?.avatarUrl ? { avatarUrl: counselorData.avatarUrl } : {}),
     });
@@ -232,22 +319,39 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
   };
 
   const handleClose = () => {
-    setFormData({
-      fullName: '',
-      email: '',
-      phoneNumber: '',
-      specialties: [],
-      linkedUserId: '',
-    });
+    if (requireProfile) return;
+    setFormData({ ...emptyForm });
     setNewSpecialty('');
+    setNewSpecialtyCategory('');
     setErrors({});
     onClose();
   };
 
+  const handleSkip = () => {
+    if (requireProfile || !allowSkipProfile) return;
+    setFormData({ ...emptyForm });
+    setNewSpecialty('');
+    setNewSpecialtyCategory('');
+    setErrors({});
+    onSkipProfile?.();
+  };
+
+  const isPostUserCreateStep = Boolean(preselectedUserId && !counselorData);
+
   return (
     <Dialog 
       open={open} 
-      onClose={handleClose} 
+      onClose={(_, reason) => {
+        if (requireProfile) return;
+        // Post-create step: only explicit skip / complete — not backdrop/escape
+        if (isPostUserCreateStep) return;
+        if (reason === 'backdropClick' || reason === 'escapeKeyDown') {
+          handleClose();
+          return;
+        }
+        handleClose();
+      }}
+      disableEscapeKeyDown={requireProfile || isPostUserCreateStep}
       maxWidth="md" 
       fullWidth
       fullScreen={false}
@@ -267,8 +371,19 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
         fontSize: { xs: '1.25rem', sm: '1.5rem' },
         pb: { xs: 1, sm: 2 }
       }}>
-        {counselorData ? 'Editează Consilier' : 'Creează Profil Consilier'}
+        {counselorData
+          ? t.counselors.editCounselor
+          : isPostUserCreateStep
+            ? t.admin.users.createProfileStepTitle
+            : t.adminTools.addCounselor}
       </DialogTitle>
+      {isPostUserCreateStep && (
+        <Box sx={{ px: { xs: 1.5, sm: 3 }, pb: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            {t.admin.users.createProfileStepHint}
+          </Typography>
+        </Box>
+      )}
       <form onSubmit={handleSubmit}>
       <DialogContent sx={{ 
         px: { xs: 1.5, sm: 3 },
@@ -301,10 +416,12 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
                 >
                   {loadingUsers ? (
                     <MenuItem disabled>{t.common.loading}</MenuItem>
-                  ) : users.length === 0 ? (
-                    <MenuItem disabled>Nu există utilizatori disponibili. Creează utilizatori în Unelte Admin.</MenuItem>
+                  ) : selectableUsers.length === 0 ? (
+                    <MenuItem disabled>
+                      Nu există utilizatori disponibili fără profil de consilier.
+                    </MenuItem>
                   ) : (
-                    users.map((user) => (
+                    selectableUsers.map((user) => (
                       <MenuItem key={user.id} value={user.id}>
                         {user.fullName} ({user.email}) - {user.role}
                       </MenuItem>
@@ -326,27 +443,37 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
             }}>
                       <TextField
                         fullWidth
-                        label={t.profile.fullName}
-                        value={formData.fullName}
-                        onChange={handleChange('fullName')}
-                        error={!!errors.fullName}
-                        helperText={errors.fullName}
+                        label={t.profile.lastName}
+                        value={formData.lastName}
+                        onChange={handleChange('lastName')}
+                        error={!!errors.lastName}
+                        helperText={errors.lastName}
                         required
                         size="small"
                       />
-                      
                       <TextField
                         fullWidth
-                        label={t.login.emailLabel}
-                        type="email"
-                        value={formData.email}
-                        onChange={handleChange('email')}
-                        error={!!errors.email}
-                        helperText={errors.email}
+                        label={t.profile.firstName}
+                        value={formData.firstName}
+                        onChange={handleChange('firstName')}
+                        error={!!errors.firstName}
+                        helperText={errors.firstName}
                         required
                         size="small"
                       />
                     </Box>
+
+            <TextField
+              fullWidth
+              label={t.login.emailLabel}
+              type="email"
+              value={formData.email}
+              onChange={handleChange('email')}
+              error={!!errors.email}
+              helperText={errors.email}
+              required
+              size="small"
+            />
                     
                     <TextField
                       fullWidth
@@ -362,6 +489,61 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
                         startAdornment: <Typography sx={{ mr: 1, color: 'text.secondary' }}>+40</Typography>
                       }}
                     />
+
+            <Box sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              gap: { xs: 1.5, sm: 2 },
+            }}>
+            <FormControl fullWidth size="small" required error={!!errors.sex}>
+              <InputLabel>{t.profile.sex}</InputLabel>
+              <Select
+                value={formData.sex}
+                onChange={handleChange('sex')}
+                label={t.profile.sex}
+              >
+                <MenuItem value="masculin">{t.cases.sexMasculin}</MenuItem>
+                <MenuItem value="feminin">{t.cases.sexFeminin}</MenuItem>
+              </Select>
+              {errors.sex && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
+                  {errors.sex}
+                </Typography>
+              )}
+            </FormControl>
+
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker
+                label={t.profile.birthDate}
+                value={formData.birthDate ? dayjs(formData.birthDate) : null}
+                onChange={(value) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    birthDate: value && value.isValid() ? value.format('YYYY-MM-DD') : '',
+                  }));
+                  if (errors.birthDate) {
+                    setErrors((prev) => ({ ...prev, birthDate: '' }));
+                  }
+                }}
+                format="DD/MM/YYYY"
+                views={['year', 'month', 'day']}
+                openTo="year"
+                yearsOrder="desc"
+                maxDate={dayjs()}
+                minDate={dayjs().subtract(100, 'year')}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    required: true,
+                    size: 'small',
+                    error: !!errors.birthDate,
+                    helperText: errors.birthDate,
+                    placeholder: 'zz/ll/aaaa',
+                  },
+                }}
+              />
+            </LocalizationProvider>
+            </Box>
             
             <Box>
               <Typography variant="subtitle2" gutterBottom>
@@ -382,7 +564,7 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
               </Box>
               
               {/* Add new specialty */}
-              <Box display="flex" gap={1} mb={{ xs: 1, sm: 2 }}>
+              <Box display="flex" gap={1} mb={{ xs: 1, sm: 2 }} flexWrap="wrap">
                 <TextField
                   fullWidth
                   label={t.profile.addSpecialty}
@@ -395,7 +577,24 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
                     }
                   }}
                   size="small"
+                  sx={{ flex: '1 1 180px' }}
                 />
+                <FormControl size="small" sx={{ minWidth: 140 }} error={!!errors.specialtyCategory}>
+                  <InputLabel>{t.assignments.specialtyCategory}</InputLabel>
+                  <Select
+                    value={newSpecialtyCategory}
+                    label={t.assignments.specialtyCategory}
+                    onChange={(e) =>
+                      setNewSpecialtyCategory(e.target.value as IssueType | '')
+                    }
+                  >
+                    {CaseCategoryOptions.map((opt) => (
+                      <MenuItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
                 <Button
                   variant="outlined"
                   onClick={handleAddSpecialty}
@@ -404,6 +603,11 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
                   {t.common.add}
                 </Button>
               </Box>
+              {errors.specialtyCategory && (
+                <Typography variant="caption" color="error" sx={{ display: 'block', mb: 1 }}>
+                  {errors.specialtyCategory}
+                </Typography>
+              )}
               
               {/* Common specialties */}
               <Typography variant="body2" color="text.secondary" sx={{ mb: { xs: 0.5, sm: 1 } }}>
@@ -444,27 +648,32 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
           borderColor: { xs: 'divider', sm: 'transparent' },
           backgroundColor: 'background.paper'
         }}>
-          <Button 
-            onClick={handleClose}
-            fullWidth={false}
-            sx={{ 
-              width: { xs: '100%', sm: 'auto' },
-              order: { xs: 2, sm: 1 }
-            }}
-          >
-            {t.common.cancel}
-          </Button>
+          {!requireProfile && (
+            <Button 
+              onClick={allowSkipProfile ? handleSkip : handleClose}
+              fullWidth={false}
+              sx={{ 
+                width: { xs: '100%', sm: 'auto' },
+                order: { xs: 2, sm: 1 }
+              }}
+            >
+              {allowSkipProfile ? t.admin.users.skipCounselorProfile : t.common.cancel}
+            </Button>
+          )}
           <Button 
             type="submit" 
             variant="contained"
             fullWidth={false}
             disabled={
               !formData.linkedUserId ||
-              !formData.fullName.trim() ||
+              !formData.lastName.trim() ||
+              !formData.firstName.trim() ||
               !formData.email.trim() ||
               !formData.phoneNumber.trim() ||
+              !formData.sex ||
+              !formData.birthDate ||
               formData.specialties.length === 0 ||
-              (formData.phoneNumber.replace(/\D/g, '').length !== 9)
+              !isValidRoPhoneDigits(formData.phoneNumber)
             }
             sx={{ 
               width: { xs: '100%', sm: 'auto' },

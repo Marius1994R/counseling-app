@@ -63,6 +63,11 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
           </div>
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
+            {caseItem.priority === 'high' && (
+              <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
+                {t.cases.priorityBadge}
+              </span>
+            )}
             <span
               className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                 statusBadgeClass[caseItem.status] ?? 'bg-slate-100 text-slate-600'

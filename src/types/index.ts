@@ -1,6 +1,9 @@
 // User roles
 export type UserRole = 'counselor' | 'admin' | 'leader';
 
+// Issue types
+export type IssueType = 'spiritual' | 'relational' | 'personal';
+
 // User interface
 export interface User {
   id: string;
@@ -18,9 +21,18 @@ export interface User {
 export interface Counselor {
   id: string;
   fullName: string;
+  /** Prenume */
+  firstName?: string;
+  /** Nume de familie */
+  lastName?: string;
   email: string;
   phoneNumber: string;
+  /** Used for propose-by-default when matching counselee sex */
+  sex?: Sex;
+  birthDate?: Date | null;
   specialties: string[]; // What kind of problems they're good at
+  /** Custom specialty name → issue category (COMMON_SPECIALTIES use static map) */
+  specialtyCategories?: Record<string, IssueType>;
   activeCases: number;
   workloadLevel: 'low' | 'moderate' | 'high';
   linkedUserId?: string; // Link to user account from admin tools
@@ -32,8 +44,8 @@ export interface Counselor {
 // Case status
 export type CaseStatus = 'waiting' | 'active' | 'unfinished' | 'finished' | 'cancelled';
 
-// Issue types
-export type IssueType = 'spiritual' | 'relational' | 'personal';
+/** Assignment proposal lifecycle for intake workflow */
+export type AssignmentStatus = 'none' | 'pending' | 'accepted' | 'forced';
 
 // Civil status
 export type CivilStatus = 'unmarried' | 'married' | 'divorced' | 'engaged' | 'widowed';
@@ -41,20 +53,38 @@ export type CivilStatus = 'unmarried' | 'married' | 'divorced' | 'engaged' | 'wi
 // Sex/Gender
 export type Sex = 'masculin' | 'feminin';
 
+/** How the counselee was referred (optional intake) */
+export type ReferralSource = 'pastor' | 'self' | 'friend' | 'other';
+
+/** Intake priority for triage visibility */
+export type CasePriority = 'normal' | 'high';
+
 // Case interface
 export interface Case {
   id: string;
   title: string;
+  /** Display name (Prenume Nume); kept for legacy reads/UI */
   counseledName: string;
+  /** Prenume */
+  firstName?: string;
+  /** Nume de familie */
+  lastName?: string;
   age: number;
   sex?: Sex; // Optional for backward compatibility
   civilStatus: CivilStatus;
   issueTypes: IssueType[];
   phoneNumber: string;
   description: string;
+  /** Optional: pastor / self / friend / other */
+  referralSource?: ReferralSource | null;
+  /** Defaults to normal when missing (legacy cases) */
+  priority?: CasePriority;
   status: CaseStatus;
   assignedCounselorId?: string;
   assignedCounselorName?: string;
+  assignmentStatus?: AssignmentStatus;
+  proposedCounselorId?: string | null;
+  proposedCounselorName?: string | null;
   meetingFeedback?: string; // Notes from counseling sessions
   createdAt: Date;
   updatedAt: Date;

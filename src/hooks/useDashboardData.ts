@@ -16,6 +16,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { Case, Appointment, CaseStatus } from '../types';
 import { ActivityRecord } from '../components/Dashboard/dashboardUtils';
 import { countFutureAppointments } from '../components/Calendar/calendarUtils';
+import { mapFirestoreCase, isCaseVisibleToCounselor } from '../components/Cases/casesUtils';
+import {
+  logCaseAssigned,
+  logCaseProposalDeclined,
+} from '../utils/activityLogger';
+import { t } from '../utils/translations';
 
 export interface DashboardMetricsComputed {
   totalCases: number;
@@ -124,33 +130,9 @@ export function useDashboardData() {
 
       const casesData: Case[] = [];
       casesSnapshot.forEach((caseDoc) => {
-        const data = caseDoc.data();
-        let isUserCase = false;
-
-        if (counselorId) {
-          isUserCase = data.assignedCounselorId === counselorId;
-        } else {
-          isUserCase = data.assignedCounselorId === currentUser.id;
-        }
-
-        if (isUserCase) {
-          casesData.push({
-            id: caseDoc.id,
-            title: data.title,
-            counseledName: data.counseledName,
-            age: data.age,
-            sex: data.sex,
-            civilStatus: data.civilStatus,
-            issueTypes: data.issueTypes,
-            phoneNumber: data.phoneNumber,
-            description: data.description || '',
-            status: data.status,
-            assignedCounselorId: data.assignedCounselorId,
-            assignedCounselorName: data.assignedCounselorName,
-            createdAt: data.createdAt.toDate(),
-            updatedAt: data.updatedAt.toDate(),
-            createdBy: data.createdBy,
-          });
+        const caseItem = mapFirestoreCase(caseDoc.id, caseDoc.data());
+        if (isCaseVisibleToCounselor(caseItem, counselorId, currentUser.id)) {
+          casesData.push(caseItem);
         }
       });
 
@@ -273,7 +255,7 @@ export function useDashboardData() {
         try {
           const activitiesQuery = query(
             activitiesRef,
-            where('type', '==', 'case_assigned'),
+            where('type', 'in', ['case_assigned', 'case_proposed']),
             orderBy('timestamp', 'desc')
           );
           const activitiesSnapshot = await getDocs(activitiesQuery);
@@ -299,7 +281,7 @@ export function useDashboardData() {
 
             allActivitiesSnapshot.forEach((actDoc) => {
               const data = actDoc.data();
-              if (data.type === 'case_assigned') {
+              if (data.type === 'case_assigned' || data.type === 'case_proposed') {
                 allCaseAssignments.push({
                   id: actDoc.id,
                   type: data.type,
@@ -322,7 +304,10 @@ export function useDashboardData() {
           const matchesCounselor =
             counselorRecordId && activity.metadata?.assignedToUserId === counselorRecordId;
           const notDismissed = !dismissedAssignments.has(activity.id);
-          return (matchesUser || matchesCounselor) && notDismissed;
+          const isProposalAcceptance =
+            activity.type === 'case_assigned' &&
+            activity.metadata?.assignmentSource === 'proposal_accept';
+          return (matchesUser || matchesCounselor) && notDismissed && !isProposalAcceptance;
         });
 
         setPendingAssignmentCount(caseAssignedActivities.length);
@@ -350,6 +335,97 @@ export function useDashboardData() {
     },
     [currentUser?.id]
   );
+
+  const [assignmentActionLoading, setAssignmentActionLoading] = useState(false);
+  const [assignmentActionError, setAssignmentActionError] = useState<string | null>(null);
+
+  const acceptProposal = useCallback(async () => {
+    if (!currentUser || !newAssignmentModal?.metadata?.caseId) return;
+    const caseId = String(newAssignmentModal.metadata.caseId);
+    const activityId = newAssignmentModal.id;
+
+    try {
+      setAssignmentActionLoading(true);
+      setAssignmentActionError(null);
+
+      const caseRef = doc(db, 'cases', caseId);
+      const caseSnap = await getDoc(caseRef);
+      if (!caseSnap.exists()) {
+        throw new Error(t.assignments.acceptError);
+      }
+      const data = caseSnap.data();
+      const proposedId = data.proposedCounselorId;
+      const proposedName = data.proposedCounselorName || currentUser.fullName;
+
+      await updateDoc(caseRef, {
+        assignedCounselorId: proposedId,
+        assignedCounselorName: proposedName,
+        proposedCounselorId: null,
+        proposedCounselorName: null,
+        assignmentStatus: 'accepted',
+        status: 'active',
+        updatedAt: new Date(),
+      });
+
+      await logCaseAssigned(
+        caseId,
+        data.title || String(newAssignmentModal.metadata.caseTitle || ''),
+        currentUser.id,
+        currentUser.fullName || currentUser.email || 'Unknown',
+        currentUser.id,
+        currentUser.fullName || currentUser.email || 'Unknown',
+        'proposal_accept'
+      );
+
+      await dismissAssignment(activityId);
+      await loadData();
+    } catch (err) {
+      console.error('Accept proposal error:', err);
+      setAssignmentActionError(t.assignments.acceptError);
+    } finally {
+      setAssignmentActionLoading(false);
+    }
+  }, [currentUser, newAssignmentModal, dismissAssignment, loadData]);
+
+  const refuseProposal = useCallback(async () => {
+    if (!currentUser || !newAssignmentModal?.metadata?.caseId) return;
+    const caseId = String(newAssignmentModal.metadata.caseId);
+    const activityId = newAssignmentModal.id;
+
+    try {
+      setAssignmentActionLoading(true);
+      setAssignmentActionError(null);
+
+      const caseRef = doc(db, 'cases', caseId);
+      const caseSnap = await getDoc(caseRef);
+      if (!caseSnap.exists()) {
+        throw new Error(t.assignments.refuseError);
+      }
+      const data = caseSnap.data();
+
+      await updateDoc(caseRef, {
+        proposedCounselorId: null,
+        proposedCounselorName: null,
+        assignmentStatus: 'none',
+        updatedAt: new Date(),
+      });
+
+      await logCaseProposalDeclined(
+        caseId,
+        data.title || String(newAssignmentModal.metadata.caseTitle || ''),
+        currentUser.id,
+        currentUser.fullName || currentUser.email || 'Unknown'
+      );
+
+      await dismissAssignment(activityId);
+      await loadData();
+    } catch (err) {
+      console.error('Refuse proposal error:', err);
+      setAssignmentActionError(t.assignments.refuseError);
+    } finally {
+      setAssignmentActionLoading(false);
+    }
+  }, [currentUser, newAssignmentModal, dismissAssignment, loadData]);
 
   const metrics: DashboardMetricsComputed = useMemo(() => {
       const casesByStatus = cases.reduce(
@@ -408,6 +484,10 @@ export function useDashboardData() {
     newAssignmentModal,
     setNewAssignmentModal,
     dismissAssignment,
+    acceptProposal,
+    refuseProposal,
+    assignmentActionLoading,
+    assignmentActionError,
     pendingAssignmentCount,
     refetch: loadData,
   };

@@ -25,6 +25,7 @@ import KpiRow from './KpiRow';
 import RecentActiveCases from './RecentActiveCases';
 import QuickPanel from './QuickPanel';
 import Timeline from './Timeline';
+import CaseProposalDialog from './CaseProposalDialog';
 import SessionReport from '../Cases/SessionReport';
 import { t } from '../../utils/translations';
 
@@ -41,6 +42,10 @@ const Dashboard: React.FC = () => {
     error,
     newAssignmentModal,
     dismissAssignment,
+    acceptProposal,
+    refuseProposal,
+    assignmentActionLoading,
+    assignmentActionError,
     refetch,
   } = useDashboardDataContext();
 
@@ -58,7 +63,7 @@ const Dashboard: React.FC = () => {
       const activityId = newAssignmentModal.id;
       const caseId = newAssignmentModal.metadata.caseId as string;
       await dismissAssignment(activityId);
-      navigate('/cases?status=waiting');
+      navigate('/cases?status=active');
       setTimeout(() => {
         const caseElement = document.getElementById(`case-${caseId}`);
         caseElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -94,6 +99,9 @@ const Dashboard: React.FC = () => {
   };
 
   const activeCases = getActiveCases(cases);
+  const proposedCase = cases.find(
+    (caseItem) => caseItem.id === String(newAssignmentModal?.metadata?.caseId ?? '')
+  );
 
   if (error) {
     return (
@@ -138,7 +146,26 @@ const Dashboard: React.FC = () => {
         onViewAll={() => navigate('/activity')}
       />
 
-      <Dialog open={!!newAssignmentModal} disableEscapeKeyDown maxWidth="sm" fullWidth>
+      <CaseProposalDialog
+        open={newAssignmentModal?.type === 'case_proposed'}
+        caseItem={proposedCase}
+        fallbackTitle={
+          newAssignmentModal?.metadata?.caseTitle
+            ? String(newAssignmentModal.metadata.caseTitle)
+            : undefined
+        }
+        loading={assignmentActionLoading}
+        error={assignmentActionError}
+        onAccept={acceptProposal}
+        onRefuse={refuseProposal}
+      />
+
+      <Dialog
+        open={!!newAssignmentModal && newAssignmentModal.type !== 'case_proposed'}
+        disableEscapeKeyDown
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center' }}>
           <Assignment sx={{ mr: 1, color: 'primary.main' }} />
           {t.dashboard.newCaseAssigned}
@@ -151,7 +178,7 @@ const Dashboard: React.FC = () => {
               : ''}
           </Typography>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ flexWrap: 'wrap', gap: 1, px: 3, pb: 2 }}>
           <Button
             variant="contained"
             onClick={handleSeeCase}

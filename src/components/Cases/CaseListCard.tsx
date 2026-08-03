@@ -21,6 +21,7 @@ import {
   translateCivilStatus,
   translateIssueType,
   getIssueTypeBadgeClass,
+  translateReferralSource,
 } from './casesUtils';
 
 interface CaseListCardProps {
@@ -70,11 +71,18 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
                 <h2 className="text-lg font-semibold text-slate-900">{caseItem.counseledName}</h2>
                 <p className="text-sm text-slate-500">{caseItem.title}</p>
               </div>
-              <span
-                className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusBadgeClass(caseItem.status)}`}
-              >
-                {getStatusLabel(caseItem.status)}
-              </span>
+              <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                {caseItem.priority === 'high' && (
+                  <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">
+                    {t.cases.priorityBadge}
+                  </span>
+                )}
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusBadgeClass(caseItem.status)}`}
+                >
+                  {getStatusLabel(caseItem.status)}
+                </span>
+              </div>
             </div>
 
             {caseItem.issueTypes.length > 0 && (
@@ -87,6 +95,14 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
                     {translateIssueType(issueType)}
                   </span>
                 ))}
+              </div>
+            )}
+
+            {caseItem.assignmentStatus === 'pending' && caseItem.proposedCounselorName && (
+              <div className="mt-2">
+                <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                  {t.cases.proposalBadge.replace('{name}', caseItem.proposedCounselorName)}
+                </span>
               </div>
             )}
 
@@ -157,6 +173,12 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
               <PhoneIcon className="h-4 w-4 shrink-0 text-slate-400" />
               <span>{caseItem.phoneNumber}</span>
             </li>
+            {caseItem.referralSource && (
+              <li className="flex items-center gap-2 text-slate-700">
+                <span className="text-slate-500">{t.cases.referralSource}:</span>
+                <span>{translateReferralSource(caseItem.referralSource)}</span>
+              </li>
+            )}
             <li className="flex items-center gap-2">
               <CalendarDaysIcon className="h-4 w-4 shrink-0 text-slate-400" />
               <span>

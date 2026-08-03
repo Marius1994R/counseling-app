@@ -13,6 +13,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import { Counselor, Case } from '../types';
 import { t } from '../utils/translations';
+import { mapFirestoreCase } from '../components/Cases/casesUtils';
 import {
   WorkloadFilter,
   enrichCounselorWithWorkload,
@@ -21,9 +22,9 @@ import {
   countByWorkload,
   computeWorkload,
   dedupeCounselors,
+  mapFirestoreCounselor,
 } from '../components/Counselors/counselorsUtils';
 import { syncLinkedUserAvatar } from '../utils/avatarUtils';
-import { normalizeSpecialties } from '../components/Profile/profileUtils';
 
 export function useCounselorsData() {
   const { currentUser } = useAuth();
@@ -48,24 +49,7 @@ export function useCounselorsData() {
 
         const casesData: Case[] = [];
         casesSnapshot.forEach((caseDoc) => {
-          const data = caseDoc.data();
-          casesData.push({
-            id: caseDoc.id,
-            title: data.title,
-            counseledName: data.counseledName,
-            age: data.age,
-            sex: data.sex,
-            civilStatus: data.civilStatus,
-            issueTypes: data.issueTypes,
-            phoneNumber: data.phoneNumber,
-            description: data.description || '',
-            status: data.status,
-            assignedCounselorId: data.assignedCounselorId,
-            assignedCounselorName: data.assignedCounselorName,
-            createdAt: data.createdAt.toDate(),
-            updatedAt: data.updatedAt.toDate(),
-            createdBy: data.createdBy,
-          });
+          casesData.push(mapFirestoreCase(caseDoc.id, caseDoc.data()));
         });
 
         const counselorsRef = collection(db, 'counselors');
@@ -74,20 +58,9 @@ export function useCounselorsData() {
 
         const counselorsData: Counselor[] = [];
         counselorsSnapshot.forEach((counselorDoc) => {
-          const data = counselorDoc.data();
           counselorsData.push(
             enrichCounselorWithWorkload(
-              {
-                id: counselorDoc.id,
-                fullName: data.fullName,
-                email: data.email,
-                phoneNumber: data.phoneNumber || '',
-                specialties: normalizeSpecialties(data.specialties || []),
-                linkedUserId: data.linkedUserId || undefined,
-                avatarUrl: data.avatarUrl || undefined,
-                createdAt: data.createdAt.toDate(),
-                updatedAt: data.updatedAt.toDate(),
-              },
+              mapFirestoreCounselor(counselorDoc.id, counselorDoc.data()),
               casesData
             )
           );
@@ -167,9 +140,14 @@ export function useCounselorsData() {
 
           await updateDoc(doc(db, 'counselors', editingCounselor.id), {
             fullName: counselorData.fullName,
+            firstName: counselorData.firstName ?? null,
+            lastName: counselorData.lastName ?? null,
             email: counselorData.email,
             phoneNumber: counselorData.phoneNumber,
+            sex: counselorData.sex ?? null,
+            birthDate: counselorData.birthDate ?? null,
             specialties: counselorData.specialties,
+            specialtyCategories: counselorData.specialtyCategories ?? null,
             linkedUserId: counselorData.linkedUserId ?? null,
             avatarUrl: counselorData.avatarUrl ?? null,
             activeCases,
@@ -192,9 +170,14 @@ export function useCounselorsData() {
         } else {
           const docRef = await addDoc(collection(db, 'counselors'), {
             fullName: counselorData.fullName,
+            firstName: counselorData.firstName ?? null,
+            lastName: counselorData.lastName ?? null,
             email: counselorData.email,
             phoneNumber: counselorData.phoneNumber,
+            sex: counselorData.sex ?? null,
+            birthDate: counselorData.birthDate ?? null,
             specialties: counselorData.specialties,
+            specialtyCategories: counselorData.specialtyCategories ?? null,
             linkedUserId: counselorData.linkedUserId ?? null,
             avatarUrl: counselorData.avatarUrl ?? null,
             activeCases: 0,

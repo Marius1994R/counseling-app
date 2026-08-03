@@ -11,6 +11,10 @@ import {
   Alert,
   Snackbar,
   Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import { useProfileData } from '../../hooks/useProfileData';
 import { computeCaseStats } from './profileUtils';
@@ -110,6 +114,23 @@ const MyProfile: React.FC = () => {
               }}
             />
 
+            <FormControl fullWidth margin="normal" required>
+              <InputLabel>{t.profile.sex}</InputLabel>
+              <Select
+                value={data.editData.sex}
+                label={t.profile.sex}
+                onChange={(e) =>
+                  data.setEditData((prev) => ({
+                    ...prev,
+                    sex: e.target.value as '' | 'masculin' | 'feminin',
+                  }))
+                }
+              >
+                <MenuItem value="masculin">{t.cases.sexMasculin}</MenuItem>
+                <MenuItem value="feminin">{t.cases.sexFeminin}</MenuItem>
+              </Select>
+            </FormControl>
+
             <Box sx={{ mt: 2 }}>
               <Typography variant="subtitle2" gutterBottom>
                 {t.profile.specialties}
@@ -127,7 +148,7 @@ const MyProfile: React.FC = () => {
                 ))}
               </Box>
 
-              <Box display="flex" gap={1} mb={2}>
+              <Box display="flex" gap={1} mb={2} flexWrap="wrap">
                 <TextField
                   fullWidth
                   label={t.profile.addSpecialty}
@@ -140,7 +161,22 @@ const MyProfile: React.FC = () => {
                     }
                   }}
                   size="small"
+                  sx={{ flex: '1 1 160px' }}
                 />
+                <FormControl size="small" sx={{ minWidth: 140 }} error={!!data.specialtyCategoryError}>
+                  <InputLabel>{t.assignments.specialtyCategory}</InputLabel>
+                  <Select
+                    value={data.newSpecialtyCategory}
+                    label={t.assignments.specialtyCategory}
+                    onChange={(e) =>
+                      data.setNewSpecialtyCategory(e.target.value as '' | 'personal' | 'relational' | 'spiritual')
+                    }
+                  >
+                    <MenuItem value="personal">{t.issueTypes.personal}</MenuItem>
+                    <MenuItem value="relational">{t.issueTypes.relational}</MenuItem>
+                    <MenuItem value="spiritual">{t.issueTypes.spiritual}</MenuItem>
+                  </Select>
+                </FormControl>
                 <Button
                   variant="outlined"
                   onClick={data.handleAddSpecialty}
@@ -149,6 +185,11 @@ const MyProfile: React.FC = () => {
                   {t.common.add}
                 </Button>
               </Box>
+              {data.specialtyCategoryError && (
+                <Typography variant="caption" color="error" sx={{ display: 'block', mb: 1 }}>
+                  {data.specialtyCategoryError}
+                </Typography>
+              )}
 
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 {t.profile.commonSpecialties}:
@@ -175,6 +216,7 @@ const MyProfile: React.FC = () => {
           <Button
             onClick={data.handleSave}
             variant="contained"
+            disabled={!data.editData.sex}
             sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B8860B' } }}
           >
             {t.common.save}

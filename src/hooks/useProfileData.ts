@@ -3,11 +3,17 @@ import { useSearchParams } from 'react-router-dom';
 import { collection, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
-import { Counselor, Case } from '../types';
+import { Counselor, Case, IssueType, Sex } from '../types';
 import { t } from '../utils/translations';
-import { COMMON_SPECIALTIES, normalizeSpecialties } from '../components/Profile/profileUtils';
-import { getEarliestDate, pickNewestCounselorDoc } from '../components/Counselors/counselorsUtils';
+import { COMMON_SPECIALTIES } from '../components/Profile/profileUtils';
+import {
+  getEarliestDate,
+  mapFirestoreCounselor,
+  pickNewestCounselorDoc,
+} from '../components/Counselors/counselorsUtils';
 import { fileToAvatarDataUrl, validateAvatarFile } from '../utils/avatarUtils';
+import { isCommonSpecialty } from '../components/Cases/assignmentUtils';
+import { mapFirestoreCase } from '../components/Cases/casesUtils';
 
 export function useProfileData() {
   const { currentUser, updateUserAvatar } = useAuth();
@@ -31,10 +37,14 @@ export function useProfileData() {
 
   const [editData, setEditData] = useState({
     phoneNumber: '',
+    sex: '' as Sex | '',
     specialties: [] as string[],
+    specialtyCategories: {} as Record<string, IssueType>,
   });
 
   const [newSpecialty, setNewSpecialty] = useState('');
+  const [newSpecialtyCategory, setNewSpecialtyCategory] = useState<IssueType | ''>('');
+  const [specialtyCategoryError, setSpecialtyCategoryError] = useState('');
 
   const showSnackbar = useCallback((message: string, severity: 'success' | 'error') => {
     setSnackbar({ open: true, message, severity });
@@ -74,42 +84,20 @@ export function useProfileData() {
 
           const casesData: Case[] = [];
           casesSnapshot.forEach((caseDoc) => {
-            const data = caseDoc.data();
-            casesData.push({
-              id: caseDoc.id,
-              title: data.title,
-              counseledName: data.counseledName,
-              age: data.age,
-              sex: data.sex,
-              civilStatus: data.civilStatus,
-              issueTypes: data.issueTypes || [],
-              phoneNumber: data.phoneNumber || '',
-              description: data.description,
-              status: data.status,
-              assignedCounselorId: data.assignedCounselorId,
-              assignedCounselorName: data.assignedCounselorName,
-              createdAt: data.createdAt.toDate(),
-              updatedAt: data.updatedAt.toDate(),
-              createdBy: data.createdBy || '',
-            });
+            casesData.push(mapFirestoreCase(caseDoc.id, caseDoc.data()));
           });
 
           const activeCases = casesData.filter((c) => c.status === 'active').length;
           const workloadLevel = activeCases >= 3 ? 'high' : activeCases >= 2 ? 'moderate' : 'low';
 
-          setCounselor({
-            id: counselorDoc.id,
-            fullName: counselorData.fullName,
-            email: counselorData.email,
-            phoneNumber: counselorData.phoneNumber || '',
-            specialties: normalizeSpecialties(counselorData.specialties || []),
-            activeCases,
-            workloadLevel,
-            linkedUserId: counselorData.linkedUserId,
-            avatarUrl: currentUser.avatarUrl || counselorData.avatarUrl || undefined,
-            createdAt,
-            updatedAt: counselorData.updatedAt.toDate(),
-          });
+          setCounselor(
+            mapFirestoreCounselor(counselorDoc.id, counselorData, {
+              activeCases,
+              workloadLevel,
+              avatarUrl: currentUser.avatarUrl || counselorData.avatarUrl || undefined,
+              createdAt,
+            })
+          );
 
           setCases(casesData);
         } else {
@@ -145,7 +133,9 @@ export function useProfileData() {
     if (searchParams.get('edit') !== 'true' || !counselor) return;
     setEditData({
       phoneNumber: counselor.phoneNumber.replace('+40', '').trim(),
+      sex: counselor.sex || '',
       specialties: [...counselor.specialties],
+      specialtyCategories: { ...(counselor.specialtyCategories || {}) },
     });
     setEditDialogOpen(true);
     const nextParams = new URLSearchParams(searchParams);
@@ -157,27 +147,47 @@ export function useProfileData() {
     if (!counselor) return;
     setEditData({
       phoneNumber: counselor.phoneNumber.replace('+40', '').trim(),
+      sex: counselor.sex || '',
       specialties: [...counselor.specialties],
+      specialtyCategories: { ...(counselor.specialtyCategories || {}) },
     });
+    setNewSpecialtyCategory('');
+    setSpecialtyCategoryError('');
     setEditDialogOpen(true);
   }, [counselor]);
 
   const handleSave = useCallback(async () => {
     if (!counselor || !isLinkedCounselor) return;
+    if (!editData.sex) {
+      showSnackbar('Selectează sexul', 'error');
+      return;
+    }
 
     try {
       const counselorRef = doc(db, 'counselors', counselor.id);
       const formattedPhone = `+40${editData.phoneNumber.replace(/[\s\-()]/g, '')}`;
+      const specialtyCategories: Record<string, IssueType> = {};
+      for (const specialty of editData.specialties) {
+        if (!isCommonSpecialty(specialty) && editData.specialtyCategories[specialty]) {
+          specialtyCategories[specialty] = editData.specialtyCategories[specialty];
+        }
+      }
       await updateDoc(counselorRef, {
         phoneNumber: formattedPhone,
+        sex: editData.sex,
         specialties: editData.specialties,
+        specialtyCategories:
+          Object.keys(specialtyCategories).length > 0 ? specialtyCategories : null,
         updatedAt: new Date(),
       });
 
       setCounselor({
         ...counselor,
         phoneNumber: formattedPhone,
+        sex: editData.sex,
         specialties: editData.specialties,
+        specialtyCategories:
+          Object.keys(specialtyCategories).length > 0 ? specialtyCategories : undefined,
         createdAt: counselor.createdAt,
         updatedAt: new Date(),
       });
@@ -282,20 +292,34 @@ export function useProfileData() {
 
   const handleAddSpecialty = useCallback(() => {
     const trimmedSpecialty = newSpecialty.trim();
-    if (trimmedSpecialty && !editData.specialties.includes(trimmedSpecialty)) {
-      setEditData((prev) => ({
-        ...prev,
-        specialties: [...prev.specialties, trimmedSpecialty],
-      }));
-      setNewSpecialty('');
+    if (!trimmedSpecialty || editData.specialties.includes(trimmedSpecialty)) return;
+    if (!newSpecialtyCategory) {
+      setSpecialtyCategoryError(t.assignments.specialtyCategoryRequired);
+      return;
     }
-  }, [newSpecialty, editData.specialties]);
-
-  const handleRemoveSpecialty = useCallback((specialty: string) => {
     setEditData((prev) => ({
       ...prev,
-      specialties: prev.specialties.filter((s) => s !== specialty),
+      specialties: [...prev.specialties, trimmedSpecialty],
+      specialtyCategories: {
+        ...prev.specialtyCategories,
+        [trimmedSpecialty]: newSpecialtyCategory,
+      },
     }));
+    setNewSpecialty('');
+    setNewSpecialtyCategory('');
+    setSpecialtyCategoryError('');
+  }, [newSpecialty, newSpecialtyCategory, editData.specialties]);
+
+  const handleRemoveSpecialty = useCallback((specialty: string) => {
+    setEditData((prev) => {
+      const nextCategories = { ...prev.specialtyCategories };
+      delete nextCategories[specialty];
+      return {
+        ...prev,
+        specialties: prev.specialties.filter((s) => s !== specialty),
+        specialtyCategories: nextCategories,
+      };
+    });
   }, []);
 
   const handleAddCommonSpecialty = useCallback((specialty: string) => {
@@ -317,6 +341,9 @@ export function useProfileData() {
     setEditData,
     newSpecialty,
     setNewSpecialty,
+    newSpecialtyCategory,
+    setNewSpecialtyCategory,
+    specialtyCategoryError,
     snackbar,
     setSnackbar,
     commonSpecialties: COMMON_SPECIALTIES,
