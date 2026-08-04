@@ -1,5 +1,5 @@
 import React from 'react';
-import { MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { Counselor } from '../../types';
 import { t } from '../../utils/translations';
 
@@ -10,9 +10,6 @@ interface CalendarToolbarProps {
   onCounselorFilterChange: (value: string) => void;
   counselors: Counselor[];
   filteredCount: number;
-  onSchedule: () => void;
-  onAddEvent?: () => void;
-  canManageEvents?: boolean;
 }
 
 const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
@@ -22,9 +19,6 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   onCounselorFilterChange,
   counselors,
   filteredCount,
-  onSchedule,
-  onAddEvent,
-  canManageEvents = false,
 }) => {
   const countLabel = filteredCount === 1 ? 'programare' : 'programări';
 
@@ -78,24 +72,6 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           <span className="rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-600">
             {filteredCount} {countLabel}
           </span>
-          {canManageEvents && onAddEvent && (
-            <button
-              type="button"
-              onClick={onAddEvent}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-brand-300 bg-white px-4 py-2.5 text-sm font-medium text-brand-700 transition hover:bg-brand-50 active:scale-[0.98] sm:w-auto"
-            >
-              <PlusIcon className="h-4 w-4" />
-              {t.events.addEvent}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={onSchedule}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-700 active:scale-[0.98] sm:w-auto"
-          >
-            <PlusIcon className="h-4 w-4" />
-            {t.appointments.scheduleAppointment}
-          </button>
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Alert, Snackbar } from '@mui/material';
+import { Alert, Snackbar, useMediaQuery, useTheme } from '@mui/material';
 import { useCalendarData } from '../../hooks/useCalendarData';
 import { useEvents } from '../../contexts/EventsContext';
 import { ChurchEvent } from '../../types';
@@ -15,8 +15,10 @@ import { getEventsForDate } from './eventUtils';
 import { t } from '../../utils/translations';
 
 const CalendarManagement: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('lg'), { noSsr: true });
   const data = useCalendarData();
-  const { handleDeleteAppointment: deleteAppointment } = data;
+  const { handleDeleteAppointment: deleteAppointment, handleDateClick: selectCalendarDate } = data;
   const {
     events,
     canManageEvents,
@@ -33,6 +35,7 @@ const CalendarManagement: React.FC = () => {
     message: '',
     severity: 'success' as 'success' | 'error',
   });
+  const [mobileDayOpen, setMobileDayOpen] = useState(false);
 
   const selectedDayEvents = useMemo(
     () => (data.selectedDate ? getEventsForDate(events, data.selectedDate) : []),
@@ -43,11 +46,13 @@ const CalendarManagement: React.FC = () => {
     setSnackbar({ open: true, message, severity });
   }, []);
 
-  const handleAddEvent = useCallback(() => {
-    setEditingEvent(null);
-    setPreSelectedEventDate(null);
-    setEventFormOpen(true);
-  }, []);
+  const handleDateClick = useCallback(
+    (date: Date) => {
+      selectCalendarDate(date);
+      setMobileDayOpen(true);
+    },
+    [selectCalendarDate]
+  );
 
   const handleAddEventFromDate = useCallback((date: Date) => {
     setEditingEvent(null);
@@ -122,6 +127,22 @@ const CalendarManagement: React.FC = () => {
     );
   }
 
+  const dayPanelProps = {
+    selectedDate: data.selectedDate,
+    appointments: data.selectedDayAppointments,
+    events: selectedDayEvents,
+    onEditAppointment: data.handleEditAppointment,
+    onDeleteAppointment: handleDeleteAppointment,
+    onScheduleAppointment: data.handleScheduleFromDate,
+    onEditEvent: handleEditEvent,
+    onDeleteEvent: handleDeleteEvent,
+    onAddEvent: handleAddEventFromDate,
+    canEdit: data.canEditAppointment,
+    canDelete: data.canDeleteAppointment,
+    canManageEvents,
+    canViewCaseDetails: data.canViewAppointmentCaseDetails,
+  };
+
   return (
     <div>
       <CalendarPageHeader />
@@ -139,34 +160,34 @@ const CalendarManagement: React.FC = () => {
         onCounselorFilterChange={data.setCounselorFilter}
         counselors={data.counselors}
         filteredCount={countFutureAppointments(data.filteredAppointments)}
-        onSchedule={data.handleAddAppointment}
-        onAddEvent={handleAddEvent}
-        canManageEvents={canManageEvents}
       />
 
-      <CalendarMonthGrid
-        appointments={data.filteredAppointments}
-        events={events}
-        onDateClick={data.handleDateClick}
-        canViewCaseDetails={data.canViewAppointmentCaseDetails}
-      />
+      <div
+        className={
+          isMobile
+            ? ''
+            : 'grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,400px)] lg:items-start'
+        }
+      >
+        <CalendarMonthGrid
+          appointments={data.filteredAppointments}
+          events={events}
+          selectedDate={data.selectedDate}
+          onDateClick={handleDateClick}
+          canViewCaseDetails={data.canViewAppointmentCaseDetails}
+        />
 
-      <CalendarDayDialog
-        selectedDate={data.selectedDate}
-        appointments={data.selectedDayAppointments}
-        events={selectedDayEvents}
-        onClose={() => data.setSelectedDate(null)}
-        onEditAppointment={data.handleEditAppointment}
-        onDeleteAppointment={handleDeleteAppointment}
-        onScheduleAppointment={data.handleScheduleFromDate}
-        onEditEvent={handleEditEvent}
-        onDeleteEvent={handleDeleteEvent}
-        onAddEvent={handleAddEventFromDate}
-        canEdit={data.canEditAppointment}
-        canDelete={data.canDeleteAppointment}
-        canManageEvents={canManageEvents}
-        canViewCaseDetails={data.canViewAppointmentCaseDetails}
-      />
+        {!isMobile && <CalendarDayDialog variant="panel" {...dayPanelProps} />}
+      </div>
+
+      {isMobile && (
+        <CalendarDayDialog
+          variant="drawer"
+          open={mobileDayOpen}
+          onClose={() => setMobileDayOpen(false)}
+          {...dayPanelProps}
+        />
+      )}
 
       <AppointmentForm
         open={data.formOpen}

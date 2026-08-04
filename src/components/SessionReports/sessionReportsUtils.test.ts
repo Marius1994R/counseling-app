@@ -126,10 +126,22 @@ describe('sessionReportsUtils', () => {
     expect(summary.reports).toHaveLength(0);
   });
 
+  it('includes active cases with zero reports', () => {
+    const cases = [mockCase('case-1', 'Cu raport'), mockCase('case-2', 'Fără raport')];
+    const map = new Map<string, SessionReportRecord[]>([
+      ['case-1', [mockReport('r1', 'case-1', 1, new Date('2026-06-01'))]],
+    ]);
+
+    const summaries = buildCaseSummaries(cases, map);
+    expect(summaries).toHaveLength(2);
+    expect(summaries[0].case.id).toBe('case-1');
+    expect(summaries[1].reportCount).toBe(0);
+  });
+
   it('computes metrics from summaries', () => {
     const now = new Date();
     const summaries = buildCaseSummaries(
-      [mockCase('case-1', 'Test')],
+      [mockCase('case-1', 'Test'), mockCase('case-2', 'Gol')],
       new Map([
         [
           'case-1',

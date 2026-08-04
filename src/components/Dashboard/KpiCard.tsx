@@ -42,34 +42,40 @@ const KpiCard: React.FC<KpiCardProps> = ({
     <Tag
       type={onClick ? 'button' : undefined}
       onClick={onClick}
-      className={`w-full rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md ${
+      className={`w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left shadow-sm transition duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md ${
         onClick ? 'cursor-pointer active:scale-[0.98]' : ''
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="relative">
+      <div className="flex items-center gap-3">
+        <div className="relative shrink-0">
           <div
-            className={`flex h-10 w-10 items-center justify-center rounded-lg ${styles.iconBg} ${styles.iconText}`}
+            className={`flex h-8 w-8 items-center justify-center rounded-md ${styles.iconBg} ${styles.iconText}`}
           >
             {icon}
           </div>
           {showBadge && (
             <span
-              className={`absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full border-2 border-white px-1 text-[10px] font-bold leading-none text-white shadow-sm ${styles.badgeBg}`}
+              className={`absolute -right-1 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full border-2 border-white px-0.5 text-[9px] font-bold leading-none text-white shadow-sm ${styles.badgeBg}`}
               aria-hidden="true"
             >
               {badgeCount > 9 ? '9+' : badgeCount}
             </span>
           )}
         </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[10px] font-medium uppercase tracking-wide text-slate-500">
+            {label}
+          </p>
+          {loading ? (
+            <div className="mt-1 h-6 w-10 animate-pulse rounded bg-slate-100" />
+          ) : (
+            <p className="text-xl font-bold leading-tight text-slate-900">{value}</p>
+          )}
+          {trendText && (
+            <p className="mt-0.5 truncate text-[11px] text-slate-500">{trendText}</p>
+          )}
+        </div>
       </div>
-      <p className="mt-4 text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-      {loading ? (
-        <div className="mt-2 h-9 w-16 animate-pulse rounded bg-slate-100" />
-      ) : (
-        <p className="mt-1 text-3xl font-bold text-slate-900">{value}</p>
-      )}
-      {trendText && <p className="mt-2 text-xs text-slate-500">{trendText}</p>}
     </Tag>
   );
 };

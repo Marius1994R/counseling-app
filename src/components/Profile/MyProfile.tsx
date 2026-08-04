@@ -18,10 +18,8 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { useProfileData } from '../../hooks/useProfileData';
-import { computeCaseStats } from './profileUtils';
 import ProfilePageHeader from './ProfilePageHeader';
 import ProfileHeroCard from './ProfileHeroCard';
-import ProfileStatsRow from './ProfileStatsRow';
 import ProfileSpecialties from './ProfileSpecialties';
 import ProfileSkeleton from './ProfileSkeleton';
 import { t } from '../../utils/translations';
@@ -29,7 +27,6 @@ import ConfirmDialog from '../common/ConfirmDialog';
 
 const MyProfile: React.FC = () => {
   const data = useProfileData();
-  const stats = computeCaseStats(data.cases);
 
   if (data.loading) {
     return (
@@ -81,7 +78,6 @@ const MyProfile: React.FC = () => {
         onClose={data.handleCancelRemoveAvatar}
         onConfirm={data.handleConfirmRemoveAvatar}
       />
-      <ProfileStatsRow stats={stats} />
       <ProfileSpecialties specialties={data.counselor.specialties} />
 
       <Dialog

@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { collection, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
-import { Counselor, Case, IssueType, Sex } from '../types';
+import { Counselor, IssueType, Sex } from '../types';
 import { t } from '../utils/translations';
 import { COMMON_SPECIALTIES } from '../components/Profile/profileUtils';
 import {
@@ -13,14 +13,12 @@ import {
 } from '../components/Counselors/counselorsUtils';
 import { fileToAvatarDataUrl, validateAvatarFile } from '../utils/avatarUtils';
 import { isCommonSpecialty } from '../components/Cases/assignmentUtils';
-import { mapFirestoreCase } from '../components/Cases/casesUtils';
 
 export function useProfileData() {
   const { currentUser, updateUserAvatar } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [counselor, setCounselor] = useState<Counselor | null>(null);
-  const [cases, setCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -83,12 +81,10 @@ export function useProfileData() {
           const casesQuery = query(casesRef, where('assignedCounselorId', '==', counselorDoc.id));
           const casesSnapshot = await getDocs(casesQuery);
 
-          const casesData: Case[] = [];
+          let activeCases = 0;
           casesSnapshot.forEach((caseDoc) => {
-            casesData.push(mapFirestoreCase(caseDoc.id, caseDoc.data()));
+            if (caseDoc.data().status === 'active') activeCases += 1;
           });
-
-          const activeCases = casesData.filter((c) => c.status === 'active').length;
           const workloadLevel = activeCases >= 3 ? 'high' : activeCases >= 2 ? 'moderate' : 'low';
 
           setCounselor(
@@ -99,8 +95,6 @@ export function useProfileData() {
               createdAt,
             })
           );
-
-          setCases(casesData);
         } else {
           setIsLinkedCounselor(false);
           setCounselor({
@@ -116,7 +110,6 @@ export function useProfileData() {
             createdAt: new Date(),
             updatedAt: new Date(),
           });
-          setCases([]);
         }
       } catch (error) {
         console.error('Error loading profile data:', error);
@@ -336,7 +329,6 @@ export function useProfileData() {
   return {
     currentUser,
     counselor,
-    cases,
     loading,
     loadError,
     editDialogOpen,

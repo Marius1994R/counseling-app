@@ -1,4 +1,4 @@
-import { Case, UserRole } from '../../types';
+import { UserRole } from '../../types';
 import { getInitials } from '../Dashboard/dashboardUtils';
 import { t } from '../../utils/translations';
 
@@ -31,22 +31,6 @@ export const COMMON_SPECIALTIES = [
   'Probleme Relaționale',
   'Intervenție Crize',
 ];
-
-export interface CaseStats {
-  active: number;
-  finished: number;
-  unfinished: number;
-  waiting: number;
-}
-
-export function computeCaseStats(cases: Case[]): CaseStats {
-  return {
-    active: cases.filter((c) => c.status === 'active').length,
-    finished: cases.filter((c) => c.status === 'finished').length,
-    unfinished: cases.filter((c) => c.status === 'unfinished').length,
-    waiting: cases.filter((c) => c.status === 'waiting').length,
-  };
-}
 
 export function getWorkloadLabel(level: 'low' | 'moderate' | 'high'): string {
   switch (level) {

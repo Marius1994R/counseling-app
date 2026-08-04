@@ -74,7 +74,7 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
   const [counselorFilter, setCounselorFilter] = useState<string>('all');
   const [preSelectedDate, setPreSelectedDate] = useState<Date | null>(null);
   const [preSelectedCaseId, setPreSelectedCaseId] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(() => new Date());
 
   const cases = cachedCases;
   const counselors = cachedCounselors;
@@ -404,7 +404,6 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
     setEditingAppointment(null);
     setPreSelectedDate(date);
     setFormOpen(true);
-    setSelectedDate(null);
   }, []);
 
   const handleCloseForm = useCallback(() => {

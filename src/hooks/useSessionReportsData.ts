@@ -47,7 +47,7 @@ export function useSessionReportsData() {
   const [timeRangeFilter, setTimeRangeFilter] = useState<TimeRangeFilter>(() =>
     parseTimeRangeFromParams(searchParams)
   );
-  const [statusFilter, setStatusFilter] = useState<CaseStatus | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<CaseStatus | 'all'>('active');
 
   const selectedCaseId = searchParams.get('caseId');
   const deepLinkProcessedRef = useRef<string | null>(null);

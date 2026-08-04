@@ -65,8 +65,12 @@ export function buildCaseSummaries(
         reports,
       };
     })
-    .filter((summary) => summary.reportCount > 0)
     .sort((a, b) => {
+      if (a.reportCount === 0 && b.reportCount === 0) {
+        return a.case.title.localeCompare(b.case.title, 'ro');
+      }
+      if (a.reportCount === 0) return 1;
+      if (b.reportCount === 0) return -1;
       const aTime = a.lastReportDate?.getTime() ?? 0;
       const bTime = b.lastReportDate?.getTime() ?? 0;
       return bTime - aTime;
@@ -182,7 +186,7 @@ export function computeSessionReportMetrics(summaries: CaseReportSummary[]) {
 
   return {
     totalReports,
-    casesWithReports: summaries.length,
+    casesWithReports: summaries.filter((s) => s.reportCount > 0).length,
     reportsThisMonth,
   };
 }

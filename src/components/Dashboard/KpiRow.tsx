@@ -21,11 +21,11 @@ interface KpiRowProps {
 }
 
 const KpiRow: React.FC<KpiRowProps> = ({ metrics, loading, onActiveClick, onPendingClick }) => (
-  <div className="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-4">
+  <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
     <KpiCard
       label={t.dashboard.activeCases}
       value={metrics.activeCases}
-      icon={<FolderIcon className="h-5 w-5" />}
+      icon={<FolderIcon className="h-4 w-4" />}
       variant="primary"
       trendText="Cazuri în desfășurare"
       onClick={onActiveClick}
@@ -34,7 +34,7 @@ const KpiRow: React.FC<KpiRowProps> = ({ metrics, loading, onActiveClick, onPend
     <KpiCard
       label={t.dashboard.completedCases}
       value={metrics.completedCases}
-      icon={<CheckCircleIcon className="h-5 w-5" />}
+      icon={<CheckCircleIcon className="h-4 w-4" />}
       variant="success"
       trendText={metrics.completedCases === 0 ? 'Nicio finalizare' : 'Finalizate cu succes'}
       loading={loading}
@@ -42,7 +42,7 @@ const KpiRow: React.FC<KpiRowProps> = ({ metrics, loading, onActiveClick, onPend
     <KpiCard
       label={t.dashboard.pendingCases}
       value={metrics.pendingCases}
-      icon={<ClockIcon className="h-5 w-5" />}
+      icon={<ClockIcon className="h-4 w-4" />}
       variant="warning"
       trendText={metrics.pendingCases === 0 ? 'Nicio așteptare' : 'În așteptare'}
       badgeCount={metrics.pendingCases}
@@ -52,7 +52,7 @@ const KpiRow: React.FC<KpiRowProps> = ({ metrics, loading, onActiveClick, onPend
     <KpiCard
       label={t.dashboard.totalCases}
       value={metrics.totalCases}
-      icon={<DocumentTextIcon className="h-5 w-5" />}
+      icon={<DocumentTextIcon className="h-4 w-4" />}
       variant="info"
       trendText="Total general"
       loading={loading}

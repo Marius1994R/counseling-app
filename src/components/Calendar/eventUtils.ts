@@ -162,5 +162,11 @@ export function validateEventForm(
 }
 
 export type CalendarDayItem =
-  | { kind: 'appointment'; id: string; startTime: string; label: string; styles: { bg: string; text: string; border: string } }
+  | {
+      kind: 'appointment';
+      id: string;
+      startTime: string;
+      label: string;
+      styles: { bg: string; text: string; border: string; dot: string };
+    }
   | { kind: 'event'; id: string; startTime: string; label: string; styles: EventDisplayStyles };
