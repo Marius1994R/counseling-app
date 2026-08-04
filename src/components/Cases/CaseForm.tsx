@@ -13,7 +13,6 @@ import {
   Chip,
   Box,
   Typography,
-  FormControlLabel,
   Checkbox,
   CircularProgress,
 } from '@mui/material';
@@ -638,23 +637,28 @@ const CaseForm: React.FC<CaseFormProps> = ({
             </Box>
 
             {formData.counselorId && (
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={forceAssign}
-                    onChange={(e) => setForceAssign(e.target.checked)}
-                    size="small"
-                  />
-                }
-                label={
-                  <Box>
-                    <Typography variant="body2">{t.assignments.forceAssign}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {t.assignments.forceAssignHint}
-                    </Typography>
-                  </Box>
-                }
-              />
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                <Checkbox
+                  id="force-assign-checkbox"
+                  checked={forceAssign}
+                  onChange={(e) => setForceAssign(e.target.checked)}
+                  size="small"
+                  sx={{ pt: 0.25 }}
+                />
+                <Box>
+                  <Typography
+                    component="label"
+                    htmlFor="force-assign-checkbox"
+                    variant="body2"
+                    sx={{ cursor: 'pointer', display: 'inline-block' }}
+                  >
+                    {t.assignments.forceAssign}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    {t.assignments.forceAssignHint}
+                  </Typography>
+                </Box>
+              </Box>
             )}
 
             <TextField

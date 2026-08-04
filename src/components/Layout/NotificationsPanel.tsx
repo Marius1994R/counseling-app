@@ -123,11 +123,21 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
     if (item.type === 'assignment' && item.payload.activity) {
       const activity = item.payload.activity;
       onClose();
-      onOpenAssignment(activity);
-      // Proposals must stay until Accept/Refuse — never dismiss on bell click.
-      if (activity.type !== 'case_proposed') {
-        void onDismissAssignment(activity.id);
+
+      // Proposals: open Accept/Refuse dialog; do not dismiss until action.
+      if (activity.type === 'case_proposed') {
+        onOpenAssignment(activity);
+        return;
       }
+
+      // Force-assign: go to the case, then clear the bell item.
+      const caseId = activity.metadata?.caseId
+        ? String(activity.metadata.caseId)
+        : '';
+      if (caseId) {
+        navigate(`/cases?caseId=${caseId}`);
+      }
+      void onDismissAssignment(activity.id);
       return;
     }
 
