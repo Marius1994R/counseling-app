@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   collection,
   getDocs,
@@ -11,6 +11,9 @@ import {
   setDoc,
   updateDoc,
   arrayUnion,
+  onSnapshot,
+  DocumentData,
+  QuerySnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,6 +28,43 @@ import {
 } from '../utils/activityLogger';
 import { filterPendingAssignments, filterActiveProposals, filterAssignmentOutcomes } from '../utils/assignmentNotifications';
 import { t } from '../utils/translations';
+
+const ASSIGNMENT_ACTIVITY_TYPES = [
+  'case_assigned',
+  'case_proposed',
+  'case_proposal_declined',
+] as const;
+
+function mapActivityDoc(id: string, data: DocumentData): ActivityRecord {
+  return {
+    id,
+    type: data.type,
+    title: data.title,
+    description: data.description,
+    timestamp: data.timestamp.toDate(),
+    userId: data.userId,
+    userName: data.userName,
+    metadata: data.metadata,
+  };
+}
+
+function activityTargetsCounselor(
+  activity: ActivityRecord,
+  userId: string,
+  counselorRecordId: string | null
+): boolean {
+  const assignedTo = activity.metadata?.assignedToUserId;
+  if (assignedTo === userId) return true;
+  return Boolean(counselorRecordId) && assignedTo === counselorRecordId;
+}
+
+function snapshotToAssignmentActivities(snapshot: QuerySnapshot): ActivityRecord[] {
+  const items: ActivityRecord[] = [];
+  snapshot.forEach((actDoc) => {
+    items.push(mapActivityDoc(actDoc.id, actDoc.data()));
+  });
+  return items;
+}
 
 export interface DashboardMetricsComputed {
   totalCases: number;
@@ -51,6 +91,21 @@ export function useDashboardData() {
   const [dismissedAssignmentsLoaded, setDismissedAssignmentsLoaded] = useState(false);
   const [rawPendingAssignments, setRawPendingAssignments] = useState<ActivityRecord[]>([]);
   const [assignmentOutcomes, setAssignmentOutcomes] = useState<ActivityRecord[]>([]);
+  const [allAssignmentActivities, setAllAssignmentActivities] = useState<ActivityRecord[]>([]);
+  const casesRef = useRef(cases);
+  casesRef.current = cases;
+
+  const upsertCase = useCallback((caseItem: Case) => {
+    setCases((prev) => {
+      const index = prev.findIndex((c) => c.id === caseItem.id);
+      if (index === -1) {
+        return [caseItem, ...prev];
+      }
+      const next = [...prev];
+      next[index] = caseItem;
+      return next;
+    });
+  }, []);
 
   const loadDismissedAssignments = async (userId: string) => {
     try {
@@ -258,100 +313,183 @@ export function useDashboardData() {
         currentUser.role !== 'admin' &&
         currentUser.role !== 'leader')
     ) {
+      setAllAssignmentActivities([]);
       return;
     }
 
     if (!dismissedAssignmentsLoaded) return;
 
-    const loadCaseAssignments = async () => {
-      try {
-        const activitiesRef = collection(db, 'activities');
-        let allCaseAssignments: ActivityRecord[] = [];
+    const userId = currentUser.id;
+    const activitiesRef = collection(db, 'activities');
+    // No orderBy — avoids composite-index failure that forced a one-shot getDocs fallback
+    // (which made notifications appear only after reload). Sort client-side instead.
+    const activitiesQuery = query(
+      activitiesRef,
+      where('type', 'in', [...ASSIGNMENT_ACTIVITY_TYPES])
+    );
 
-        try {
-          const activitiesQuery = query(
-            activitiesRef,
-            where('type', 'in', [
-              'case_assigned',
-              'case_proposed',
-              'case_proposal_declined',
-            ]),
-            orderBy('timestamp', 'desc')
-          );
-          const activitiesSnapshot = await getDocs(activitiesQuery);
+    const warmCasesForActivities = async (activities: ActivityRecord[]) => {
+      const caseIdsToFetch = new Set<string>();
 
-          activitiesSnapshot.forEach((actDoc) => {
-            const data = actDoc.data();
-            allCaseAssignments.push({
-              id: actDoc.id,
-              type: data.type,
-              title: data.title,
-              description: data.description,
-              timestamp: data.timestamp.toDate(),
-              userId: data.userId,
-              userName: data.userName,
-              metadata: data.metadata,
-            });
-          });
-        } catch (queryError: unknown) {
-          const err = queryError as { code?: string; message?: string };
-          if (err.code === 'failed-precondition' || err.message?.includes('index')) {
-            const allActivitiesQuery = query(activitiesRef, orderBy('timestamp', 'desc'));
-            const allActivitiesSnapshot = await getDocs(allActivitiesQuery);
-
-            allActivitiesSnapshot.forEach((actDoc) => {
-              const data = actDoc.data();
-              if (
-                data.type === 'case_assigned' ||
-                data.type === 'case_proposed' ||
-                data.type === 'case_proposal_declined'
-              ) {
-                allCaseAssignments.push({
-                  id: actDoc.id,
-                  type: data.type,
-                  title: data.title,
-                  description: data.description,
-                  timestamp: data.timestamp.toDate(),
-                  userId: data.userId,
-                  userName: data.userName,
-                  metadata: data.metadata,
-                });
-              }
-            });
-          } else {
-            throw queryError;
-          }
+      for (const activity of activities) {
+        if (activity.type !== 'case_proposed' && activity.type !== 'case_assigned') {
+          continue;
+        }
+        if (!activityTargetsCounselor(activity, userId, counselorRecordId)) {
+          continue;
         }
 
-        const caseAssignedActivities = filterPendingAssignments(
-          allCaseAssignments,
-          currentUser.id,
-          counselorRecordId,
-          dismissedAssignments
-        );
+        const caseId = String(activity.metadata?.caseId || '');
+        if (!caseId) continue;
 
-        setRawPendingAssignments(caseAssignedActivities);
-        setAssignmentOutcomes(
-          filterAssignmentOutcomes(
-            allCaseAssignments,
-            currentUser.id,
-            dismissedAssignments
-          )
-        );
-        // Keep an open force-assign dialog only if still pending; proposals sync separately.
-        setNewAssignmentModal((current) => {
-          if (!current) return null;
-          if (current.type === 'case_proposed') return current;
-          const stillPending = caseAssignedActivities.some((a) => a.id === current.id);
-          return stillPending ? current : null;
-        });
-      } catch (err) {
-        console.error('Error loading case assignments:', err);
+        const existing = casesRef.current.find((c) => c.id === caseId);
+        const needsFetch =
+          !existing ||
+          (activity.type === 'case_proposed' &&
+            (existing.assignmentStatus !== 'pending' ||
+              (Boolean(counselorRecordId) &&
+                existing.proposedCounselorId !== counselorRecordId)));
+
+        if (needsFetch) {
+          caseIdsToFetch.add(caseId);
+        }
       }
+
+      await Promise.all(
+        Array.from(caseIdsToFetch).map(async (caseId) => {
+          try {
+            const caseSnap = await getDoc(doc(db, 'cases', caseId));
+            if (caseSnap.exists()) {
+              upsertCase(mapFirestoreCase(caseSnap.id, caseSnap.data()));
+            }
+          } catch (err) {
+            console.error('Error warming case for assignment activity:', err);
+          }
+        })
+      );
     };
 
-    loadCaseAssignments();
-  }, [currentUser, counselorRecordId, dismissedAssignments, dismissedAssignmentsLoaded]);
+    const applyActivities = (items: ActivityRecord[], changed?: ActivityRecord[]) => {
+      const sorted = [...items].sort(
+        (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+      );
+      setAllAssignmentActivities(sorted);
+      void warmCasesForActivities(changed ?? sorted);
+    };
+
+    const unsubscribe = onSnapshot(
+      activitiesQuery,
+      (snapshot) => {
+        const items = snapshotToAssignmentActivities(snapshot);
+        const changed = snapshot
+          .docChanges()
+          .filter((change) => change.type === 'added' || change.type === 'modified')
+          .map((change) => mapActivityDoc(change.doc.id, change.doc.data()));
+        applyActivities(items, changed);
+      },
+      (listenerError) => {
+        console.error('Error listening to case assignments:', listenerError);
+      }
+    );
+
+    return unsubscribe;
+  }, [currentUser?.id, currentUser?.role, counselorRecordId, dismissedAssignmentsLoaded, upsertCase]);
+
+  // Live pending proposals for this counselor — keeps case cache warm so the modal can open
+  // as soon as the matching activity arrives (leader writes the case before the activity).
+  useEffect(() => {
+    if (!currentUser || !counselorRecordId) return;
+    if (
+      currentUser.role !== 'counselor' &&
+      currentUser.role !== 'admin' &&
+      currentUser.role !== 'leader'
+    ) {
+      return;
+    }
+
+    const pendingProposalsQuery = query(
+      collection(db, 'cases'),
+      where('proposedCounselorId', '==', counselorRecordId)
+    );
+
+    const unsubscribe = onSnapshot(
+      pendingProposalsQuery,
+      (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'removed') {
+            const removedId = change.doc.id;
+            setCases((prev) => {
+              const existing = prev.find((c) => c.id === removedId);
+              if (!existing || existing.assignmentStatus !== 'pending') return prev;
+              return prev.map((c) =>
+                c.id === removedId
+                  ? {
+                      ...c,
+                      proposedCounselorId: null,
+                      proposedCounselorName: null,
+                      assignmentStatus: 'none' as const,
+                    }
+                  : c
+              );
+            });
+            return;
+          }
+          if (change.type === 'added' || change.type === 'modified') {
+            upsertCase(mapFirestoreCase(change.doc.id, change.doc.data()));
+          }
+        });
+      },
+      (err) => {
+        console.error('Error listening to pending proposal cases:', err);
+      }
+    );
+
+    return unsubscribe;
+  }, [currentUser?.id, currentUser?.role, counselorRecordId, upsertCase]);
+
+  // Re-filter in memory when activities or dismissals change (no re-query).
+  useEffect(() => {
+    if (
+      !currentUser ||
+      (currentUser.role !== 'counselor' &&
+        currentUser.role !== 'admin' &&
+        currentUser.role !== 'leader')
+    ) {
+      setRawPendingAssignments([]);
+      setAssignmentOutcomes([]);
+      return;
+    }
+
+    if (!dismissedAssignmentsLoaded) return;
+
+    const caseAssignedActivities = filterPendingAssignments(
+      allAssignmentActivities,
+      currentUser.id,
+      counselorRecordId,
+      dismissedAssignments
+    );
+
+    setRawPendingAssignments(caseAssignedActivities);
+    setAssignmentOutcomes(
+      filterAssignmentOutcomes(
+        allAssignmentActivities,
+        currentUser.id,
+        dismissedAssignments
+      )
+    );
+    setNewAssignmentModal((current) => {
+      if (!current) return null;
+      if (current.type === 'case_proposed') return current;
+      const stillPending = caseAssignedActivities.some((a) => a.id === current.id);
+      return stillPending ? current : null;
+    });
+  }, [
+    currentUser,
+    counselorRecordId,
+    dismissedAssignments,
+    dismissedAssignmentsLoaded,
+    allAssignmentActivities,
+  ]);
 
   const pendingAssignments = useMemo(() => {
     const proposals = filterActiveProposals(
@@ -552,18 +690,6 @@ export function useDashboardData() {
         .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()),
     [cases]
   );
-
-  const upsertCase = useCallback((caseItem: Case) => {
-    setCases((prev) => {
-      const index = prev.findIndex((c) => c.id === caseItem.id);
-      if (index === -1) {
-        return [caseItem, ...prev];
-      }
-      const next = [...prev];
-      next[index] = caseItem;
-      return next;
-    });
-  }, []);
 
   const removeCase = useCallback((caseId: string) => {
     setCases((prev) => prev.filter((c) => c.id !== caseId));
