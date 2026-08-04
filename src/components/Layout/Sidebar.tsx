@@ -47,7 +47,6 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, mobileOpen = false
   const { metrics } = useDashboardDataContext();
   const navigate = useNavigate();
   const location = useLocation();
-  const showReportActions = location.pathname === '/';
   const waitingCasesCount = metrics.pendingCases;
   const futureAppointmentsCount = metrics.futureAppointmentsCount;
 
@@ -143,20 +142,18 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, mobileOpen = false
       {!collapsed && (
         <>
           <WeeklyVerseCard />
-          {showReportActions && (
-            <div className="flex flex-wrap justify-center gap-1.5 px-3 pb-4 sm:hidden">
-              <button
-                type="button"
-                onClick={() => {
-                  navigate('/monthly-report');
-                  onMobileClose?.();
-                }}
-                className="inline-flex rounded-full border border-slate-200 px-2.5 py-1 text-[11px] font-medium text-slate-700 transition duration-200 ease-out hover:bg-slate-50 active:scale-[0.98]"
-              >
-                + Raport lunar
-              </button>
-            </div>
-          )}
+          <div className="flex flex-wrap justify-center gap-1.5 px-3 pb-4 sm:hidden">
+            <button
+              type="button"
+              onClick={() => {
+                navigate('/monthly-report');
+                onMobileClose?.();
+              }}
+              className="inline-flex rounded-full border border-slate-200 px-2.5 py-1 text-[11px] font-medium text-slate-700 transition duration-200 ease-out hover:bg-slate-50 active:scale-[0.98]"
+            >
+              + Raport lunar
+            </button>
+          </div>
         </>
       )}
     </div>

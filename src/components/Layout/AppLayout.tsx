@@ -50,7 +50,7 @@ const AppLayoutInner: React.FC<{ children: React.ReactNode }> = ({ children }) =
       >
         <Topbar
           onMenuClick={() => setMobileOpen(true)}
-          showReportActions={location.pathname === '/'}
+          showReportActions
         />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8">

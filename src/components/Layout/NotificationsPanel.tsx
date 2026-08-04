@@ -240,7 +240,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
                         {formatEventTimeRange(item.payload.event)}
                       </p>
                       {item.payload.event.description && (
-                        <p className="line-clamp-2 text-xs text-slate-500">
+                        <p className="line-clamp-2 whitespace-pre-wrap break-words text-xs text-slate-500">
                           {item.payload.event.description}
                         </p>
                       )}

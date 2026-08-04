@@ -69,8 +69,6 @@ const AdminCounselorsPanel: React.FC<AdminCounselorsPanelProps> = ({
       <CounselorsToolbar
         searchTerm={searchTerm}
         onSearchChange={onSearchChange}
-        workloadFilter={workloadFilter}
-        onWorkloadFilterChange={onWorkloadFilterChange}
         filteredCount={filteredCounselors.length}
       />
 

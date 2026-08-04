@@ -254,7 +254,9 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
                   }
                   extra={
                     showDescription ? (
-                      <p className="text-xs text-slate-500">{appointment.description}</p>
+                      <p className="whitespace-pre-wrap break-words text-xs text-slate-500">
+                        {appointment.description}
+                      </p>
                     ) : undefined
                   }
                 />
@@ -294,7 +296,9 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
                     hasDetails ? (
                       <div className="space-y-2">
                         {event.description ? (
-                          <p className="text-xs text-slate-500">{event.description}</p>
+                          <p className="whitespace-pre-wrap break-words text-xs text-slate-500">
+                            {event.description}
+                          </p>
                         ) : null}
                         {event.registrationUrl ? (
                           <>

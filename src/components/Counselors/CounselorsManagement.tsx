@@ -34,8 +34,6 @@ const CounselorsManagement: React.FC = () => {
       <CounselorsToolbar
         searchTerm={data.searchTerm}
         onSearchChange={data.setSearchTerm}
-        workloadFilter={data.workloadFilter}
-        onWorkloadFilterChange={data.setWorkloadFilter}
         filteredCount={data.filteredCounselors.length}
       />
 

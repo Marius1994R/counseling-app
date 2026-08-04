@@ -145,6 +145,10 @@ const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
         </div>
       </div>
 
+      <div className="mb-3">
+        <CalendarRoomLegend />
+      </div>
+
       <div className="mb-1 grid grid-cols-7 gap-1">
         {DAY_NAMES_RO.map((day) => (
           <div
@@ -230,10 +234,6 @@ const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
             </button>
           );
         })}
-      </div>
-
-      <div className="mt-3">
-        <CalendarRoomLegend />
       </div>
     </section>
   );

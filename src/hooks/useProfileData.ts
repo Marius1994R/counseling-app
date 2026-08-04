@@ -13,6 +13,7 @@ import {
 } from '../components/Counselors/counselorsUtils';
 import { fileToAvatarDataUrl, validateAvatarFile } from '../utils/avatarUtils';
 import { isCommonSpecialty } from '../components/Cases/assignmentUtils';
+import { parseDateInputValue, toDateInputValue } from '../utils/nameUtils';
 
 export function useProfileData() {
   const { currentUser, updateUserAvatar } = useAuth();
@@ -22,6 +23,7 @@ export function useProfileData() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [specialtiesDialogOpen, setSpecialtiesDialogOpen] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [removeAvatarConfirmOpen, setRemoveAvatarConfirmOpen] = useState(false);
@@ -37,6 +39,10 @@ export function useProfileData() {
   const [editData, setEditData] = useState({
     phoneNumber: '',
     sex: '' as Sex | '',
+    birthDate: '',
+  });
+
+  const [specialtiesData, setSpecialtiesData] = useState({
     specialties: [] as string[],
     specialtyCategories: {} as Record<string, IssueType>,
   });
@@ -123,34 +129,41 @@ export function useProfileData() {
     loadData();
   }, [currentUser, showSnackbar]);
 
-  useEffect(() => {
-    if (searchParams.get('edit') !== 'true' || !counselor) return;
+  const openProfileEditor = useCallback((c: Counselor) => {
     setEditData({
-      phoneNumber: counselor.phoneNumber.replace('+40', '').trim(),
-      sex: counselor.sex || '',
-      specialties: [...counselor.specialties],
-      specialtyCategories: { ...(counselor.specialtyCategories || {}) },
+      phoneNumber: c.phoneNumber.replace('+40', '').trim(),
+      sex: c.sex || '',
+      birthDate: toDateInputValue(c.birthDate),
     });
     setEditDialogOpen(true);
+  }, []);
+
+  useEffect(() => {
+    if (searchParams.get('edit') !== 'true' || !counselor) return;
+    openProfileEditor(counselor);
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete('edit');
     setSearchParams(nextParams, { replace: true });
-  }, [searchParams, counselor, setSearchParams]);
+  }, [searchParams, counselor, setSearchParams, openProfileEditor]);
 
   const handleEditClick = useCallback(() => {
     if (!counselor) return;
-    setEditData({
-      phoneNumber: counselor.phoneNumber.replace('+40', '').trim(),
-      sex: counselor.sex || '',
+    openProfileEditor(counselor);
+  }, [counselor, openProfileEditor]);
+
+  const handleEditSpecialtiesClick = useCallback(() => {
+    if (!counselor) return;
+    setSpecialtiesData({
       specialties: [...counselor.specialties],
       specialtyCategories: { ...(counselor.specialtyCategories || {}) },
     });
+    setNewSpecialty('');
     setNewSpecialtyCategory('');
     setSpecialtyCategoryError('');
-    setEditDialogOpen(true);
+    setSpecialtiesDialogOpen(true);
   }, [counselor]);
 
-  const handleSave = useCallback(async () => {
+  const handleSaveProfile = useCallback(async () => {
     if (!counselor || !isLinkedCounselor || saving) return;
     if (!editData.sex) {
       showSnackbar('Selectează sexul', 'error');
@@ -161,18 +174,11 @@ export function useProfileData() {
       setSaving(true);
       const counselorRef = doc(db, 'counselors', counselor.id);
       const formattedPhone = `+40${editData.phoneNumber.replace(/[\s\-()]/g, '')}`;
-      const specialtyCategories: Record<string, IssueType> = {};
-      for (const specialty of editData.specialties) {
-        if (!isCommonSpecialty(specialty) && editData.specialtyCategories[specialty]) {
-          specialtyCategories[specialty] = editData.specialtyCategories[specialty];
-        }
-      }
+      const birthDate = parseDateInputValue(editData.birthDate);
       await updateDoc(counselorRef, {
         phoneNumber: formattedPhone,
         sex: editData.sex,
-        specialties: editData.specialties,
-        specialtyCategories:
-          Object.keys(specialtyCategories).length > 0 ? specialtyCategories : null,
+        birthDate: birthDate ?? null,
         updatedAt: new Date(),
       });
 
@@ -180,9 +186,7 @@ export function useProfileData() {
         ...counselor,
         phoneNumber: formattedPhone,
         sex: editData.sex,
-        specialties: editData.specialties,
-        specialtyCategories:
-          Object.keys(specialtyCategories).length > 0 ? specialtyCategories : undefined,
+        birthDate,
         createdAt: counselor.createdAt,
         updatedAt: new Date(),
       });
@@ -196,6 +200,44 @@ export function useProfileData() {
       setSaving(false);
     }
   }, [counselor, editData, isLinkedCounselor, saving, showSnackbar]);
+
+  const handleSaveSpecialties = useCallback(async () => {
+    if (!counselor || !isLinkedCounselor || saving) return;
+
+    try {
+      setSaving(true);
+      const counselorRef = doc(db, 'counselors', counselor.id);
+      const specialtyCategories: Record<string, IssueType> = {};
+      for (const specialty of specialtiesData.specialties) {
+        if (!isCommonSpecialty(specialty) && specialtiesData.specialtyCategories[specialty]) {
+          specialtyCategories[specialty] = specialtiesData.specialtyCategories[specialty];
+        }
+      }
+      await updateDoc(counselorRef, {
+        specialties: specialtiesData.specialties,
+        specialtyCategories:
+          Object.keys(specialtyCategories).length > 0 ? specialtyCategories : null,
+        updatedAt: new Date(),
+      });
+
+      setCounselor({
+        ...counselor,
+        specialties: specialtiesData.specialties,
+        specialtyCategories:
+          Object.keys(specialtyCategories).length > 0 ? specialtyCategories : undefined,
+        createdAt: counselor.createdAt,
+        updatedAt: new Date(),
+      });
+
+      setSpecialtiesDialogOpen(false);
+      showSnackbar(t.profile.updateSuccess || 'Profil actualizat cu succes!', 'success');
+    } catch (error) {
+      console.error('Error updating specialties:', error);
+      showSnackbar(t.profile.updateError || 'Eroare la actualizarea profilului', 'error');
+    } finally {
+      setSaving(false);
+    }
+  }, [counselor, specialtiesData, isLinkedCounselor, saving, showSnackbar]);
 
   const handleAvatarClick = useCallback(() => {
     fileInputRef.current?.click();
@@ -289,13 +331,12 @@ export function useProfileData() {
 
   const handleAddSpecialty = useCallback(() => {
     const trimmedSpecialty = newSpecialty.trim();
-    if (!trimmedSpecialty || editData.specialties.includes(trimmedSpecialty)) return;
+    if (!trimmedSpecialty || specialtiesData.specialties.includes(trimmedSpecialty)) return;
     if (!newSpecialtyCategory) {
       setSpecialtyCategoryError(t.assignments.specialtyCategoryRequired);
       return;
     }
-    setEditData((prev) => ({
-      ...prev,
+    setSpecialtiesData((prev) => ({
       specialties: [...prev.specialties, trimmedSpecialty],
       specialtyCategories: {
         ...prev.specialtyCategories,
@@ -305,14 +346,13 @@ export function useProfileData() {
     setNewSpecialty('');
     setNewSpecialtyCategory('');
     setSpecialtyCategoryError('');
-  }, [newSpecialty, newSpecialtyCategory, editData.specialties]);
+  }, [newSpecialty, newSpecialtyCategory, specialtiesData.specialties]);
 
   const handleRemoveSpecialty = useCallback((specialty: string) => {
-    setEditData((prev) => {
+    setSpecialtiesData((prev) => {
       const nextCategories = { ...prev.specialtyCategories };
       delete nextCategories[specialty];
       return {
-        ...prev,
         specialties: prev.specialties.filter((s) => s !== specialty),
         specialtyCategories: nextCategories,
       };
@@ -320,7 +360,7 @@ export function useProfileData() {
   }, []);
 
   const handleAddCommonSpecialty = useCallback((specialty: string) => {
-    setEditData((prev) => {
+    setSpecialtiesData((prev) => {
       if (prev.specialties.includes(specialty)) return prev;
       return { ...prev, specialties: [...prev.specialties, specialty] };
     });
@@ -333,8 +373,11 @@ export function useProfileData() {
     loadError,
     editDialogOpen,
     setEditDialogOpen,
+    specialtiesDialogOpen,
+    setSpecialtiesDialogOpen,
     editData,
     setEditData,
+    specialtiesData,
     newSpecialty,
     setNewSpecialty,
     newSpecialtyCategory,
@@ -348,7 +391,9 @@ export function useProfileData() {
     saving,
     fileInputRef,
     handleEditClick,
-    handleSave,
+    handleEditSpecialtiesClick,
+    handleSaveProfile,
+    handleSaveSpecialties,
     handleAvatarClick,
     handleAvatarFileChange,
     removeAvatarConfirmOpen,
