@@ -20,7 +20,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Case, Appointment, CaseStatus, Counselor } from '../types';
 import { ActivityRecord } from '../components/Dashboard/dashboardUtils';
 import { countFutureAppointments } from '../components/Calendar/calendarUtils';
-import { mapFirestoreCase, isCaseVisibleToCounselor } from '../components/Cases/casesUtils';
+import { mapFirestoreCase, isCaseVisibleToCounselor, shouldAppearInPersonalCases } from '../components/Cases/casesUtils';
 import { mapFirestoreCounselor, dedupeCounselors } from '../components/Counselors/counselorsUtils';
 import {
   logCaseAssigned,
@@ -106,6 +106,28 @@ export function useDashboardData() {
       return next;
     });
   }, []);
+
+  const removeCase = useCallback((caseId: string) => {
+    setCases((prev) => prev.filter((c) => c.id !== caseId));
+    setSessionReportCounts((prev) => {
+      if (!(caseId in prev)) return prev;
+      const next = { ...prev };
+      delete next[caseId];
+      return next;
+    });
+  }, []);
+
+  const syncPersonalCaseCache = useCallback(
+    (caseItem: Case) => {
+      if (!currentUser) return;
+      if (shouldAppearInPersonalCases(caseItem, counselorRecordId, currentUser.id)) {
+        upsertCase(caseItem);
+      } else {
+        removeCase(caseItem.id);
+      }
+    },
+    [currentUser, counselorRecordId, upsertCase, removeCase]
+  );
 
   const loadDismissedAssignments = async (userId: string) => {
     try {
@@ -330,17 +352,29 @@ export function useDashboardData() {
 
     const warmCasesForActivities = async (activities: ActivityRecord[]) => {
       const caseIdsToFetch = new Set<string>();
+      const outcomeCaseIds = new Set<string>();
 
       for (const activity of activities) {
+        const caseId = String(activity.metadata?.caseId || '');
+        if (!caseId) continue;
+
+        // Assigner: proposal accepted/declined → drop from personal Cases if no longer theirs
+        if (activity.metadata?.notifyUserId === userId) {
+          const isDecline = activity.type === 'case_proposal_declined';
+          const isAccept =
+            activity.type === 'case_assigned' &&
+            activity.metadata?.assignmentSource === 'proposal_accept';
+          if (isDecline || isAccept) {
+            outcomeCaseIds.add(caseId);
+          }
+        }
+
         if (activity.type !== 'case_proposed' && activity.type !== 'case_assigned') {
           continue;
         }
         if (!activityTargetsCounselor(activity, userId, counselorRecordId)) {
           continue;
         }
-
-        const caseId = String(activity.metadata?.caseId || '');
-        if (!caseId) continue;
 
         const existing = casesRef.current.find((c) => c.id === caseId);
         const needsFetch =
@@ -355,13 +389,16 @@ export function useDashboardData() {
         }
       }
 
+      const ids = Array.from(new Set([...caseIdsToFetch, ...outcomeCaseIds]));
       await Promise.all(
-        Array.from(caseIdsToFetch).map(async (caseId) => {
+        ids.map(async (caseId) => {
           try {
             const caseSnap = await getDoc(doc(db, 'cases', caseId));
-            if (caseSnap.exists()) {
-              upsertCase(mapFirestoreCase(caseSnap.id, caseSnap.data()));
+            if (!caseSnap.exists()) {
+              removeCase(caseId);
+              return;
             }
+            syncPersonalCaseCache(mapFirestoreCase(caseSnap.id, caseSnap.data()));
           } catch (err) {
             console.error('Error warming case for assignment activity:', err);
           }
@@ -393,7 +430,13 @@ export function useDashboardData() {
     );
 
     return unsubscribe;
-  }, [currentUser?.id, currentUser?.role, counselorRecordId, dismissedAssignmentsLoaded, upsertCase]);
+  }, [
+    currentUser,
+    counselorRecordId,
+    dismissedAssignmentsLoaded,
+    syncPersonalCaseCache,
+    removeCase,
+  ]);
 
   // Live pending proposals for this counselor — keeps case cache warm so the modal can open
   // as soon as the matching activity arrives (leader writes the case before the activity).
@@ -435,7 +478,7 @@ export function useDashboardData() {
             return;
           }
           if (change.type === 'added' || change.type === 'modified') {
-            upsertCase(mapFirestoreCase(change.doc.id, change.doc.data()));
+            syncPersonalCaseCache(mapFirestoreCase(change.doc.id, change.doc.data()));
           }
         });
       },
@@ -445,7 +488,7 @@ export function useDashboardData() {
     );
 
     return unsubscribe;
-  }, [currentUser?.id, currentUser?.role, counselorRecordId, upsertCase]);
+  }, [currentUser, counselorRecordId, syncPersonalCaseCache]);
 
   // Re-filter in memory when activities or dismissals change (no re-query).
   useEffect(() => {
@@ -690,16 +733,6 @@ export function useDashboardData() {
         .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()),
     [cases]
   );
-
-  const removeCase = useCallback((caseId: string) => {
-    setCases((prev) => prev.filter((c) => c.id !== caseId));
-    setSessionReportCounts((prev) => {
-      if (!(caseId in prev)) return prev;
-      const next = { ...prev };
-      delete next[caseId];
-      return next;
-    });
-  }, []);
 
   const upsertAppointment = useCallback((appointment: Appointment) => {
     setAppointments((prev) => {

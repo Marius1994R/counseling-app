@@ -16,7 +16,7 @@ import { db } from '../firebase';
 import { Case, Counselor, User, UserRole } from '../types';
 import { logCaseAssigned, logCaseProposed, logCaseCreated } from '../utils/activityLogger';
 import { t } from '../utils/translations';
-import { mapFirestoreCase } from '../components/Cases/casesUtils';
+import { mapFirestoreCase, shouldAppearInPersonalCases } from '../components/Cases/casesUtils';
 import { loadLatestNotesByCaseIds } from '../components/Cases/meetingNotesUtils';
 import {
   CreateUserData,
@@ -44,7 +44,7 @@ export function useAdminData() {
     reactivateUser,
     getAllUsers,
   } = useAuth();
-  const { upsertCase, removeCase } = useDashboardDataContext();
+  const { upsertCase, removeCase, counselorRecordId } = useDashboardDataContext();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [activeTab, setActiveTab] = useState<AdminTab>(0);
@@ -446,11 +446,19 @@ export function useAdminData() {
           }
 
           showSnackbar(t.cases.updateSuccess, 'success');
-          upsertCase({
+          const updatedCase: Case = {
             ...editingCase,
             ...caseData,
             updatedAt: new Date(),
-          });
+          };
+          if (
+            currentUser &&
+            shouldAppearInPersonalCases(updatedCase, counselorRecordId, currentUser.id)
+          ) {
+            upsertCase(updatedCase);
+          } else {
+            removeCase(editingCase.id);
+          }
         } else {
           const docRef = await addDoc(collection(db, 'cases'), {
             ...firestorePayload,
@@ -483,13 +491,21 @@ export function useAdminData() {
             );
           }
           showSnackbar('Caz creat cu succes', 'success');
-          upsertCase({
+          const createdCase: Case = {
             ...caseData,
             id: docRef.id,
             createdBy: currentUser?.id || '',
             createdAt: new Date(),
             updatedAt: new Date(),
-          } as Case);
+          } as Case;
+          if (
+            currentUser &&
+            shouldAppearInPersonalCases(createdCase, counselorRecordId, currentUser.id)
+          ) {
+            upsertCase(createdCase);
+          } else {
+            removeCase(docRef.id);
+          }
         }
         setCaseFormOpen(false);
         setEditingCase(null);
@@ -513,6 +529,8 @@ export function useAdminData() {
       requireAdminAccess,
       showSnackbar,
       upsertCase,
+      removeCase,
+      counselorRecordId,
     ]
   );
 

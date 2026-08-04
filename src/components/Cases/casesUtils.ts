@@ -173,6 +173,21 @@ export function isCaseVisibleToCounselor(
   );
 }
 
+/**
+ * Personal Cases (/cases) cache: assigned/proposed to me, or a proposal I made that is still pending.
+ * Force-assigned (or accepted) cases for someone else must not stick in the assigner's list.
+ */
+export function shouldAppearInPersonalCases(
+  caseItem: Case,
+  counselorId: string | null,
+  userId: string
+): boolean {
+  if (isCaseVisibleToCounselor(caseItem, counselorId, userId)) return true;
+  return (
+    caseItem.assignmentStatus === 'pending' && caseItem.proposedByUserId === userId
+  );
+}
+
 export async function loadVisibleCasesForUser(userId: string): Promise<Case[]> {
   let counselorId: string | null = null;
   const counselorsRef = collection(db, 'counselors');
