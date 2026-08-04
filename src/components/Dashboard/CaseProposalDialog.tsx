@@ -26,6 +26,15 @@ import {
 } from '../Cases/casesUtils';
 import { t } from '../../utils/translations';
 
+/** Brand yellow (same family as VERSETUL SĂPTĂMÂNII) */
+const BRAND_YELLOW = '#C99700';
+const BRAND_YELLOW_SOFT = '#FFFBEB';
+/** brand-100 — light yellow for proposal header */
+const BRAND_YELLOW_HEADER = '#FEF3C7';
+const HEADER_TITLE = '#92400E';
+const HEADER_SUBTITLE = '#A16207';
+const HEADER_ICON_BG = 'rgba(201, 151, 0, 0.12)';
+
 interface CaseProposalDialogProps {
   open: boolean;
   caseItem?: Case;
@@ -75,8 +84,7 @@ const CaseProposalDialog: React.FC<CaseProposalDialogProps> = ({
         sx={{
           px: { xs: 2.5, sm: 3.5 },
           py: 3,
-          color: '#fff',
-          background: 'linear-gradient(135deg, #8A6500 0%, #C99700 100%)',
+          backgroundColor: BRAND_YELLOW_HEADER,
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -87,16 +95,22 @@ const CaseProposalDialog: React.FC<CaseProposalDialogProps> = ({
               width: 44,
               height: 44,
               borderRadius: 2,
-              backgroundColor: 'rgba(255, 255, 255, 0.18)',
+              backgroundColor: HEADER_ICON_BG,
+              color: BRAND_YELLOW,
             }}
           >
             <AssignmentTurnedIn />
           </Box>
           <Box>
-            <Typography variant="h6" fontWeight={700} lineHeight={1.25}>
+            <Typography
+              variant="h6"
+              fontWeight={700}
+              lineHeight={1.25}
+              sx={{ color: HEADER_TITLE }}
+            >
               {t.dashboard.newCaseProposed}
             </Typography>
-            <Typography variant="body2" sx={{ mt: 0.35, color: 'rgba(255, 255, 255, 0.82)' }}>
+            <Typography variant="body2" sx={{ mt: 0.35, color: HEADER_SUBTITLE }}>
               {t.dashboard.newCaseProposedMessage}
             </Typography>
           </Box>
@@ -150,8 +164,8 @@ const CaseProposalDialog: React.FC<CaseProposalDialogProps> = ({
                     width: 36,
                     height: 36,
                     borderRadius: '50%',
-                    color: '#8A6500',
-                    backgroundColor: '#FFF8E1',
+                    color: BRAND_YELLOW,
+                    backgroundColor: BRAND_YELLOW_SOFT,
                   }}
                 >
                   <PersonOutline fontSize="small" />
@@ -234,7 +248,7 @@ const CaseProposalDialog: React.FC<CaseProposalDialogProps> = ({
                     border: '1px solid #E2E8F0',
                   }}
                 >
-                  <FavoriteBorder fontSize="small" sx={{ mt: 0.15, color: '#8A6500' }} />
+                  <FavoriteBorder fontSize="small" sx={{ mt: 0.15, color: BRAND_YELLOW }} />
                   <Box sx={{ minWidth: 0 }}>
                     <Typography variant="caption" display="block" color="text.secondary">
                       {t.cases.problemDescription}
@@ -302,9 +316,18 @@ const CaseProposalDialog: React.FC<CaseProposalDialogProps> = ({
           sx={{
             py: 1.1,
             fontWeight: 700,
-            backgroundColor: '#C99700',
+            color: HEADER_TITLE,
+            backgroundColor: BRAND_YELLOW_HEADER,
             boxShadow: 'none',
-            '&:hover': { backgroundColor: '#B8860B', boxShadow: 'none' },
+            '&:hover': {
+              backgroundColor: '#FDE68A',
+              boxShadow: 'none',
+            },
+            '&.Mui-disabled': {
+              color: HEADER_SUBTITLE,
+              backgroundColor: BRAND_YELLOW_HEADER,
+              opacity: 0.7,
+            },
           }}
         >
           {t.dashboard.acceptProposal}

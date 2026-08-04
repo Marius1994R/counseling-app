@@ -238,7 +238,7 @@ const Topbar: React.FC<TopbarProps> = ({
               variant="contained"
               onClick={handleSeeCase}
               startIcon={<Assignment />}
-              sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B8860B' } }}
+              sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B89A00' } }}
             >
               {t.dashboard.seeCase}
             </Button>

@@ -327,8 +327,8 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
                   startIcon={<EventIcon />}
                   sx={{
                     borderColor: '#C99700',
-                    color: '#B8860B',
-                    '&:hover': { borderColor: '#B8860B', backgroundColor: 'rgba(201, 151, 0, 0.08)' },
+                    color: '#B89A00',
+                    '&:hover': { borderColor: '#B89A00', backgroundColor: 'rgba(201, 151, 0, 0.08)' },
                   }}
                 >
                   {t.events.addEvent}
@@ -341,7 +341,7 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
                 }}
                 variant="contained"
                 startIcon={<Add />}
-                sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B8860B' } }}
+                sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B89A00' } }}
               >
                 {t.appointments.scheduleAppointment}
               </Button>

@@ -32,7 +32,7 @@ import { t } from '../../utils/translations';
 import ConfirmDialog from '../common/ConfirmDialog';
 
 const BRAND_PRIMARY = '#C99700';
-const BRAND_PRIMARY_HOVER = '#B8860B';
+const BRAND_PRIMARY_HOVER = '#B89A00';
 
 const brandButtonSx = {
   backgroundColor: BRAND_PRIMARY,

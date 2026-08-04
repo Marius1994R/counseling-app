@@ -285,7 +285,7 @@ const EventForm: React.FC<EventFormProps> = ({
               startIcon={
                 submitting ? <CircularProgress size={16} color="inherit" /> : undefined
               }
-              sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B8860B' } }}
+              sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B89A00' } }}
             >
               {eventData ? t.common.save : t.events.save}
             </Button>
