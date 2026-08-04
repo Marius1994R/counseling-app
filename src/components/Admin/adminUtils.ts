@@ -68,7 +68,39 @@ export function filterAdminCases(
     filtered = filtered.filter((c) => c.assignedCounselorId === counselorFilter);
   }
 
-  return filtered;
+  return [...filtered].sort(
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+  );
+}
+
+export type AdminCaseStatusCounts = {
+  all: number;
+  waiting: number;
+  active: number;
+  unfinished: number;
+  finished: number;
+  cancelled: number;
+};
+
+/** Counts by status after search + counselor filters (status ignored). */
+export function countAdminCasesByStatus(
+  cases: Case[],
+  searchTerm: string,
+  counselorFilter: string
+): AdminCaseStatusCounts {
+  const base = filterAdminCases(cases, searchTerm, 'all', counselorFilter);
+  const counts: AdminCaseStatusCounts = {
+    all: base.length,
+    waiting: 0,
+    active: 0,
+    unfinished: 0,
+    finished: 0,
+    cancelled: 0,
+  };
+  base.forEach((c) => {
+    counts[c.status] += 1;
+  });
+  return counts;
 }
 
 export function parseAdminTabFromUrl(tabParam: string | null): AdminTab {

@@ -57,6 +57,14 @@ export function formatEventTimeRange(event: ChurchEvent): string {
   return `${formatTime(event.startTime)} – ${formatTime(event.endTime)}`;
 }
 
+/** True when the event's last day + end time is in the past. */
+export function isPastEvent(event: ChurchEvent, now = new Date()): boolean {
+  const end = startOfDay(event.endDate);
+  const [hours, minutes] = event.endTime.split(':').map(Number);
+  end.setHours(hours, minutes, 0, 0);
+  return end.getTime() <= now.getTime();
+}
+
 export function getNextEventOccurrenceDate(event: ChurchEvent, now = new Date()): Date | null {
   const today = startOfDay(now);
   const rangeStart = startOfDay(event.startDate);

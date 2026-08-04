@@ -16,6 +16,7 @@ import {
   getEventDisplayStyles,
   formatEventDateRange,
   formatEventTimeRange,
+  isPastEvent,
 } from './eventUtils';
 import ConfirmDialog from '../common/ConfirmDialog';
 
@@ -131,6 +132,12 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
   const handleDeleteConfirm = async () => {
     if (!deleteTarget || deleteLoading) return;
     const target = deleteTarget;
+    if (target.kind === 'appointment' && !canEdit(target.item) && !canDelete(target.item)) {
+      return;
+    }
+    if (target.kind === 'event' && isPastEvent(target.item)) {
+      return;
+    }
     try {
       setDeleteLoading(true);
       if (target.kind === 'appointment') {
@@ -262,6 +269,7 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
 
             {sortedEvents.map((event) => {
               const hasDetails = Boolean(event.description || event.registrationUrl);
+              const canModifyEvent = canManageEvents && !isPastEvent(event);
 
               return (
                 <SoftBar
@@ -270,7 +278,7 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
                   label={`${event.name} · ${formatEventTimeRange(event)}`}
                   sub={`Eveniment · ${formatEventDateRange(event)}`}
                   actions={
-                    canManageEvents ? (
+                    canModifyEvent ? (
                       <div className="flex shrink-0 gap-0.5">
                         <IconButton
                           size="small"

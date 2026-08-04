@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { Alert } from '@mui/material';
 import { Case, Counselor } from '../../types';
-import { CaseStatusFilter } from './adminUtils';
+import { AdminCaseStatusCounts, CaseStatusFilter } from './adminUtils';
 import { t } from '../../utils/translations';
 import CasesGrid from '../Cases/CasesGrid';
 import AdminSkeleton from './AdminSkeleton';
 import ConfirmDialog from '../common/ConfirmDialog';
+import AdminCasesFilterTabs from './AdminCasesFilterTabs';
 
 interface AdminCasesPanelProps {
   loading: boolean;
@@ -17,6 +18,7 @@ interface AdminCasesPanelProps {
   onSearchChange: (value: string) => void;
   statusFilter: CaseStatusFilter;
   onStatusFilterChange: (value: CaseStatusFilter) => void;
+  statusCounts: AdminCaseStatusCounts;
   counselorFilter: string;
   onCounselorFilterChange: (value: string) => void;
   onAdd: () => void;
@@ -25,15 +27,6 @@ interface AdminCasesPanelProps {
   onOpenSessionReport: (caseItem: Case) => void;
   onOpenTimeline: (caseItem: Case) => void;
 }
-
-const STATUS_OPTIONS: { value: CaseStatusFilter; label: string }[] = [
-  { value: 'all', label: t.adminTools.allStatuses },
-  { value: 'waiting', label: t.status.waiting },
-  { value: 'active', label: t.status.active },
-  { value: 'unfinished', label: t.status.unfinished },
-  { value: 'finished', label: t.status.completed },
-  { value: 'cancelled', label: t.status.cancelled },
-];
 
 const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
   loading,
@@ -44,6 +37,7 @@ const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
+  statusCounts,
   counselorFilter,
   onCounselorFilterChange,
   onAdd,
@@ -85,9 +79,9 @@ const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
         </Alert>
       )}
 
-      <div className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="lg:col-span-1">
+      <div className="mb-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
             <label
               htmlFor="admin-cases-search"
               className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500"
@@ -105,27 +99,6 @@ const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
                 className="w-full rounded-lg border border-slate-200 py-2.5 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
               />
             </div>
-          </div>
-
-          <div>
-            <label
-              htmlFor="admin-cases-status"
-              className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500"
-            >
-              {t.cases.status}
-            </label>
-            <select
-              id="admin-cases-status"
-              value={statusFilter}
-              onChange={(e) => onStatusFilterChange(e.target.value as CaseStatusFilter)}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-            >
-              {STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
           </div>
 
           <div>
@@ -157,6 +130,12 @@ const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
           </span>
         </div>
       </div>
+
+      <AdminCasesFilterTabs
+        activeFilter={statusFilter}
+        onFilterChange={onStatusFilterChange}
+        counts={statusCounts}
+      />
 
       {cases.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">

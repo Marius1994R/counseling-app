@@ -1,11 +1,9 @@
 import React from 'react';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
-import { CaseStatus } from '../../types';
 import { TimeRangeFilter } from '../../utils/timeRange';
 import { CounselorOption } from '../../hooks/useSessionReportsData';
 import { t } from '../../utils/translations';
-import { CASE_STATUS_FILTERS } from '../Cases/casesUtils';
-import { getStatusLabel } from '../Dashboard/dashboardUtils';
+import { SessionReportsStatusFilter } from './sessionReportsUtils';
 
 interface SessionReportsToolbarProps {
   searchTerm: string;
@@ -14,12 +12,30 @@ interface SessionReportsToolbarProps {
   onCounselorFilterChange: (value: string) => void;
   timeRangeFilter: TimeRangeFilter;
   onTimeRangeFilterChange: (value: TimeRangeFilter) => void;
-  statusFilter: CaseStatus | 'all';
-  onStatusFilterChange: (value: CaseStatus | 'all') => void;
+  statusFilter: SessionReportsStatusFilter;
+  onStatusFilterChange: (value: SessionReportsStatusFilter) => void;
   counselors: CounselorOption[];
   showCounselorFilter: boolean;
   filteredCount: number;
 }
+
+const StatusPill: React.FC<{
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}> = ({ label, active, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`rounded-full px-4 py-2 text-sm font-medium transition duration-200 active:scale-[0.98] ${
+      active
+        ? 'bg-brand-50 text-brand-600'
+        : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+    }`}
+  >
+    {label}
+  </button>
+);
 
 const SessionReportsToolbar: React.FC<SessionReportsToolbarProps> = ({
   searchTerm,
@@ -46,17 +62,28 @@ const SessionReportsToolbar: React.FC<SessionReportsToolbarProps> = ({
       />
     </div>
 
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {showCounselorFilter && (
-        <div>
-          <label htmlFor="reports-counselor" className="mb-1 block text-xs font-medium text-slate-500">
-            {t.sessionReports.counselorLabel}
-          </label>
+    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+      <div className="flex flex-wrap gap-2">
+        <StatusPill
+          label={t.sessionReports.statusActive}
+          active={statusFilter === 'active'}
+          onClick={() => onStatusFilterChange('active')}
+        />
+        <StatusPill
+          label={t.sessionReports.statusOthers}
+          active={statusFilter === 'others'}
+          onClick={() => onStatusFilterChange('others')}
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        {showCounselorFilter && (
           <select
             id="reports-counselor"
             value={counselorFilter}
             onChange={(e) => onCounselorFilterChange(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            aria-label={t.sessionReports.counselorLabel}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           >
             <option value="all">{t.sessionReports.allCounselors}</option>
             {counselors.map((c) => (
@@ -65,42 +92,19 @@ const SessionReportsToolbar: React.FC<SessionReportsToolbarProps> = ({
               </option>
             ))}
           </select>
-        </div>
-      )}
+        )}
 
-      <div>
-        <label htmlFor="reports-period" className="mb-1 block text-xs font-medium text-slate-500">
-          {t.sessionReports.periodLabel}
-        </label>
         <select
           id="reports-period"
           value={timeRangeFilter}
           onChange={(e) => onTimeRangeFilterChange(e.target.value as TimeRangeFilter)}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          aria-label={t.sessionReports.periodLabel}
+          className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         >
           <option value="3months">{t.activity.periods.threeMonths}</option>
           <option value="6months">{t.activity.periods.sixMonths}</option>
           <option value="9months">{t.activity.periods.nineMonths}</option>
           <option value="alltime">{t.activity.periods.allTime}</option>
-        </select>
-      </div>
-
-      <div>
-        <label htmlFor="reports-status" className="mb-1 block text-xs font-medium text-slate-500">
-          {t.sessionReports.statusLabel}
-        </label>
-        <select
-          id="reports-status"
-          value={statusFilter}
-          onChange={(e) => onStatusFilterChange(e.target.value as CaseStatus | 'all')}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        >
-          <option value="all">{t.sessionReports.allStatuses}</option>
-          {CASE_STATUS_FILTERS.map((status) => (
-            <option key={status} value={status}>
-              {getStatusLabel(status)}
-            </option>
-          ))}
         </select>
       </div>
     </div>

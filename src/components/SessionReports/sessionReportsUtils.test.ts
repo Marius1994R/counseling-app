@@ -79,7 +79,7 @@ describe('sessionReportsUtils', () => {
       searchTerm: 'doliu',
       counselorFilter: 'all',
       timeRangeFilter: 'alltime',
-      statusFilter: 'all',
+      statusFilter: 'active',
     });
 
     expect(filtered).toHaveLength(1);
@@ -109,14 +109,38 @@ describe('sessionReportsUtils', () => {
       searchTerm: '',
       counselorFilter: 'all',
       timeRangeFilter: '3months',
-      statusFilter: 'all',
+      statusFilter: 'active',
     });
 
     expect(filtered.some((s) => s.case.id === 'case-1')).toBe(false);
 
-    const list = buildCaseListSummaries(filtered, 'case-1', summaries, cases);
+    const list = buildCaseListSummaries(filtered, 'case-1', summaries, cases, 'active');
     expect(list[0].case.id).toBe('case-1');
     expect(list).toHaveLength(2);
+  });
+
+  it('does not pin selected case that fails status filter', () => {
+    const finished = {
+      ...mockCase('case-f', 'Finalizat'),
+      status: 'finished' as const,
+    };
+    const cases = [mockCase('case-a', 'Activ'), finished];
+    const map = new Map<string, SessionReportRecord[]>([
+      ['case-a', [mockReport('r1', 'case-a', 1, new Date('2026-06-01'))]],
+      ['case-f', [mockReport('r2', 'case-f', 1, new Date('2026-06-02'))]],
+    ]);
+    const summaries = buildCaseSummaries(cases, map);
+    const others = filterCaseSummaries(summaries, {
+      searchTerm: '',
+      counselorFilter: 'all',
+      timeRangeFilter: 'alltime',
+      statusFilter: 'others',
+    });
+
+    const list = buildCaseListSummaries(others, 'case-a', summaries, cases, 'others');
+    expect(list.every((s) => s.case.id !== 'case-a')).toBe(true);
+    expect(list).toHaveLength(1);
+    expect(list[0].case.id).toBe('case-f');
   });
 
   it('builds empty summary for active case without reports', () => {
@@ -136,6 +160,37 @@ describe('sessionReportsUtils', () => {
     expect(summaries).toHaveLength(2);
     expect(summaries[0].case.id).toBe('case-1');
     expect(summaries[1].reportCount).toBe(0);
+  });
+
+  it('filters by active vs others status toggle', () => {
+    const finished = {
+      ...mockCase('case-f', 'Finalizat'),
+      status: 'finished' as const,
+    };
+    const cases = [mockCase('case-a', 'Activ'), finished];
+    const map = new Map<string, SessionReportRecord[]>([
+      ['case-a', [mockReport('r1', 'case-a', 1, new Date('2026-06-01'))]],
+      ['case-f', [mockReport('r2', 'case-f', 1, new Date('2026-06-02'))]],
+    ]);
+    const summaries = buildCaseSummaries(cases, map);
+
+    const activeOnly = filterCaseSummaries(summaries, {
+      searchTerm: '',
+      counselorFilter: 'all',
+      timeRangeFilter: 'alltime',
+      statusFilter: 'active',
+    });
+    expect(activeOnly).toHaveLength(1);
+    expect(activeOnly[0].case.id).toBe('case-a');
+
+    const othersOnly = filterCaseSummaries(summaries, {
+      searchTerm: '',
+      counselorFilter: 'all',
+      timeRangeFilter: 'alltime',
+      statusFilter: 'others',
+    });
+    expect(othersOnly).toHaveLength(1);
+    expect(othersOnly[0].case.id).toBe('case-f');
   });
 
   it('computes metrics from summaries', () => {

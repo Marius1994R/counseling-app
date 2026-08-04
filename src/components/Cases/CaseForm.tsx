@@ -140,7 +140,7 @@ const CaseForm: React.FC<CaseFormProps> = ({
       waiting: 'În Așteptare',
       active: 'Activ',
       unfinished: 'Nefinalizat',
-      finished: 'Terminat',
+      finished: 'Finalizat',
       cancelled: 'Anulat',
     };
     return statusMap[status] || status;

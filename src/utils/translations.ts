@@ -337,7 +337,8 @@ export const t = {
     roomConflict: 'Sala este deja rezervată în intervalul selectat',
     roomLegend: 'Săli',
     pastStartTimeError: 'Ora de start trebuie să fie în viitor',
-    pastEndTimeError: 'Ora de final trebuie să fie în viitor'
+    pastEndTimeError: 'Ora de final trebuie să fie în viitor',
+    pastCannotModify: 'Programările din trecut nu pot fi editate sau șterse',
   },
 
   // Church events (Evenimente)
@@ -367,6 +368,7 @@ export const t = {
     endTimeRequired: 'Ora de sfârșit este obligatorie',
     minDuration: 'Evenimentul trebuie să dureze cel puțin 15 minute',
     pastDateError: 'Nu poți crea evenimente în trecut',
+    pastCannotModify: 'Evenimentele din trecut nu pot fi editate sau șterse',
     invalidUrl: 'Introduceți un URL valid (http:// sau https://)',
     legend: 'Evenimente',
     noEventsDay: 'Nu există evenimente pentru această zi',
@@ -438,6 +440,8 @@ export const t = {
     counselorLabel: 'Consilier',
     periodLabel: 'Perioadă',
     statusLabel: 'Status caz',
+    statusActive: 'Active',
+    statusOthers: 'Altele',
     allCounselors: 'Toți consilierii',
     allStatuses: 'Toate statusurile',
     casesWithReports: 'Cazuri cu rapoarte',

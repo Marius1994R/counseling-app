@@ -28,6 +28,7 @@ import {
   isBookableRoom,
   findCounselorForUser,
   hasRoomConflict,
+  isPastAppointment,
 } from './calendarUtils';
 
 const combineDateAndTime = (date: Dayjs, time: Dayjs): Dayjs =>
@@ -325,7 +326,12 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    if (appointmentData && isPastAppointment(appointmentData)) {
+      setErrors({ date: t.appointments.pastCannotModify });
+      return;
+    }
+
     if (submitting || !validateForm()) return;
 
     const selectedCounselor = counselors.find(c => c.id === formData.counselorId);

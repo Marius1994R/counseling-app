@@ -23,6 +23,7 @@ import {
   getAppointmentsForDate,
   findCounselorForUser,
   hasRoomConflict,
+  isPastAppointment,
 } from '../components/Calendar/calendarUtils';
 import { isAdminOrLeader } from '../utils/roleAuth';
 import { t } from '../utils/translations';
@@ -209,6 +210,7 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
 
   const canEditAppointment = useCallback(
     (appointment: Appointment) => {
+      if (isPastAppointment(appointment)) return false;
       const isOwnAppointment =
         appointment.createdBy === currentUser?.id ||
         (appointment.createdBy === 'current-user' && currentUser?.role === 'counselor');
@@ -231,6 +233,10 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
 
   const handleEditAppointment = useCallback(
     (appointment: Appointment) => {
+      if (isPastAppointment(appointment)) {
+        setError(t.appointments.pastCannotModify);
+        return;
+      }
       const isOwnAppointment =
         appointment.createdBy === currentUser?.id ||
         (appointment.createdBy === 'current-user' && currentUser?.role === 'counselor');
@@ -253,6 +259,10 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
   const handleDeleteAppointment = useCallback(
     async (appointmentId: string) => {
       const appointment = appointments.find((a) => a.id === appointmentId);
+      if (appointment && isPastAppointment(appointment)) {
+        setError(t.appointments.pastCannotModify);
+        throw new Error(t.appointments.pastCannotModify);
+      }
       const isOwnAppointment =
         appointment &&
         (appointment.createdBy === currentUser?.id ||

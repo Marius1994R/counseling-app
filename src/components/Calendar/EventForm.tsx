@@ -16,7 +16,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
 import { ChurchEvent } from '../../types';
 import { t } from '../../utils/translations';
-import { validateEventForm } from './eventUtils';
+import { isPastEvent, validateEventForm } from './eventUtils';
 
 interface EventFormProps {
   open: boolean;
@@ -76,6 +76,11 @@ const EventForm: React.FC<EventFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+
+    if (eventData && isPastEvent(eventData)) {
+      setErrors({ startDate: t.events.pastCannotModify });
+      return;
+    }
 
     const validationErrors = validateEventForm(
       { name, description, startDate, endDate, startTime, endTime, registrationUrl },

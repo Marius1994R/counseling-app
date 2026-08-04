@@ -27,6 +27,7 @@ import {
   adminTabToSearchParam,
   filterCounselors,
   filterAdminCases,
+  countAdminCasesByStatus,
   enrichCounselorsList,
 } from '../components/Admin/adminUtils';
 import { countByWorkload, dedupeCounselors, mapFirestoreCounselor } from '../components/Counselors/counselorsUtils';
@@ -243,6 +244,11 @@ export function useAdminData() {
   const filteredCases = useMemo(
     () => filterAdminCases(allCases, caseSearchTerm, caseStatusFilter, caseCounselorFilter),
     [allCases, caseSearchTerm, caseStatusFilter, caseCounselorFilter]
+  );
+
+  const caseStatusCounts = useMemo(
+    () => countAdminCasesByStatus(allCases, caseSearchTerm, caseCounselorFilter),
+    [allCases, caseSearchTerm, caseCounselorFilter]
   );
 
   const setTab = useCallback(
@@ -718,6 +724,7 @@ Link app: https://consiliere360.vercel.app/`;
     caseCounselorFilter,
     setCaseCounselorFilter,
     filteredCases,
+    caseStatusCounts,
     caseFormOpen,
     setCaseFormOpen,
     editingCase,

@@ -4,17 +4,18 @@ import { collection, getDocs } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { useDashboardDataContext } from '../contexts/DashboardDataContext';
 import { db } from '../firebase';
-import { Case, CaseStatus } from '../types';
+import { Case } from '../types';
 import { TimeRangeFilter } from '../utils/timeRange';
 import {
   buildCaseListSummaries,
   buildCaseSummaries,
   computeSessionReportMetrics,
   filterCaseSummaries,
-  findCaseReportSummary,
   parseSessionReportDoc,
   SessionReportRecord,
+  SessionReportsStatusFilter,
   shouldUseAllTimeForDeepLink,
+  createEmptyCaseSummary,
 } from '../components/SessionReports/sessionReportsUtils';
 import { t } from '../utils/translations';
 
@@ -47,7 +48,7 @@ export function useSessionReportsData() {
   const [timeRangeFilter, setTimeRangeFilter] = useState<TimeRangeFilter>(() =>
     parseTimeRangeFromParams(searchParams)
   );
-  const [statusFilter, setStatusFilter] = useState<CaseStatus | 'all'>('active');
+  const [statusFilter, setStatusFilter] = useState<SessionReportsStatusFilter>('active');
 
   const selectedCaseId = searchParams.get('caseId');
   const deepLinkProcessedRef = useRef<string | null>(null);
@@ -125,9 +126,48 @@ export function useSessionReportsData() {
     [allSummaries, searchTerm, counselorFilter, timeRangeFilter, statusFilter]
   );
 
+  useEffect(() => {
+    if (!selectedCaseId || loading) return;
+
+    const selected =
+      allSummaries.find((s) => s.case.id === selectedCaseId) ??
+      (() => {
+        const caseItem = allCases.find((c) => c.id === selectedCaseId);
+        return caseItem ? createEmptyCaseSummary(caseItem) : null;
+      })();
+
+    if (!selected) return;
+
+    const matchesStatus =
+      statusFilter === 'active'
+        ? selected.case.status === 'active'
+        : selected.case.status !== 'active';
+
+    if (matchesStatus) return;
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('caseId');
+    setSearchParams(nextParams, { replace: true });
+  }, [
+    statusFilter,
+    selectedCaseId,
+    allSummaries,
+    allCases,
+    loading,
+    searchParams,
+    setSearchParams,
+  ]);
+
   const caseListSummaries = useMemo(
-    () => buildCaseListSummaries(filteredSummaries, selectedCaseId, allSummaries, allCases),
-    [filteredSummaries, selectedCaseId, allSummaries, allCases]
+    () =>
+      buildCaseListSummaries(
+        filteredSummaries,
+        selectedCaseId,
+        allSummaries,
+        allCases,
+        statusFilter
+      ),
+    [filteredSummaries, selectedCaseId, allSummaries, allCases, statusFilter]
   );
 
   const metrics = useMemo(
@@ -151,11 +191,15 @@ export function useSessionReportsData() {
 
   const selectedSummary = useMemo(() => {
     if (selectedCaseId) {
-      return findCaseReportSummary(selectedCaseId, allSummaries, allCases);
+      const inFiltered = filteredSummaries.find((s) => s.case.id === selectedCaseId);
+      if (inFiltered) return inFiltered;
+      const inList = caseListSummaries.find((s) => s.case.id === selectedCaseId);
+      if (inList) return inList;
+      return null;
     }
     if (filteredSummaries.length === 0) return null;
     return filteredSummaries[0];
-  }, [selectedCaseId, allSummaries, allCases, filteredSummaries]);
+  }, [selectedCaseId, filteredSummaries, caseListSummaries]);
 
   useEffect(() => {
     if (loading || !selectedCaseId) return;

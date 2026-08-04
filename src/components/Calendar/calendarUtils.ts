@@ -233,6 +233,11 @@ export function isFutureAppointment(appointment: Appointment, now = new Date()):
   return getAppointmentDateTime(appointment, appointment.endTime) > now;
 }
 
+/** True when the appointment has already ended. */
+export function isPastAppointment(appointment: Appointment, now = new Date()): boolean {
+  return !isFutureAppointment(appointment, now);
+}
+
 export function countFutureAppointments(appointments: Appointment[]): number {
   return appointments.filter((appointment) => isFutureAppointment(appointment)).length;
 }

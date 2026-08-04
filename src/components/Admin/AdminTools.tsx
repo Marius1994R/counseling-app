@@ -113,6 +113,7 @@ const AdminTools: React.FC = () => {
           onSearchChange={data.setCaseSearchTerm}
           statusFilter={data.caseStatusFilter}
           onStatusFilterChange={data.setCaseStatusFilter}
+          statusCounts={data.caseStatusCounts}
           counselorFilter={data.caseCounselorFilter}
           onCounselorFilterChange={data.setCaseCounselorFilter}
           onAdd={() => {

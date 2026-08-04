@@ -1,5 +1,7 @@
-import { Case, CaseStatus } from '../../types';
+import { Case } from '../../types';
 import { getCutoffDate, TimeRangeFilter } from '../../utils/timeRange';
+
+export type SessionReportsStatusFilter = 'active' | 'others';
 
 export interface SessionReportRecord {
   id: string;
@@ -81,7 +83,7 @@ export interface SessionReportsFilterState {
   searchTerm: string;
   counselorFilter: string;
   timeRangeFilter: TimeRangeFilter;
-  statusFilter: CaseStatus | 'all';
+  statusFilter: SessionReportsStatusFilter;
 }
 
 export function shouldUseAllTimeForDeepLink(lastReportDate: Date | null): boolean {
@@ -110,12 +112,14 @@ export function findCaseReportSummary(
   return caseItem ? createEmptyCaseSummary(caseItem) : null;
 }
 
-/** Pin a deep-linked case at the top when it would otherwise be hidden by filters. */
+/** Pin a deep-linked case at the top when it would otherwise be hidden by filters.
+ * Never pin a case that fails the Active/Altele status toggle. */
 export function buildCaseListSummaries(
   filteredSummaries: CaseReportSummary[],
   selectedCaseId: string | null,
   allSummaries: CaseReportSummary[],
-  allCases: Case[]
+  allCases: Case[],
+  statusFilter: SessionReportsStatusFilter
 ): CaseReportSummary[] {
   if (!selectedCaseId) return filteredSummaries;
   if (filteredSummaries.some((s) => s.case.id === selectedCaseId)) {
@@ -123,7 +127,15 @@ export function buildCaseListSummaries(
   }
 
   const pinned = findCaseReportSummary(selectedCaseId, allSummaries, allCases);
-  return pinned ? [pinned, ...filteredSummaries] : filteredSummaries;
+  if (!pinned) return filteredSummaries;
+
+  const matchesStatus =
+    statusFilter === 'active'
+      ? pinned.case.status === 'active'
+      : pinned.case.status !== 'active';
+  if (!matchesStatus) return filteredSummaries;
+
+  return [pinned, ...filteredSummaries];
 }
 
 export function filterCaseSummaries(
@@ -136,7 +148,9 @@ export function filterCaseSummaries(
   return summaries.filter((summary) => {
     const { case: caseItem, reports, lastReportDate } = summary;
 
-    if (filters.statusFilter !== 'all' && caseItem.status !== filters.statusFilter) {
+    if (filters.statusFilter === 'active') {
+      if (caseItem.status !== 'active') return false;
+    } else if (caseItem.status === 'active') {
       return false;
     }
 
