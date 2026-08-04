@@ -8,7 +8,6 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDashboardDataContext } from '../../contexts/DashboardDataContext';
-import { useDashboardReport } from '../../contexts/DashboardReportContext';
 import { t } from '../../utils/translations';
 import WeeklyVerseCard from './WeeklyVerseCard';
 
@@ -46,7 +45,6 @@ function isActive(path: string, pathname: string, search: string): boolean {
 const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, mobileOpen = false, onMobileClose }) => {
   const { currentUser } = useAuth();
   const { metrics } = useDashboardDataContext();
-  const { openCaseReportModal } = useDashboardReport();
   const navigate = useNavigate();
   const location = useLocation();
   const showReportActions = location.pathname === '/';
@@ -156,16 +154,6 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, mobileOpen = false
                 className="inline-flex rounded-full border border-slate-200 px-2.5 py-1 text-[11px] font-medium text-slate-700 transition duration-200 ease-out hover:bg-slate-50 active:scale-[0.98]"
               >
                 + Raport lunar
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  openCaseReportModal();
-                  onMobileClose?.();
-                }}
-                className="inline-flex rounded-full bg-brand-600 px-2.5 py-1 text-[11px] font-medium text-white shadow-sm transition duration-200 ease-out hover:bg-brand-700 active:scale-[0.98]"
-              >
-                + Raport caz
               </button>
             </div>
           )}

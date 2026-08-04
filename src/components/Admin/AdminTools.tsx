@@ -109,7 +109,6 @@ const AdminTools: React.FC = () => {
           error={data.casesError}
           cases={data.filteredCases}
           counselors={data.counselors}
-          caseNotes={data.caseNotes}
           searchTerm={data.caseSearchTerm}
           onSearchChange={data.setCaseSearchTerm}
           statusFilter={data.caseStatusFilter}
@@ -127,7 +126,6 @@ const AdminTools: React.FC = () => {
           onDelete={data.handleDeleteCase}
           onOpenSessionReport={data.handleOpenSessionReport}
           onOpenTimeline={setTimelineCase}
-          isLeader={data.currentUser?.role === 'leader'}
         />
       )}
 
@@ -215,6 +213,7 @@ const AdminTools: React.FC = () => {
         open={timelineCase !== null}
         onClose={() => setTimelineCase(null)}
         caseItem={timelineCase}
+        includeMeetingNotes={false}
       />
 
       <Snackbar

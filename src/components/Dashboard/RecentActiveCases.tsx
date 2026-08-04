@@ -12,6 +12,7 @@ interface RecentActiveCasesProps {
   activities: ActivityRecord[];
   sessionReportCounts: Record<string, number>;
   loading?: boolean;
+  onAddReport: (caseItem: Case) => void;
 }
 
 const RecentActiveCases: React.FC<RecentActiveCasesProps> = ({
@@ -19,6 +20,7 @@ const RecentActiveCases: React.FC<RecentActiveCasesProps> = ({
   activities,
   sessionReportCounts,
   loading,
+  onAddReport,
 }) => {
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
@@ -57,6 +59,7 @@ const RecentActiveCases: React.FC<RecentActiveCasesProps> = ({
               lastActivityLabel={getLastActivity(caseItem)}
               onView={() => navigate(`/cases?caseId=${caseItem.id}`)}
               onNotes={() => navigate(`/cases?caseId=${caseItem.id}&openNotes=true`)}
+              onAddReport={() => onAddReport(caseItem)}
               onSchedule={() => navigate(`/calendar?new=true&caseId=${caseItem.id}`)}
             />
           ))}

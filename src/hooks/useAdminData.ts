@@ -17,7 +17,6 @@ import { Case, Counselor, User, UserRole } from '../types';
 import { logCaseAssigned, logCaseProposed, logCaseCreated } from '../utils/activityLogger';
 import { t } from '../utils/translations';
 import { mapFirestoreCase, shouldAppearInPersonalCases } from '../components/Cases/casesUtils';
-import { loadLatestNotesByCaseIds } from '../components/Cases/meetingNotesUtils';
 import {
   CreateUserData,
   AdminTab,
@@ -92,7 +91,6 @@ export function useAdminData() {
   const [caseCounselorFilter, setCaseCounselorFilter] = useState('all');
   const [caseFormOpen, setCaseFormOpen] = useState(false);
   const [editingCase, setEditingCase] = useState<Case | null>(null);
-  const [caseNotes, setCaseNotes] = useState<Record<string, string>>({});
   const [sessionReportOpen, setSessionReportOpen] = useState(false);
   const [selectedCaseForSessionReport, setSelectedCaseForSessionReport] = useState<Case | null>(
     null
@@ -141,15 +139,6 @@ export function useAdminData() {
       setUsersLoading(false);
     }
   }, [getAllUsers, showSnackbar]);
-
-  const loadLatestNotes = async (cases: Case[]) => {
-    try {
-      const notesMap = await loadLatestNotesByCaseIds(cases.map((c) => c.id));
-      setCaseNotes(notesMap);
-    } catch (error) {
-      console.error('Error loading latest notes:', error);
-    }
-  };
 
   const loadCounselors = useCallback(async (options?: { silent?: boolean }) => {
     const silent = options?.silent === true;
@@ -211,7 +200,6 @@ export function useAdminData() {
       });
 
       setAllCases(casesData);
-      await loadLatestNotes(casesData);
     } catch (error) {
       console.error('Error loading cases:', error);
       setCasesError('Eroare la încărcarea cazurilor');
@@ -734,7 +722,6 @@ Link app: https://consiliere360.vercel.app/`;
     setCaseFormOpen,
     editingCase,
     setEditingCase,
-    caseNotes,
     sessionReportOpen,
     setSessionReportOpen,
     selectedCaseForSessionReport,

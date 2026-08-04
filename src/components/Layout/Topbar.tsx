@@ -10,12 +10,14 @@ import {
 } from '@mui/material';
 import { Assignment } from '@mui/icons-material';
 import {
-  BellIcon,
+  ArrowRightOnRectangleIcon,
   Bars3Icon,
+  BellIcon,
   ChevronDownIcon,
+  Cog6ToothIcon,
+  UserCircleIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
-import { useDashboardReport } from '../../contexts/DashboardReportContext';
 import { useDashboardDataContext } from '../../contexts/DashboardDataContext';
 import { useAttentionNotifications } from '../../hooks/useAttentionNotifications';
 import { t } from '../../utils/translations';
@@ -38,7 +40,6 @@ const Topbar: React.FC<TopbarProps> = ({
 }) => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
-  const { openCaseReportModal } = useDashboardReport();
   const {
     cases,
     newAssignmentModal,
@@ -147,22 +148,13 @@ const Topbar: React.FC<TopbarProps> = ({
 
       <div className="flex items-center gap-2 sm:gap-3">
         {showReportActions && (
-          <>
-            <button
-              type="button"
-              onClick={() => navigate('/monthly-report')}
-              className="hidden rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition duration-200 ease-out hover:bg-slate-50 active:scale-[0.98] sm:inline-flex"
-            >
-              + Raport lunar
-            </button>
-            <button
-              type="button"
-              onClick={openCaseReportModal}
-              className="hidden rounded-full bg-brand-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition duration-200 ease-out hover:bg-brand-700 active:scale-[0.98] sm:inline-flex"
-            >
-              + Raport caz
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={() => navigate('/monthly-report')}
+            className="hidden rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition duration-200 ease-out hover:bg-slate-50 active:scale-[0.98] sm:inline-flex"
+          >
+            + Raport lunar
+          </button>
         )}
 
         <div className="relative" ref={notificationsRef}>
@@ -274,8 +266,9 @@ const Topbar: React.FC<TopbarProps> = ({
                   navigate('/profile');
                   setMenuOpen(false);
                 }}
-                className="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
               >
+                <UserCircleIcon className="h-4 w-4 shrink-0 text-slate-400" />
                 {t.navigation.myProfile}
               </button>
               {(currentUser?.role === 'leader' || currentUser?.role === 'admin') && (
@@ -285,16 +278,18 @@ const Topbar: React.FC<TopbarProps> = ({
                     navigate('/admin');
                     setMenuOpen(false);
                   }}
-                  className="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                  className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
                 >
+                  <Cog6ToothIcon className="h-4 w-4 shrink-0 text-slate-400" />
                   {t.navigation.adminTools}
                 </button>
               )}
               <button
                 type="button"
                 onClick={handleLogout}
-                className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
               >
+                <ArrowRightOnRectangleIcon className="h-4 w-4 shrink-0" />
                 {t.navigation.logout}
               </button>
             </div>

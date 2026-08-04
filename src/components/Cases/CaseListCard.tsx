@@ -36,6 +36,8 @@ interface CaseListCardProps {
   onEdit: () => void;
   onOpenDescription: () => void;
   onDelete?: () => void;
+  /** Hide sensitive meeting-notes preview (e.g. admin case management). */
+  hideMeetingNotes?: boolean;
 }
 
 const CaseListCard: React.FC<CaseListCardProps> = ({
@@ -49,6 +51,7 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
   onEdit,
   onOpenDescription,
   onDelete,
+  hideMeetingNotes = false,
 }) => {
   const showReports = reportsCount > 0 || caseItem.status === 'active';
   const description = caseItem.description || '';
@@ -219,36 +222,42 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
           )}
         </div>
 
-        <div className="mt-auto rounded-lg border border-slate-200 bg-slate-50/80 p-4">
-          <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            <DocumentTextIcon className="h-4 w-4 text-slate-400" />
-            {t.meetingNotes.latestMeetingNote}
-          </h3>
-          {latestNote ? (
-            <>
-              <p className="mb-3 line-clamp-3 text-sm italic leading-relaxed text-slate-600">
-                {latestNote}
-              </p>
-              <button
-                type="button"
-                onClick={onOpenNotes}
-                className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 transition hover:text-brand-700"
-              >
-                {t.meetingNotes.viewAllNotes}
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="mb-3 text-sm italic text-slate-500">{t.meetingNotes.noMeetingNotesYet}</p>
-              <button
-                type="button"
-                onClick={onOpenNotes}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                <DocumentTextIcon className="h-4 w-4" />
-                {t.meetingNotes.addNote}
-              </button>
-            </>
+        <div className="mt-auto">
+          {!hideMeetingNotes && (
+            <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+              <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <DocumentTextIcon className="h-4 w-4 text-slate-400" />
+                {t.meetingNotes.latestMeetingNote}
+              </h3>
+              {latestNote ? (
+                <>
+                  <p className="mb-3 line-clamp-3 text-sm italic leading-relaxed text-slate-600">
+                    {latestNote}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={onOpenNotes}
+                    className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 transition hover:text-brand-700"
+                  >
+                    {t.meetingNotes.viewAllNotes}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="mb-3 text-sm italic text-slate-500">
+                    {t.meetingNotes.noMeetingNotesYet}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={onOpenNotes}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                  >
+                    <DocumentTextIcon className="h-4 w-4" />
+                    {t.meetingNotes.addNote}
+                  </button>
+                </>
+              )}
+            </div>
           )}
         </div>
       </div>

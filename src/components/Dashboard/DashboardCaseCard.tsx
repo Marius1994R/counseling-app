@@ -1,5 +1,5 @@
 import React from 'react';
-import { DocumentTextIcon } from '@heroicons/react/24/outline';
+import { ClipboardDocumentListIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { Case } from '../../types';
 import { getCaseDisplayId, getInitials, getStatusLabel } from './dashboardUtils';
 import {
@@ -14,6 +14,7 @@ interface DashboardCaseCardProps {
   lastActivityLabel: string;
   onView: () => void;
   onNotes: () => void;
+  onAddReport: () => void;
   onSchedule: () => void;
 }
 
@@ -38,6 +39,7 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
   lastActivityLabel,
   onView,
   onNotes,
+  onAddReport,
   onSchedule,
 }) => {
   const colorIndex = caseItem.counseledName.charCodeAt(0) % avatarColors.length;
@@ -114,6 +116,14 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
             >
               <DocumentTextIcon className="h-4 w-4" />
               {t.meetingNotes.addNote}
+            </button>
+            <button
+              type="button"
+              onClick={onAddReport}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-1.5 text-xs font-medium text-brand-600 transition duration-200 ease-out hover:bg-brand-50 active:scale-[0.98]"
+            >
+              <ClipboardDocumentListIcon className="h-4 w-4" />
+              {t.sessionReports.addReport}
             </button>
             <button
               type="button"

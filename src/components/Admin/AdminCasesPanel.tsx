@@ -13,7 +13,6 @@ interface AdminCasesPanelProps {
   error: string;
   cases: Case[];
   counselors: Counselor[];
-  caseNotes: Record<string, string>;
   searchTerm: string;
   onSearchChange: (value: string) => void;
   statusFilter: CaseStatusFilter;
@@ -25,7 +24,6 @@ interface AdminCasesPanelProps {
   onDelete: (caseId: string) => void | Promise<void>;
   onOpenSessionReport: (caseItem: Case) => void;
   onOpenTimeline: (caseItem: Case) => void;
-  isLeader: boolean;
 }
 
 const STATUS_OPTIONS: { value: CaseStatusFilter; label: string }[] = [
@@ -42,7 +40,6 @@ const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
   error,
   cases,
   counselors,
-  caseNotes,
   searchTerm,
   onSearchChange,
   statusFilter,
@@ -54,7 +51,6 @@ const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
   onDelete,
   onOpenSessionReport,
   onOpenTimeline,
-  isLeader,
 }) => {
   const [deleteTarget, setDeleteTarget] = useState<Case | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -172,7 +168,7 @@ const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
         <CasesGrid
           cases={cases}
           loading={false}
-          caseNotes={isLeader ? caseNotes : {}}
+          caseNotes={{}}
           caseReportsCount={{}}
           hasActiveFilters={hasFilters}
           onOpenNotes={onEdit}
@@ -182,6 +178,7 @@ const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
           onEdit={onEdit}
           onOpenDescription={onEdit}
           onDelete={(caseItem) => setDeleteTarget(caseItem)}
+          hideMeetingNotes
         />
       )}
 

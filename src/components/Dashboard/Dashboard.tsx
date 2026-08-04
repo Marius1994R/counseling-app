@@ -48,6 +48,7 @@ const Dashboard: React.FC = () => {
   const [caseSelectionModalOpen, setCaseSelectionModalOpen] = useState(false);
   const [sessionReportOpen, setSessionReportOpen] = useState(false);
   const [selectedCaseForReport, setSelectedCaseForReport] = useState<Case | null>(null);
+  const [reportFromSelection, setReportFromSelection] = useState(false);
 
   useEffect(() => {
     registerOpenCaseReportModal(() => setCaseSelectionModalOpen(true));
@@ -59,13 +60,23 @@ const Dashboard: React.FC = () => {
   const handleSelectCaseForReport = (selectedCase: Case) => {
     setSelectedCaseForReport(selectedCase);
     setCaseSelectionModalOpen(false);
+    setReportFromSelection(true);
+    setSessionReportOpen(true);
+  };
+
+  const handleAddReportForCase = (caseItem: Case) => {
+    setSelectedCaseForReport(caseItem);
+    setReportFromSelection(false);
     setSessionReportOpen(true);
   };
 
   const handleCloseSessionReport = () => {
     setSessionReportOpen(false);
     setSelectedCaseForReport(null);
-    setCaseSelectionModalOpen(true);
+    if (reportFromSelection) {
+      setCaseSelectionModalOpen(true);
+    }
+    setReportFromSelection(false);
   };
 
   const handleReportSaved = () => {
@@ -73,6 +84,7 @@ const Dashboard: React.FC = () => {
     setSessionReportOpen(false);
     setCaseSelectionModalOpen(false);
     setSelectedCaseForReport(null);
+    setReportFromSelection(false);
     if (caseId) {
       incrementSessionReportCount(caseId);
     }
@@ -81,7 +93,10 @@ const Dashboard: React.FC = () => {
   const handleCancelAddForm = () => {
     setSessionReportOpen(false);
     setSelectedCaseForReport(null);
-    setCaseSelectionModalOpen(true);
+    if (reportFromSelection) {
+      setCaseSelectionModalOpen(true);
+    }
+    setReportFromSelection(false);
   };
 
   const activeCases = getActiveCases(cases);
@@ -119,6 +134,7 @@ const Dashboard: React.FC = () => {
           activities={activities}
           sessionReportCounts={sessionReportCounts}
           loading={loading}
+          onAddReport={handleAddReportForCase}
         />
         <QuickPanel
           appointments={upcomingAppointments}

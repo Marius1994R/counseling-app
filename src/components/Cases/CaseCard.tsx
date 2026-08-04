@@ -159,14 +159,10 @@ const CaseCard: React.FC<CaseCardProps> = ({
     return translations[issueType] || issueType;
   };
 
-  const translateSex = (sex?: string, age?: number): string => {
+  const translateSex = (sex?: string): string => {
     if (!sex) return '';
-    const isAdult = age !== undefined && age > 17;
-    if (sex === 'masculin') {
-      return isAdult ? t.cases.sexMasculinAdult : t.cases.sexMasculinMinor;
-    } else if (sex === 'feminin') {
-      return isAdult ? t.cases.sexFemininAdult : t.cases.sexFemininMinor;
-    }
+    if (sex === 'masculin') return t.cases.sexMasculin;
+    if (sex === 'feminin') return t.cases.sexFeminin;
     return '';
   };
 
@@ -282,7 +278,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   color="text.secondary"
                   sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                 >
-                  {caseData.counseledName}, {caseData.age} {t.cases.years}{caseData.sex && `, ${translateSex(caseData.sex, caseData.age)}`}
+                  {caseData.counseledName}, {caseData.age} {t.cases.years}{caseData.sex && `, ${translateSex(caseData.sex)}`}
                 </Typography>
               </Box>
               <Box display="flex" alignItems="center" gap={1}>

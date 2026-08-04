@@ -23,6 +23,8 @@ interface CaseTimelineDialogProps {
   onClose: () => void;
   caseItem: Case | null;
   onOpenNotes?: () => void;
+  /** When false, meeting note content is not fetched or shown (admin privacy). */
+  includeMeetingNotes?: boolean;
 }
 
 const CaseTimelineDialog: React.FC<CaseTimelineDialogProps> = ({
@@ -30,18 +32,19 @@ const CaseTimelineDialog: React.FC<CaseTimelineDialogProps> = ({
   onClose,
   caseItem,
   onOpenNotes,
+  includeMeetingNotes = true,
 }) => {
   const navigate = useNavigate();
   const { items, loading, error, loadTimeline, reset } = useCaseTimeline();
 
   useEffect(() => {
     if (open && caseItem) {
-      void loadTimeline(caseItem);
+      void loadTimeline(caseItem, { includeMeetingNotes });
     }
     if (!open) {
       reset();
     }
-  }, [open, caseItem, loadTimeline, reset]);
+  }, [open, caseItem, includeMeetingNotes, loadTimeline, reset]);
 
   const handleItemAction = (item: CaseTimelineItem) => {
     if (!caseItem) return;

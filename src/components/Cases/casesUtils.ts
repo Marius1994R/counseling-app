@@ -32,15 +32,10 @@ export function getStatusBadgeClass(status: CaseStatus): string {
   return STATUS_BADGE_CLASS[status] ?? 'bg-slate-100 text-slate-600';
 }
 
-export function translateSex(sex?: string, age?: number): string {
+export function translateSex(sex?: string, _age?: number): string {
   if (!sex) return '';
-  const isAdult = age !== undefined && age > 17;
-  if (sex === 'masculin') {
-    return isAdult ? t.cases.sexMasculinAdult : t.cases.sexMasculinMinor;
-  }
-  if (sex === 'feminin') {
-    return isAdult ? t.cases.sexFemininAdult : t.cases.sexFemininMinor;
-  }
+  if (sex === 'masculin') return t.cases.sexMasculin;
+  if (sex === 'feminin') return t.cases.sexFeminin;
   return '';
 }
 
