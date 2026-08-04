@@ -6,7 +6,7 @@ import { Appointment, ChurchEvent } from '../../types';
 import { t } from '../../utils/translations';
 import {
   formatCalendarDate,
-  formatTime,
+  formatTimeRange,
   isDateTodayOrFuture,
   getRoomColorStyles,
   sortAppointmentsByTime,
@@ -15,6 +15,7 @@ import {
   sortEventsByTime,
   getEventDisplayStyles,
   formatEventDateRange,
+  formatEventTimeRange,
 } from './eventUtils';
 import ConfirmDialog from '../common/ConfirmDialog';
 
@@ -70,7 +71,7 @@ function SoftBar({
 }: {
   accent: string;
   label: string;
-  sub: string;
+  sub?: string;
   actions?: React.ReactNode;
   extra?: React.ReactNode;
 }) {
@@ -82,7 +83,7 @@ function SoftBar({
       <div className="flex items-start gap-2 px-3 py-2.5">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-slate-900">{label}</p>
-          <p className="mt-0.5 truncate text-xs text-slate-500">{sub}</p>
+          {sub ? <p className="mt-0.5 truncate text-xs text-slate-500">{sub}</p> : null}
         </div>
         {actions}
       </div>
@@ -207,7 +208,7 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
               const title = canViewCaseDetails(appointment)
                 ? appointment.caseTitle || appointment.title
                 : appointment.counselorName || appointment.title;
-              const timeLabel = `${formatTime(appointment.startTime)} ${title}`;
+              const timeLabel = `${title} · ${formatTimeRange(appointment.startTime, appointment.endTime)}`;
               const subParts = [
                 appointment.room || null,
                 canViewCaseDetails(appointment) ? appointment.counselorName : null,
@@ -221,11 +222,7 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
                   key={`appt-${appointment.id}`}
                   accent={roomColors.accent}
                   label={timeLabel}
-                  sub={
-                    subParts.length > 0
-                      ? subParts.join(' · ')
-                      : `${formatTime(appointment.startTime)} – ${formatTime(appointment.endTime)}`
-                  }
+                  sub={subParts.length > 0 ? subParts.join(' · ') : undefined}
                   actions={
                     showActions ? (
                       <div className="flex shrink-0 gap-0.5">
@@ -270,7 +267,7 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
                 <SoftBar
                   key={`event-${event.id}`}
                   accent={eventStyles.accent}
-                  label={`${event.startTime} ${event.name}`}
+                  label={`${event.name} · ${formatEventTimeRange(event)}`}
                   sub={`Eveniment · ${formatEventDateRange(event)}`}
                   actions={
                     canManageEvents ? (

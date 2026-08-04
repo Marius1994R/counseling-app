@@ -10,7 +10,7 @@ import {
   MONTH_NAMES_RO,
   DAY_NAMES_RO,
   getRoomColorStyles,
-  formatTime,
+  formatTimeRange,
   sortAppointmentsByTime,
 } from './calendarUtils';
 import {
@@ -52,6 +52,7 @@ function buildDayItems(
         kind: 'appointment' as const,
         id: appointment.id,
         startTime: appointment.startTime,
+        endTime: appointment.endTime,
         label: canViewCaseDetails(appointment)
           ? appointment.caseTitle || appointment.counselorName
           : appointment.counselorName,
@@ -69,6 +70,7 @@ function buildDayItems(
         kind: 'event' as const,
         id: event.id,
         startTime: event.startTime,
+        endTime: event.endTime,
         label: event.name,
         styles,
       };
@@ -76,6 +78,14 @@ function buildDayItems(
   ];
 
   return items.sort((a, b) => a.startTime.localeCompare(b.startTime));
+}
+
+function dayItemPrimaryText(item: CalendarDayItem): string {
+  const range = formatTimeRange(item.startTime, item.endTime);
+  if (item.kind === 'event') {
+    return `${item.label} ${range}`;
+  }
+  return `${range} ${item.label}`;
 }
 
 const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
@@ -205,7 +215,7 @@ const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                   <span
                     key={`${item.kind}-${item.id}`}
                     className={`h-1.5 w-1.5 shrink-0 rounded-full ${item.styles.dot}`}
-                    title={`${formatTime(item.startTime)} · ${item.label}`}
+                    title={dayItemPrimaryText(item)}
                   />
                 ))}
                 {mobileOverflow > 0 && (
@@ -219,10 +229,9 @@ const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                   <div
                     key={`${item.kind}-${item.id}`}
                     className={`truncate rounded px-1 py-0.5 text-[10px] font-medium leading-tight ${item.styles.bg} ${item.styles.text}`}
-                    title={`${formatTime(item.startTime)} · ${item.label}`}
+                    title={dayItemPrimaryText(item)}
                   >
-                    <span className="font-semibold">{formatTime(item.startTime)}</span>{' '}
-                    {item.label}
+                    {dayItemPrimaryText(item)}
                   </div>
                 ))}
                 {bannerOverflow > 0 && (

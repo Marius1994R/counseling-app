@@ -1,6 +1,7 @@
 import dayjs, { Dayjs } from 'dayjs';
 import { ChurchEvent } from '../../types';
 import { t } from '../../utils/translations';
+import { formatTime } from './calendarUtils';
 
 export interface EventDisplayStyles {
   bg: string;
@@ -53,7 +54,7 @@ export function formatEventDateRange(event: ChurchEvent): string {
 }
 
 export function formatEventTimeRange(event: ChurchEvent): string {
-  return `${event.startTime} – ${event.endTime}`;
+  return `${formatTime(event.startTime)} – ${formatTime(event.endTime)}`;
 }
 
 export function getNextEventOccurrenceDate(event: ChurchEvent, now = new Date()): Date | null {
@@ -166,7 +167,15 @@ export type CalendarDayItem =
       kind: 'appointment';
       id: string;
       startTime: string;
+      endTime: string;
       label: string;
       styles: { bg: string; text: string; border: string; dot: string };
     }
-  | { kind: 'event'; id: string; startTime: string; label: string; styles: EventDisplayStyles };
+  | {
+      kind: 'event';
+      id: string;
+      startTime: string;
+      endTime: string;
+      label: string;
+      styles: EventDisplayStyles;
+    };

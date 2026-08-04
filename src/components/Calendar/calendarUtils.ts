@@ -216,6 +216,10 @@ export function formatTime(time: string): string {
   });
 }
 
+export function formatTimeRange(startTime: string, endTime: string): string {
+  return `${formatTime(startTime)} – ${formatTime(endTime)}`;
+}
+
 /** Combines appointment date with a HH:mm time string. */
 export function getAppointmentDateTime(appointment: Appointment, time: string): Date {
   const result = new Date(appointment.date);
