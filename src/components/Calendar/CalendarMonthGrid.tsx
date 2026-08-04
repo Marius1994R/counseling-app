@@ -25,7 +25,7 @@ interface CalendarMonthGridProps {
   appointments: Appointment[];
   events: ChurchEvent[];
   selectedDate: Date | null;
-  onDateClick: (date: Date) => void;
+  onDateClick: (date: Date, options?: { openMobileDay?: boolean }) => void;
   canViewCaseDetails?: (appointment: Appointment) => boolean;
 }
 
@@ -126,7 +126,7 @@ const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
             onClick={() => {
               const today = new Date();
               setCurrentDate(today);
-              onDateClick(today);
+              onDateClick(today, { openMobileDay: false });
             }}
             className="rounded-full border border-brand-200 px-3 py-1 text-xs font-medium text-brand-600 transition hover:bg-brand-50"
           >

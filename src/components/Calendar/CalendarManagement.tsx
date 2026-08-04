@@ -47,9 +47,11 @@ const CalendarManagement: React.FC = () => {
   }, []);
 
   const handleDateClick = useCallback(
-    (date: Date) => {
+    (date: Date, options?: { openMobileDay?: boolean }) => {
       selectCalendarDate(date);
-      setMobileDayOpen(true);
+      if (options?.openMobileDay !== false) {
+        setMobileDayOpen(true);
+      }
     },
     [selectCalendarDate]
   );

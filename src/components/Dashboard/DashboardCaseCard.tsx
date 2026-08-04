@@ -1,7 +1,7 @@
 import React from 'react';
 import { ClipboardDocumentListIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { Case } from '../../types';
-import { getCaseDisplayId, getInitials, getStatusLabel } from './dashboardUtils';
+import { getInitials, getStatusLabel } from './dashboardUtils';
 import {
   translateIssueType,
   getIssueTypeBadgeClass,
@@ -56,7 +56,6 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-2">
             <div>
-              <p className="text-xs text-slate-400">{getCaseDisplayId(caseItem)}</p>
               <p className="font-semibold text-slate-900">{caseItem.counseledName}</p>
               <p className="text-sm text-slate-500">
                 {caseItem.assignedCounselorName ?? 'Nealocat'}

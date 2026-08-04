@@ -18,6 +18,7 @@ interface CasesGridProps {
   onOpenDescription: (caseItem: Case) => void;
   onDelete?: (caseItem: Case) => void;
   hideMeetingNotes?: boolean;
+  showCaseId?: boolean;
 }
 
 const CasesGrid: React.FC<CasesGridProps> = ({
@@ -34,6 +35,7 @@ const CasesGrid: React.FC<CasesGridProps> = ({
   onOpenDescription,
   onDelete,
   hideMeetingNotes = false,
+  showCaseId = false,
 }) => {
   if (loading) {
     return (
@@ -73,6 +75,7 @@ const CasesGrid: React.FC<CasesGridProps> = ({
           onOpenDescription={() => onOpenDescription(caseItem)}
           onDelete={onDelete ? () => onDelete(caseItem) : undefined}
           hideMeetingNotes={hideMeetingNotes}
+          showCaseId={showCaseId}
         />
       ))}
     </div>

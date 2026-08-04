@@ -179,6 +179,7 @@ const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
           onOpenDescription={onEdit}
           onDelete={(caseItem) => setDeleteTarget(caseItem)}
           hideMeetingNotes
+          showCaseId
         />
       )}
 

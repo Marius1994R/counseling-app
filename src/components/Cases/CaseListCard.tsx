@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   UserIcon,
   IdentificationIcon,
@@ -9,6 +9,8 @@ import {
   ClipboardDocumentListIcon,
   ClockIcon,
   TrashIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
 } from '@heroicons/react/24/outline';
 import { Case } from '../../types';
 import { t } from '../../utils/translations';
@@ -38,6 +40,8 @@ interface CaseListCardProps {
   onDelete?: () => void;
   /** Hide sensitive meeting-notes preview (e.g. admin case management). */
   hideMeetingNotes?: boolean;
+  /** Short case id (#C-xxxx) — shown in admin only. */
+  showCaseId?: boolean;
 }
 
 const CaseListCard: React.FC<CaseListCardProps> = ({
@@ -52,7 +56,9 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
   onOpenDescription,
   onDelete,
   hideMeetingNotes = false,
+  showCaseId = false,
 }) => {
+  const [expanded, setExpanded] = useState(false);
   const showReports = reportsCount > 0 || caseItem.status === 'active';
   const description = caseItem.description || '';
   const isTruncated = description.length > 150;
@@ -62,7 +68,7 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
       id={`case-${caseItem.id}`}
       className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md"
     >
-      <div className="border-b border-slate-100 p-5">
+      <div className="p-5 lg:border-b lg:border-slate-100">
         <div className="flex items-start gap-3">
           <div
             className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${getAvatarColorClass(caseItem.counseledName)}`}
@@ -73,7 +79,9 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <p className="text-xs text-slate-400">{getCaseDisplayId(caseItem)}</p>
+                {showCaseId && (
+                  <p className="text-xs text-slate-400">{getCaseDisplayId(caseItem)}</p>
+                )}
                 <h2 className="text-lg font-semibold text-slate-900">{caseItem.counseledName}</h2>
                 <p className="text-sm text-slate-500">{caseItem.title}</p>
               </div>
@@ -164,7 +172,28 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-4 p-5">
+      <button
+        type="button"
+        onClick={() => setExpanded((prev) => !prev)}
+        className="flex w-full items-center justify-center gap-1.5 border-t border-slate-100 px-4 py-2.5 text-sm font-medium text-brand-600 transition hover:bg-slate-50 active:scale-[0.99] lg:hidden"
+        aria-expanded={expanded}
+      >
+        {expanded ? (
+          <>
+            <ChevronUpIcon className="h-4 w-4" />
+            {t.common.showLess}
+          </>
+        ) : (
+          <>
+            <ChevronDownIcon className="h-4 w-4" />
+            {t.common.showMore}
+          </>
+        )}
+      </button>
+
+      <div
+        className={`${expanded ? 'flex' : 'hidden'} flex-1 flex-col gap-4 p-5 lg:flex`}
+      >
         <div className="rounded-lg bg-slate-50 p-4">
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
             {t.cases.clientInfo}
