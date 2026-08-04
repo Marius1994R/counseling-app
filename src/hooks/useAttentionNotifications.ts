@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   arrayUnion,
+  collection,
   doc,
+  DocumentData,
   getDoc,
+  onSnapshot,
+  query,
   setDoc,
   updateDoc,
+  where,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,13 +27,35 @@ import {
   monthlyReportOverdueDismissalId,
 } from '../components/MonthlyReport/monthlyReportUtils';
 
+const REPORT_ACTIVITY_TYPES = [
+  'session_report_added',
+  'monthly_report_submitted',
+] as const;
+
+const MAX_LIVE_REPORT_ACTIVITIES = 40;
+
+function mapReportActivityDoc(id: string, data: DocumentData): ActivityRecord {
+  return {
+    id,
+    type: data.type,
+    title: data.title,
+    description: data.description,
+    timestamp: data.timestamp.toDate(),
+    userId: data.userId,
+    userName: data.userName,
+    metadata: data.metadata,
+  };
+}
+
 export type AttentionNotificationType =
   | 'event'
   | 'assignment'
   | 'assignment_outcome'
   | 'appointment'
   | 'stale_report'
-  | 'monthly_report';
+  | 'monthly_report'
+  | 'session_report_submitted'
+  | 'monthly_report_submitted';
 
 export interface AttentionNotification {
   id: string;
@@ -42,6 +69,7 @@ export interface AttentionNotification {
     appointment?: Appointment;
     caseItem?: Case;
     monthKey?: string;
+    caseId?: string;
   };
   createdAt: Date;
 }
@@ -106,6 +134,8 @@ export function useAttentionNotifications() {
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [dismissalsLoaded, setDismissalsLoaded] = useState(false);
   const [monthlyReportMissing, setMonthlyReportMissing] = useState(false);
+  /** Live feed for leader report-submit notifications (not the one-shot dashboard activities). */
+  const [liveReportActivities, setLiveReportActivities] = useState<ActivityRecord[]>([]);
   const dueMonthKey = getDueReportMonthKey();
 
   useEffect(() => {
@@ -127,6 +157,40 @@ export function useAttentionNotifications() {
       cancelled = true;
     };
   }, [currentUser?.id]);
+
+  // Leaders: live listener so session/monthly submit alerts appear without reload
+  useEffect(() => {
+    if (
+      !currentUser?.id ||
+      currentUser.id.startsWith('demo-') ||
+      currentUser.role !== 'leader'
+    ) {
+      setLiveReportActivities([]);
+      return;
+    }
+
+    const reportQuery = query(
+      collection(db, 'activities'),
+      where('type', 'in', [...REPORT_ACTIVITY_TYPES])
+    );
+
+    const unsubscribe = onSnapshot(
+      reportQuery,
+      (snapshot) => {
+        const items: ActivityRecord[] = [];
+        snapshot.forEach((docSnap) => {
+          items.push(mapReportActivityDoc(docSnap.id, docSnap.data()));
+        });
+        items.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+        setLiveReportActivities(items.slice(0, MAX_LIVE_REPORT_ACTIVITIES));
+      },
+      (err) => {
+        console.error('Error listening to report activities:', err);
+      }
+    );
+
+    return unsubscribe;
+  }, [currentUser?.id, currentUser?.role]);
 
   useEffect(() => {
     if (!currentUser?.id || currentUser.id.startsWith('demo-')) {
@@ -282,6 +346,51 @@ export function useAttentionNotifications() {
       }
     }
 
+    // Leaders only: live session / monthly reports submitted by others
+    if (currentUser?.role === 'leader') {
+      for (const activity of liveReportActivities) {
+        if (activity.userId && activity.userId === currentUser.id) continue;
+
+        if (activity.type === 'session_report_added') {
+          const id = `session_report_submitted:${activity.id}`;
+          if (dismissedIds.has(id)) continue;
+          const caseTitle = String(
+            activity.metadata?.caseTitle || activity.title || 'caz'
+          );
+          const counselorName = String(activity.userName || 'Un consilier');
+          const caseId = String(activity.metadata?.caseId || '');
+          list.push({
+            id,
+            type: 'session_report_submitted',
+            title: t.notifications.sessionReportSubmittedTitle,
+            detail: t.notifications.sessionReportSubmittedDetail
+              .replace('{name}', counselorName)
+              .replace('{case}', caseTitle),
+            payload: { activity, caseId: caseId || undefined },
+            createdAt: activity.timestamp,
+          });
+        }
+
+        if (activity.type === 'monthly_report_submitted') {
+          const id = `monthly_report_submitted:${activity.id}`;
+          if (dismissedIds.has(id)) continue;
+          const monthKey = String(activity.metadata?.monthKey || '');
+          const monthLabel = monthKey ? formatMonthKeyLabel(monthKey) : '';
+          const counselorName = String(activity.userName || 'Un consilier');
+          list.push({
+            id,
+            type: 'monthly_report_submitted',
+            title: t.notifications.monthlyReportSubmittedTitle,
+            detail: t.notifications.monthlyReportSubmittedDetail
+              .replace('{name}', counselorName)
+              .replace('{month}', monthLabel || monthKey || 'luna curentă'),
+            payload: { activity, monthKey: monthKey || undefined },
+            createdAt: activity.timestamp,
+          });
+        }
+      }
+    }
+
     return list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }, [
     unreadEvents,
@@ -293,6 +402,9 @@ export function useAttentionNotifications() {
     dismissedIds,
     monthlyReportMissing,
     dueMonthKey,
+    liveReportActivities,
+    currentUser?.role,
+    currentUser?.id,
   ]);
 
   const dismiss = useCallback(

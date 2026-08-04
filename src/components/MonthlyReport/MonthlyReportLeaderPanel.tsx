@@ -20,6 +20,8 @@ interface MonthlyReportLeaderPanelProps {
   reports: MonthlyReport[];
   loading: boolean;
   error: string;
+  /** When true, omit outer title (parent provides it). */
+  embedded?: boolean;
 }
 
 const MonthlyReportLeaderPanel: React.FC<MonthlyReportLeaderPanelProps> = ({
@@ -28,6 +30,7 @@ const MonthlyReportLeaderPanel: React.FC<MonthlyReportLeaderPanelProps> = ({
   reports,
   loading,
   error,
+  embedded = false,
 }) => {
   const [selected, setSelected] = useState<MonthlyReport | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -49,14 +52,20 @@ const MonthlyReportLeaderPanel: React.FC<MonthlyReportLeaderPanelProps> = ({
   };
 
   return (
-    <section className="mt-10 space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">
-            {t.monthlyReport.leaderTitle}
-          </h2>
-          <p className="text-sm text-slate-500">{t.monthlyReport.leaderSubtitle}</p>
-        </div>
+    <section className={embedded ? 'space-y-4' : 'mt-10 space-y-4'}>
+      <div
+        className={`flex flex-col gap-3 sm:flex-row sm:items-end ${
+          embedded ? 'sm:justify-end' : 'sm:justify-between'
+        }`}
+      >
+        {!embedded && (
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">
+              {t.monthlyReport.leaderTitle}
+            </h2>
+            <p className="text-sm text-slate-500">{t.monthlyReport.leaderSubtitle}</p>
+          </div>
+        )}
         <label className="block text-sm text-slate-700">
           <span className="mb-1 block font-medium">{t.monthlyReport.selectMonth}</span>
           <select

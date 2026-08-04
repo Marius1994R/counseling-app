@@ -11,6 +11,7 @@ import AdminTabs from './AdminTabs';
 import AdminUsersPanel from './AdminUsersPanel';
 import AdminCounselorsPanel from './AdminCounselorsPanel';
 import AdminCasesPanel from './AdminCasesPanel';
+import AdminReceivedReportsPanel from './AdminReceivedReportsPanel';
 import AdminUserDialogs from './AdminUserDialogs';
 import ConfirmDialog from '../common/ConfirmDialog';
 import { t } from '../../utils/translations';
@@ -52,7 +53,11 @@ const AdminTools: React.FC = () => {
   return (
     <div>
       <AdminPageHeader />
-      <AdminTabs activeTab={data.activeTab} onTabChange={data.setTab} />
+      <AdminTabs
+        activeTab={data.activeTab}
+        onTabChange={data.setTab}
+        showReceivedReports={data.currentUser?.role === 'leader'}
+      />
 
       {data.activeTab === 0 && (
         <AdminUsersPanel
@@ -128,6 +133,10 @@ const AdminTools: React.FC = () => {
           onOpenSessionReport={data.handleOpenSessionReport}
           onOpenTimeline={setTimelineCase}
         />
+      )}
+
+      {data.activeTab === 3 && data.currentUser?.role === 'leader' && (
+        <AdminReceivedReportsPanel />
       )}
 
       <ConfirmDialog

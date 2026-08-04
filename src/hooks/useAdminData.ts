@@ -118,6 +118,28 @@ export function useAdminData() {
     setActiveTab(parseAdminTabFromUrl(searchParams.get('tab')));
   }, [searchParams]);
 
+  // Deep-link: /admin?tab=2&caseId=…&reports=1 → open Vezi Rapoartele
+  useEffect(() => {
+    if (searchParams.get('reports') !== '1') return;
+    const caseId = searchParams.get('caseId');
+    if (!caseId) return;
+    if (parseAdminTabFromUrl(searchParams.get('tab')) !== 2) return;
+
+    if (casesLoading) return;
+
+    const caseItem = allCases.find((c) => c.id === caseId);
+    const next = new URLSearchParams(searchParams);
+    next.delete('caseId');
+    next.delete('reports');
+
+    if (caseItem) {
+      setSelectedCaseForSessionReport(caseItem);
+      setSessionReportOpen(true);
+    }
+
+    setSearchParams(next, { replace: true });
+  }, [searchParams, casesLoading, allCases, setSearchParams]);
+
   useEffect(() => {
     if (searchParams.get('create') !== 'true') return;
     if (parseAdminTabFromUrl(searchParams.get('tab')) !== 2) return;
@@ -260,6 +282,13 @@ export function useAdminData() {
     },
     [setSearchParams]
   );
+
+  // Tab 3 (Rapoarte primite) is leader-only
+  useEffect(() => {
+    if (activeTab !== 3) return;
+    if (currentUser?.role === 'leader') return;
+    setTab(0);
+  }, [activeTab, currentUser?.role, setTab]);
 
   const handleCounselorSubmit = useCallback(
     async (

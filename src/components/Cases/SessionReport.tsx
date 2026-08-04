@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -70,10 +70,12 @@ const SessionReport: React.FC<SessionReportProps> = ({
 }) => {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [reportsLoading, setReportsLoading] = useState(false);
   const [addReportOpen, setAddReportOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [reports, setReports] = useState<SessionReportRecord[]>([]);
   const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
+  const loadGenerationRef = useRef(0);
 
   // Form state
   const [sessionNumber, setSessionNumber] = useState(1);
@@ -87,10 +89,25 @@ const SessionReport: React.FC<SessionReportProps> = ({
   const [noCommitmentsReason, setNoCommitmentsReason] = useState('');
 
   const loadReports = useCallback(async (isInitialLoad: boolean = false) => {
+    if (!caseId) {
+      setReports([]);
+      setReportsLoading(false);
+      return;
+    }
+
+    const generation = ++loadGenerationRef.current;
+    setReportsLoading(true);
+    // Clear previous case's reports immediately so they don't flash
+    setReports([]);
+    setExpandedReportId(null);
+
     try {
       const reportsRef = collection(db, 'sessionReports');
       const reportsQuery = query(reportsRef, where('caseId', '==', caseId));
       const reportsSnapshot = await getDocs(reportsQuery);
+
+      // Ignore stale responses if another case was opened meanwhile
+      if (generation !== loadGenerationRef.current) return;
       
       const reportsData: SessionReportRecord[] = [];
       reportsSnapshot.forEach((doc) => {
@@ -113,8 +130,8 @@ const SessionReport: React.FC<SessionReportProps> = ({
         });
       });
       
-      // Sort by session number on client side to avoid index requirement
-      reportsData.sort((a, b) => a.sessionNumber - b.sessionNumber);
+      // Newest session first (10, 9, 8…)
+      reportsData.sort((a, b) => b.sessionNumber - a.sessionNumber);
       
       setReports(reportsData);
       
@@ -125,6 +142,13 @@ const SessionReport: React.FC<SessionReportProps> = ({
       }
     } catch (error) {
       console.error('Error loading reports:', error);
+      if (generation === loadGenerationRef.current) {
+        setReports([]);
+      }
+    } finally {
+      if (generation === loadGenerationRef.current) {
+        setReportsLoading(false);
+      }
     }
   }, [caseId]);
 
@@ -152,15 +176,18 @@ const SessionReport: React.FC<SessionReportProps> = ({
       setNextCommitments('yes');
       setNextCommitmentsDetails('');
       setNoCommitmentsReason('');
+      setExpandedReportId(null);
 
       if (autoOpenAddForm && caseStatus === 'active') {
         setAddReportOpen(true);
       }
 
-      loadReports(true);
+      void loadReports(true);
     } else if (!open) {
       setAddReportOpen(false);
       setExpandedReportId(null);
+      setReports([]);
+      setReportsLoading(false);
     }
   }, [open, caseId, autoOpenAddForm, caseStatus, loadReports]);
 
@@ -280,8 +307,25 @@ const SessionReport: React.FC<SessionReportProps> = ({
                 și pentru a menține continuitatea între sesiuni.
               </Alert>
 
-              {/* Display existing reports */}
-              {reports.length > 0 && (
+              {reportsLoading ? (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 1.5,
+                    py: 6,
+                  }}
+                  role="status"
+                  aria-live="polite"
+                >
+                  <CircularProgress size={32} sx={{ color: '#C99700' }} />
+                  <Typography variant="body2" color="text.secondary">
+                    Se încarcă rapoartele…
+                  </Typography>
+                </Box>
+              ) : reports.length > 0 ? (
             <Box>
               <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
                 Rapoarte Post-Sesiune ({reports.length})
@@ -381,7 +425,7 @@ const SessionReport: React.FC<SessionReportProps> = ({
                 ))}
               </Box>
             </Box>
-          )}
+              ) : null}
             </>
           )}
         </DialogContent>

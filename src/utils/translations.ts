@@ -97,6 +97,12 @@ export const t = {
     monthlyReportDueDetail: 'Te rugăm să completezi raportul pentru {month}',
     monthlyReportOverdueTitle: 'Raportul lunar este restant',
     monthlyReportOverdueDetail: 'Raportul pentru {month} nu a fost trimis. Completează-l acum.',
+    typeSessionReportSubmitted: 'Raport sesiune',
+    sessionReportSubmittedTitle: 'Raport de sesiune trimis',
+    sessionReportSubmittedDetail: '{name} a adăugat un raport pentru „{case}”',
+    typeMonthlyReportSubmitted: 'Raport lunar',
+    monthlyReportSubmittedTitle: 'Raport lunar trimis',
+    monthlyReportSubmittedDetail: '{name} a trimis raportul pentru {month}',
   },
 
   // Dashboard
@@ -421,6 +427,7 @@ export const t = {
     seeHistory: 'Vezi Istoric',
     caseHistory: 'Istoric Cazuri',
     totalCases: 'Cazuri Totale',
+    historyEmptyFilter: 'Niciun caz pentru acest filtru',
     filters: {
       all: 'Toți',
       low: 'Sarcină Scăzută',
@@ -509,6 +516,7 @@ export const t = {
       caseUpdated: 'Caz actualizat',
       meetingNotesAdded: 'Note ședință',
       sessionReportAdded: 'Raport post-sesiune',
+      monthlyReportSubmitted: 'Raport lunar trimis',
       appointmentCreated: 'Programare creată',
       counselorAdded: 'Consilier adăugat',
     },
@@ -581,7 +589,8 @@ export const t = {
     tabs: {
       userManagement: 'Gestionare Utilizatori',
       counselorsManagement: 'Gestionare Consilieri',
-      allCases: 'Gestionează cazuri'
+      allCases: 'Gestionează cazuri',
+      receivedReports: 'Rapoarte primite',
     },
     users: {
       title: 'Utilizatori',

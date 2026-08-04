@@ -39,6 +39,10 @@ const accentForType = (
       return '#D97706';
     case 'monthly_report':
       return '#7C3AED';
+    case 'session_report_submitted':
+      return '#7C3AED';
+    case 'monthly_report_submitted':
+      return '#6D28D9';
     default:
       return '#94A3B8';
   }
@@ -58,6 +62,10 @@ const typeLabel = (type: AttentionNotification['type']): string => {
       return t.notifications.typeStaleReport;
     case 'monthly_report':
       return t.notifications.typeMonthlyReport;
+    case 'session_report_submitted':
+      return t.notifications.typeSessionReportSubmitted;
+    case 'monthly_report_submitted':
+      return t.notifications.typeMonthlyReportSubmitted;
     default:
       return '';
   }
@@ -172,6 +180,29 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
     if (item.type === 'monthly_report') {
       onClose();
       navigate('/monthly-report');
+      void onDismiss(item.id);
+      return;
+    }
+
+    if (item.type === 'session_report_submitted') {
+      const caseId =
+        item.payload.caseId ||
+        (item.payload.activity?.metadata?.caseId
+          ? String(item.payload.activity.metadata.caseId)
+          : '');
+      onClose();
+      if (caseId) {
+        navigate(`/admin?tab=2&caseId=${encodeURIComponent(caseId)}&reports=1`);
+      } else {
+        navigate('/admin?tab=2');
+      }
+      void onDismiss(item.id);
+      return;
+    }
+
+    if (item.type === 'monthly_report_submitted') {
+      onClose();
+      navigate('/admin?tab=3');
       void onDismiss(item.id);
     }
   };

@@ -3,6 +3,7 @@ import {
   UserIcon,
   UserGroupIcon,
   FolderIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import { AdminTab } from './adminUtils';
 import { t } from '../../utils/translations';
@@ -10,6 +11,7 @@ import { t } from '../../utils/translations';
 interface AdminTabsProps {
   activeTab: AdminTab;
   onTabChange: (tab: AdminTab) => void;
+  showReceivedReports?: boolean;
 }
 
 interface TabButtonProps {
@@ -34,7 +36,11 @@ const TabButton: React.FC<TabButtonProps> = ({ active, onClick, icon, label }) =
   </button>
 );
 
-const AdminTabs: React.FC<AdminTabsProps> = ({ activeTab, onTabChange }) => (
+const AdminTabs: React.FC<AdminTabsProps> = ({
+  activeTab,
+  onTabChange,
+  showReceivedReports = false,
+}) => (
   <div className="mb-6 flex flex-wrap gap-2">
     <TabButton
       active={activeTab === 0}
@@ -54,6 +60,14 @@ const AdminTabs: React.FC<AdminTabsProps> = ({ activeTab, onTabChange }) => (
       icon={<FolderIcon className="h-4 w-4" />}
       label={t.admin.tabs.allCases}
     />
+    {showReceivedReports && (
+      <TabButton
+        active={activeTab === 3}
+        onClick={() => onTabChange(3)}
+        icon={<DocumentTextIcon className="h-4 w-4" />}
+        label={t.admin.tabs.receivedReports}
+      />
+    )}
   </div>
 );
 

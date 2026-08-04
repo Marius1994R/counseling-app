@@ -2,14 +2,11 @@ import React, { useState } from 'react';
 import { Alert, CircularProgress, Snackbar } from '@mui/material';
 import { useMonthlyReport } from '../../hooks/useMonthlyReport';
 import { t } from '../../utils/translations';
-import { getDueReportMonthKey } from './monthlyReportUtils';
 import MonthlyReportForm from './MonthlyReportForm';
 import MonthlyReportReadOnly from './MonthlyReportReadOnly';
-import MonthlyReportLeaderPanel from './MonthlyReportLeaderPanel';
 
 const MonthlyReportPage: React.FC = () => {
-  const [leaderMonthKey, setLeaderMonthKey] = useState(getDueReportMonthKey);
-  const data = useMonthlyReport(leaderMonthKey);
+  const data = useMonthlyReport();
   const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   const handleSubmit = async (
@@ -44,16 +41,6 @@ const MonthlyReportPage: React.FC = () => {
           currentUser={data.currentUser}
           submitting={data.submitting}
           onSubmit={handleSubmit}
-        />
-      )}
-
-      {data.isLeader && (
-        <MonthlyReportLeaderPanel
-          monthKey={leaderMonthKey}
-          onMonthKeyChange={setLeaderMonthKey}
-          reports={data.leaderReports}
-          loading={data.leaderLoading}
-          error={data.leaderError}
         />
       )}
 

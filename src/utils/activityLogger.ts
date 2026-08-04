@@ -11,6 +11,7 @@ export interface ActivityLog {
     | 'case_proposal_declined'
     | 'meeting_notes_added'
     | 'session_report_added'
+    | 'monthly_report_submitted'
     | 'appointment_created'
     | 'appointment_updated'
     | 'appointment_deleted';
@@ -28,6 +29,7 @@ export interface ActivityLog {
     counselorName?: string;
     caseId?: string;
     caseTitle?: string;
+    monthKey?: string;
     assignedToUserId?: string;
     assignedToUserName?: string;
     assignmentSource?: 'direct' | 'proposal_accept';
@@ -116,6 +118,27 @@ export const logSessionReportAdded = async (
       caseId,
       caseTitle,
       sessionNumber,
+    },
+  });
+};
+
+export const logMonthlyReportSubmitted = async (
+  monthKey: string,
+  monthLabel: string,
+  userId: string,
+  userName: string
+): Promise<void> => {
+  await logActivity({
+    type: 'monthly_report_submitted',
+    title: 'Raport Lunar Trimis',
+    description: `${userName} a trimis raportul lunar pentru ${monthLabel}`,
+    timestamp: new Date(),
+    userId,
+    userName,
+    relatedId: monthKey,
+    relatedTitle: monthLabel,
+    metadata: {
+      monthKey,
     },
   });
 };

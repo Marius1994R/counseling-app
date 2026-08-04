@@ -16,7 +16,9 @@ import {
   getDueReportMonthKey,
   mapFirestoreMonthlyReport,
   monthlyReportDocId,
+  formatMonthKeyLabel,
 } from '../components/MonthlyReport/monthlyReportUtils';
+import { logMonthlyReportSubmitted } from '../utils/activityLogger';
 
 export function useMonthlyReport(leaderMonthKey?: string) {
   const { currentUser } = useAuth();
@@ -119,6 +121,12 @@ export function useMonthlyReport(leaderMonthKey?: string) {
         };
         await setDoc(doc(db, 'monthlyReports', id), payload);
         setOwnReport(mapFirestoreMonthlyReport(id, payload));
+        void logMonthlyReportSubmitted(
+          monthKey,
+          formatMonthKeyLabel(monthKey),
+          currentUser.id,
+          currentUser.fullName || currentUser.email
+        );
         window.dispatchEvent(new CustomEvent('monthly-report-submitted', { detail: { monthKey } }));
         if (isLeader && leaderMonthKey === monthKey) {
           void loadLeaderReports();
