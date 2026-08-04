@@ -62,7 +62,7 @@ const AdminTools: React.FC = () => {
           currentUserId={data.currentUser?.id}
           currentUserRole={data.currentUser?.role}
           isSupremeLeader={data.isSupremeLeader}
-          onCreateUser={() => data.setCreateDialogOpen(true)}
+          onCreateUser={data.openCreateUserDialog}
           onEdit={data.openEditDialog}
           onDeactivate={(userId) => setPendingConfirm({ type: 'deactivateUser', userId })}
           onReactivate={data.handleReactivateUser}
@@ -165,9 +165,10 @@ const AdminTools: React.FC = () => {
         selectedUser={data.selectedUser}
         currentUserRole={data.currentUser?.role}
         onCloseCreate={() => {
-          if (data.createUserLoading) return;
-          data.setCreateDialogOpen(false);
-          data.setCreateUserData({ email: '', password: '', fullName: '', role: 'counselor' });
+          data.closeCreateUserDialog();
+          if (!data.createUserLoading) {
+            data.setCreateUserData({ email: '', password: '', fullName: '', role: 'counselor' });
+          }
         }}
         onCloseEdit={() => {
           if (data.editUserLoading) return;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   collection,
@@ -29,6 +29,7 @@ import {
   filterAdminCases,
   countAdminCasesByStatus,
   enrichCounselorsList,
+  isValidEmail,
 } from '../components/Admin/adminUtils';
 import { countByWorkload, dedupeCounselors, mapFirestoreCounselor } from '../components/Counselors/counselorsUtils';
 import { syncLinkedUserAvatar } from '../utils/avatarUtils';
@@ -74,6 +75,7 @@ export function useAdminData() {
   });
   const [newlyCreatedUserId, setNewlyCreatedUserId] = useState<string | null>(null);
   const [pendingProfileRequired, setPendingProfileRequired] = useState(false);
+  const credentialsManuallyCopiedRef = useRef(false);
 
   const [counselors, setCounselors] = useState<Counselor[]>([]);
   const [counselorCases, setCounselorCases] = useState<Case[]>([]);
@@ -550,16 +552,46 @@ export function useAdminData() {
   );
 
   const handleCreateUser = useCallback(async () => {
+    if (!createUserData.fullName.trim() || !createUserData.password) {
+      showSnackbar(t.admin.users.createUserError, 'error');
+      return;
+    }
+    if (!isValidEmail(createUserData.email)) {
+      showSnackbar(t.admin.users.emailInvalid, 'error');
+      return;
+    }
+    const email = createUserData.email.trim();
+    const password = createUserData.password;
+    const alreadyCopied = credentialsManuallyCopiedRef.current;
     try {
       setCreateUserLoading(true);
       const createdRole = createUserData.role;
       const newUserId = await createUser(
-        createUserData.email,
-        createUserData.password,
-        createUserData.fullName,
+        email,
+        password,
+        createUserData.fullName.trim(),
         createdRole
       );
-      showSnackbar(t.admin.users.createUserSuccess, 'success');
+
+      let autoCopied = false;
+      if (!alreadyCopied) {
+        try {
+          await navigator.clipboard.writeText(
+            `Email: ${email}\nPassword: ${password}\nLink app: https://consiliere360.vercel.app/`
+          );
+          autoCopied = true;
+        } catch {
+          // Clipboard may be blocked; user can still copy manually next time
+        }
+      }
+
+      showSnackbar(
+        autoCopied
+          ? t.admin.users.createUserSuccessCredentialsCopied
+          : t.admin.users.createUserSuccess,
+        'success'
+      );
+      credentialsManuallyCopiedRef.current = false;
       setCreateDialogOpen(false);
       setNewlyCreatedUserId(newUserId);
       setPendingProfileRequired(createdRole === 'counselor');
@@ -572,9 +604,11 @@ export function useAdminData() {
       const err = error as { code?: string; message?: string };
       console.error('Error creating user:', error);
       if (err.code === 'auth/email-already-in-use') {
-        showSnackbar(t.admin.users.createUserError, 'error');
+        showSnackbar(t.admin.users.emailAlreadyInUse, 'error');
+      } else if (err.code === 'auth/invalid-email') {
+        showSnackbar(t.admin.users.emailInvalid, 'error');
       } else {
-        showSnackbar(err.message ?? t.admin.users.createUserError, 'error');
+        showSnackbar(t.admin.users.createUserError, 'error');
       }
     } finally {
       setCreateUserLoading(false);
@@ -645,6 +679,18 @@ export function useAdminData() {
     [reactivateUser, loadUsers, showSnackbar]
   );
 
+  const openCreateUserDialog = useCallback(() => {
+    credentialsManuallyCopiedRef.current = false;
+    setCreateUserData({ email: '', password: '', fullName: '', role: 'counselor' });
+    setCreateDialogOpen(true);
+  }, []);
+
+  const closeCreateUserDialog = useCallback(() => {
+    if (createUserLoading) return;
+    credentialsManuallyCopiedRef.current = false;
+    setCreateDialogOpen(false);
+  }, [createUserLoading]);
+
   const copyUserCredentials = useCallback(() => {
     const credentials = `Email: ${createUserData.email}
 Password: ${createUserData.password}
@@ -652,7 +698,10 @@ Link app: https://consiliere360.vercel.app/`;
 
     navigator.clipboard
       .writeText(credentials)
-      .then(() => showSnackbar(t.admin.users.copyCredentials + '!', 'success'))
+      .then(() => {
+        credentialsManuallyCopiedRef.current = true;
+        showSnackbar(t.admin.users.credentialsCopied, 'success');
+      })
       .catch(() => showSnackbar(t.admin.users.createUserError, 'error'));
   }, [createUserData.email, createUserData.password, showSnackbar]);
 
@@ -689,6 +738,8 @@ Link app: https://consiliere360.vercel.app/`;
     showSnackbar,
     createDialogOpen,
     setCreateDialogOpen,
+    openCreateUserDialog,
+    closeCreateUserDialog,
     createUserLoading,
     editUserLoading,
     reactivatingUserId,

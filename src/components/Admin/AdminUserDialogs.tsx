@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import { ContentCopy } from '@mui/icons-material';
 import { User, UserRole } from '../../types';
-import { CreateUserData, generatePassword } from './adminUtils';
+import { CreateUserData, generatePassword, isValidEmail } from './adminUtils';
 import { t } from '../../utils/translations';
 
 interface AdminUserDialogsProps {
@@ -53,7 +53,17 @@ const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
   onCreateUser,
   onEditUser,
   onCopyCredentials,
-}) => (
+}) => {
+  const emailTrimmed = createUserData.email.trim();
+  const emailTouched = emailTrimmed.length > 0;
+  const emailValid = isValidEmail(createUserData.email);
+  const canSubmitCreate =
+    !createUserLoading &&
+    Boolean(createUserData.fullName.trim()) &&
+    Boolean(createUserData.password) &&
+    emailValid;
+
+  return (
   <>
     <Dialog
       open={createDialogOpen}
@@ -99,6 +109,12 @@ const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
             margin="normal"
             required
             disabled={createUserLoading}
+            error={emailTouched && !emailValid}
+            helperText={
+              emailTouched && !emailValid
+                ? t.admin.users.emailInvalid
+                : undefined
+            }
           />
           <TextField
             fullWidth
@@ -159,7 +175,7 @@ const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
           onClick={onCopyCredentials}
           variant="outlined"
           startIcon={<ContentCopy />}
-          disabled={createUserLoading || !createUserData.email || !createUserData.password}
+          disabled={createUserLoading || !emailValid || !createUserData.password}
           sx={{ mr: 1 }}
         >
           {t.admin.users.copyCredentials}
@@ -167,12 +183,7 @@ const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
         <Button
           onClick={onCreateUser}
           variant="contained"
-          disabled={
-            createUserLoading ||
-            !createUserData.email ||
-            !createUserData.fullName ||
-            !createUserData.password
-          }
+          disabled={!canSubmitCreate}
           startIcon={
             createUserLoading ? (
               <CircularProgress size={16} color="inherit" />
@@ -251,6 +262,7 @@ const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
       </DialogActions>
     </Dialog>
   </>
-);
+  );
+};
 
 export default AdminUserDialogs;

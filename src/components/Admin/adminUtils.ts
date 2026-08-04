@@ -13,6 +13,13 @@ export interface CreateUserData {
 export type AdminTab = 0 | 1 | 2;
 export type CaseStatusFilter = CaseStatus | 'all';
 
+/** Basic email format check (local@domain.tld). */
+export function isValidEmail(email: string): boolean {
+  const trimmed = email.trim();
+  if (!trimmed) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmed);
+}
+
 export function generatePassword(fullName: string): string {
   if (!fullName.trim()) return '';
 

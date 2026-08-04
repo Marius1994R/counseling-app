@@ -69,13 +69,19 @@ function SoftBar({
   sub,
   actions,
   extra,
+  labelExpanded,
+  onToggleLabel,
 }: {
   accent: string;
   label: string;
   sub?: string;
   actions?: React.ReactNode;
   extra?: React.ReactNode;
+  labelExpanded?: boolean;
+  onToggleLabel?: () => void;
 }) {
+  const labelNeedsExpand = label.length > 72;
+
   return (
     <div
       className="rounded-lg bg-slate-50"
@@ -83,12 +89,63 @@ function SoftBar({
     >
       <div className="flex items-start gap-2 px-3 py-2.5">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-slate-900">{label}</p>
-          {sub ? <p className="mt-0.5 truncate text-xs text-slate-500">{sub}</p> : null}
+          <p
+            className={`break-words text-sm font-semibold text-slate-900 ${
+              labelNeedsExpand && !labelExpanded ? 'line-clamp-2' : ''
+            }`}
+          >
+            {label}
+          </p>
+          {labelNeedsExpand && onToggleLabel ? (
+            <button
+              type="button"
+              onClick={onToggleLabel}
+              className="mt-0.5 text-xs font-semibold text-brand-600 transition hover:text-brand-700"
+            >
+              {labelExpanded ? t.common.showLess : t.common.showMore}
+            </button>
+          ) : null}
+          {sub ? (
+            <p className="mt-0.5 truncate text-xs text-slate-500">{sub}</p>
+          ) : null}
         </div>
         {actions}
       </div>
       {extra ? <div className="border-t border-slate-100 px-3 pb-2.5 pt-2">{extra}</div> : null}
+    </div>
+  );
+}
+
+function ExpandableBody({
+  text,
+  expanded,
+  onToggle,
+  threshold = 160,
+}: {
+  text: string;
+  expanded: boolean;
+  onToggle: () => void;
+  threshold?: number;
+}) {
+  const needsExpand = text.length > threshold;
+  return (
+    <div>
+      <p
+        className={`whitespace-pre-wrap break-words text-xs text-slate-500 ${
+          needsExpand && !expanded ? 'line-clamp-3' : ''
+        }`}
+      >
+        {text}
+      </p>
+      {needsExpand ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          className="mt-1 text-xs font-semibold text-brand-600 transition hover:text-brand-700"
+        >
+          {expanded ? t.common.showLess : t.common.showMore}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -116,12 +173,26 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [localAppointments, setLocalAppointments] = useState(appointments);
   const [localEvents, setLocalEvents] = useState(events);
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(() => new Set());
 
   React.useEffect(() => {
     if (deleteLoading) return;
     setLocalAppointments(appointments);
     setLocalEvents(events);
   }, [appointments, events, deleteLoading]);
+
+  React.useEffect(() => {
+    setExpandedKeys(new Set());
+  }, [selectedDate]);
+
+  const toggleExpanded = (key: string) => {
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const sortedAppointments = sortAppointmentsByTime(localAppointments);
   const sortedEvents = sortEventsByTime(localEvents);
@@ -223,6 +294,8 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
               const showActions = canEdit(appointment) || canDelete(appointment);
               const showDescription =
                 canViewCaseDetails(appointment) && Boolean(appointment.description);
+              const titleKey = `appt-title-${appointment.id}`;
+              const descKey = `appt-desc-${appointment.id}`;
 
               return (
                 <SoftBar
@@ -230,6 +303,8 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
                   accent={roomColors.accent}
                   label={timeLabel}
                   sub={subParts.length > 0 ? subParts.join(' · ') : undefined}
+                  labelExpanded={expandedKeys.has(titleKey)}
+                  onToggleLabel={() => toggleExpanded(titleKey)}
                   actions={
                     showActions ? (
                       <div className="flex shrink-0 gap-0.5">
@@ -257,10 +332,12 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
                     ) : undefined
                   }
                   extra={
-                    showDescription ? (
-                      <p className="whitespace-pre-wrap break-words text-xs text-slate-500">
-                        {appointment.description}
-                      </p>
+                    showDescription && appointment.description ? (
+                      <ExpandableBody
+                        text={appointment.description}
+                        expanded={expandedKeys.has(descKey)}
+                        onToggle={() => toggleExpanded(descKey)}
+                      />
                     ) : undefined
                   }
                 />
@@ -270,13 +347,18 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
             {sortedEvents.map((event) => {
               const hasDetails = Boolean(event.description || event.registrationUrl);
               const canModifyEvent = canManageEvents && !isPastEvent(event);
+              const titleKey = `event-title-${event.id}`;
+              const descKey = `event-desc-${event.id}`;
+              const eventLabel = `${event.name} · ${formatEventTimeRange(event)}`;
 
               return (
                 <SoftBar
                   key={`event-${event.id}`}
                   accent={eventStyles.accent}
-                  label={`${event.name} · ${formatEventTimeRange(event)}`}
+                  label={eventLabel}
                   sub={`Eveniment · ${formatEventDateRange(event)}`}
+                  labelExpanded={expandedKeys.has(titleKey)}
+                  onToggleLabel={() => toggleExpanded(titleKey)}
                   actions={
                     canModifyEvent ? (
                       <div className="flex shrink-0 gap-0.5">
@@ -301,9 +383,11 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
                     hasDetails ? (
                       <div className="space-y-2">
                         {event.description ? (
-                          <p className="whitespace-pre-wrap break-words text-xs text-slate-500">
-                            {event.description}
-                          </p>
+                          <ExpandableBody
+                            text={event.description}
+                            expanded={expandedKeys.has(descKey)}
+                            onToggle={() => toggleExpanded(descKey)}
+                          />
                         ) : null}
                         {event.registrationUrl ? (
                           <>

@@ -26,8 +26,8 @@ export const t = {
     actions: 'Acțiuni',
     created: 'Creat',
     updated: 'Actualizat',
-    showMore: 'Arată mai multe',
-    showLess: 'Arată mai puține',
+    showMore: 'Arată mai mult',
+    showLess: 'Arată mai puțin',
     confirm: 'Confirmă'
   },
 
@@ -600,6 +600,9 @@ export const t = {
       generatedPassword: 'Parolă Generată',
       passwordHelperText: 'Parola este generată automat pe baza numelui complet',
       copyCredentials: 'Copiază Credențiale',
+      credentialsCopied: 'Credențiale copiate în clipboard',
+      createUserSuccessCredentialsCopied:
+        'Utilizator creat. Credențialele au fost copiate în clipboard.',
       updateUser: 'Actualizează Utilizator',
       adminsCannotModifyLeaders: 'Administratorii nu pot modifica conturile liderilor',
       deleteUserTitle: 'Șterge Utilizator',
@@ -615,6 +618,8 @@ export const t = {
       createUserSuccess: 'Utilizator creat cu succes',
       createUserInProgress: 'Se creează utilizatorul…',
       createUserError: 'Eroare la crearea utilizatorului',
+      emailAlreadyInUse: 'Această adresă de email este deja înregistrată',
+      emailInvalid: 'Adresa de email este invalidă',
       updateUserSuccess: 'Utilizator actualizat cu succes',
       updateUserError: 'Eroare la actualizarea utilizatorului',
       deleteUserSuccess: 'Utilizator șters cu succes',

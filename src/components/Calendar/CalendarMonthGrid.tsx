@@ -173,7 +173,7 @@ const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
       <div className="grid grid-cols-7 gap-1">
         {days.map((date, index) => {
           if (!date) {
-            return <div key={`empty-${index}`} className="min-h-[3.25rem] sm:min-h-[5.5rem]" />;
+            return <div key={`empty-${index}`} className="min-h-[3.25rem] sm:min-h-[6.75rem]" />;
           }
 
           const dayAppointments = sortAppointmentsByTime(
@@ -193,7 +193,7 @@ const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
               key={date.toISOString()}
               type="button"
               onClick={() => onDateClick(date)}
-              className={`flex min-h-[3.25rem] min-w-0 flex-col overflow-hidden rounded-lg border p-0.5 text-left transition sm:min-h-[5.5rem] sm:p-1.5 ${
+              className={`flex min-h-[3.25rem] min-w-0 flex-col overflow-hidden rounded-lg border p-0.5 text-left transition sm:min-h-[6.75rem] sm:p-1.5 ${
                 selected
                   ? 'border-brand-500 bg-brand-50 ring-2 ring-brand-500'
                   : currentDay
@@ -219,23 +219,25 @@ const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                   />
                 ))}
                 {mobileOverflow > 0 && (
-                  <span className="text-[8px] leading-none text-slate-500">+{mobileOverflow}</span>
+                  <span className="text-[8px] font-semibold leading-none text-brand-600">
+                    +{mobileOverflow}
+                  </span>
                 )}
               </div>
 
-              {/* Desktop / tablet: colored banners */}
+              {/* Desktop / tablet: colored banners (2-line clamp) */}
               <div className="hidden min-h-0 min-w-0 flex-1 flex-col gap-0.5 overflow-hidden sm:flex">
                 {dayItems.slice(0, MAX_BANNERS).map((item) => (
                   <div
                     key={`${item.kind}-${item.id}`}
-                    className={`truncate rounded px-1 py-0.5 text-[10px] font-medium leading-tight ${item.styles.bg} ${item.styles.text}`}
+                    className={`line-clamp-2 rounded px-1 py-0.5 text-[10px] font-medium leading-snug ${item.styles.bg} ${item.styles.text}`}
                     title={dayItemPrimaryText(item)}
                   >
                     {dayItemPrimaryText(item)}
                   </div>
                 ))}
                 {bannerOverflow > 0 && (
-                  <p className="truncate px-0.5 text-[10px] text-slate-500">
+                  <p className="px-0.5 text-[10px] font-semibold text-brand-600">
                     +{bannerOverflow} {t.appointments.moreOnDay}
                   </p>
                 )}
