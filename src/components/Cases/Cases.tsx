@@ -38,8 +38,7 @@ const Cases: React.FC = () => {
   };
 
   const handleReportSaved = () => {
-    data.handleCloseSessionReport();
-    data.handleNoteAdded();
+    void data.handleSessionReportSaved();
   };
 
   const handleOpenTimeline = (caseItem: Case) => {

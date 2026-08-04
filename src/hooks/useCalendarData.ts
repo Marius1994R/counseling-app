@@ -5,24 +5,25 @@ import {
   getDocs,
   query,
   orderBy,
+  where,
   addDoc,
   updateDoc,
   deleteDoc,
   doc,
   onSnapshot,
   DocumentData,
+  Timestamp,
 } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { useDashboardDataContext } from '../contexts/DashboardDataContext';
 import { db } from '../firebase';
-import { Appointment, Case, Counselor } from '../types';
+import { Appointment } from '../types';
 import { logAppointmentCreated } from '../utils/activityLogger';
 import {
   getAppointmentsForDate,
   findCounselorForUser,
   hasRoomConflict,
 } from '../components/Calendar/calendarUtils';
-import { mapFirestoreCase } from '../components/Cases/casesUtils';
 import { isAdminOrLeader } from '../utils/roleAuth';
 import { t } from '../utils/translations';
 
@@ -51,12 +52,19 @@ function mapFirestoreAppointment(id: string, data: DocumentData): Appointment {
 
 export function useCalendarData(_options: UseCalendarDataOptions = {}) {
   const { currentUser } = useAuth();
-  const { refetch: refetchDashboard } = useDashboardDataContext();
+  const {
+    cases: cachedCases,
+    counselors: cachedCounselors,
+    appointments: cachedAppointments,
+    loading: dashboardLoading,
+    counselorRecordId,
+    upsertAppointment,
+    removeAppointment,
+    replaceAppointments,
+  } = useDashboardDataContext();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [cases, setCases] = useState<Case[]>([]);
-  const [counselors, setCounselors] = useState<Counselor[]>([]);
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -67,6 +75,9 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
   const [preSelectedDate, setPreSelectedDate] = useState<Date | null>(null);
   const [preSelectedCaseId, setPreSelectedCaseId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
+  const cases = cachedCases;
+  const counselors = cachedCounselors;
 
   useEffect(() => {
     const newParam = searchParams.get('new');
@@ -93,68 +104,18 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
     }
   }, [searchParams, setSearchParams]);
 
+  // Seed from shared cache while waiting for the live listener
+  useEffect(() => {
+    if (!dashboardLoading && cachedAppointments.length > 0 && appointments.length === 0) {
+      setAppointments(cachedAppointments);
+    }
+    if (!dashboardLoading) {
+      setLoading(false);
+    }
+  }, [dashboardLoading, cachedAppointments, appointments.length]);
+
   useEffect(() => {
     let cancelled = false;
-    let staticReady = false;
-    let appointmentsReady = false;
-
-    const maybeFinishLoading = () => {
-      if (!cancelled && staticReady && appointmentsReady) {
-        setLoading(false);
-      }
-    };
-
-    const loadStaticData = async () => {
-      try {
-        setLoading(true);
-
-        const counselorsRef = collection(db, 'counselors');
-        const counselorsQuery = query(counselorsRef, orderBy('fullName', 'asc'));
-        const counselorsSnapshot = await getDocs(counselorsQuery);
-
-        const counselorsData: Counselor[] = [];
-        counselorsSnapshot.forEach((counselorDoc) => {
-          const data = counselorDoc.data();
-          counselorsData.push({
-            id: counselorDoc.id,
-            fullName: data.fullName,
-            email: data.email,
-            phoneNumber: data.phoneNumber || '',
-            sex: data.sex === 'feminin' || data.sex === 'masculin' ? data.sex : undefined,
-            specialties: data.specialties || [],
-            activeCases: data.activeCases || 0,
-            workloadLevel: data.workloadLevel || 'low',
-            linkedUserId: data.linkedUserId,
-            createdAt: data.createdAt.toDate(),
-            updatedAt: data.updatedAt.toDate(),
-          });
-        });
-
-        const casesRef = collection(db, 'cases');
-        const casesQuery = query(casesRef, orderBy('createdAt', 'desc'));
-        const casesSnapshot = await getDocs(casesQuery);
-
-        const casesData: Case[] = [];
-        casesSnapshot.forEach((caseDoc) => {
-          casesData.push(mapFirestoreCase(caseDoc.id, caseDoc.data()));
-        });
-
-        if (cancelled) return;
-
-        setCounselors(counselorsData);
-        setCases(casesData);
-        staticReady = true;
-        maybeFinishLoading();
-      } catch (err) {
-        if (!cancelled) {
-          setError('Failed to load calendar data');
-          console.error('Calendar loading error:', err);
-          setLoading(false);
-        }
-      }
-    };
-
-    void loadStaticData();
 
     const appointmentsQuery = query(collection(db, 'appointments'), orderBy('date', 'asc'));
     const unsubscribeAppointments = onSnapshot(
@@ -166,15 +127,25 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
           appointmentsData.push(mapFirestoreAppointment(aptDoc.id, aptDoc.data()));
         });
         setAppointments(appointmentsData);
-        appointmentsReady = true;
-        maybeFinishLoading();
+        setLoading(false);
+
+        // Keep dashboard cache in sync for this user's visible appointments
+        const visibleForDashboard = appointmentsData.filter((apt) => {
+          if (!currentUser) return false;
+          if (counselorRecordId) {
+            return (
+              apt.counselorId === counselorRecordId || apt.counselorId === currentUser.id
+            );
+          }
+          return apt.counselorId === currentUser.id;
+        });
+        replaceAppointments(visibleForDashboard);
       },
       (err) => {
         if (cancelled) return;
         console.error('Appointments listener error:', err);
         setError('Failed to load calendar data');
-        appointmentsReady = true;
-        maybeFinishLoading();
+        setLoading(false);
       }
     );
 
@@ -182,7 +153,7 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
       cancelled = true;
       unsubscribeAppointments();
     };
-  }, []);
+  }, [currentUser, counselorRecordId, replaceAppointments]);
 
   useEffect(() => {
     let filtered = appointments;
@@ -300,15 +271,14 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
 
       try {
         await deleteDoc(doc(db, 'appointments', appointmentId));
-        // Live listener updates local state
-        void refetchDashboard();
+        removeAppointment(appointmentId);
       } catch (err) {
         console.error('Delete error:', err);
         setError('Failed to delete appointment');
         throw err;
       }
     },
-    [appointments, currentUser, refetchDashboard]
+    [appointments, currentUser, removeAppointment]
   );
 
   const assertNoRoomConflict = useCallback(
@@ -316,8 +286,36 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
       appointmentData: Omit<Appointment, 'id' | 'createdAt' | 'createdBy'>,
       excludeId?: string
     ) => {
+      // Prefer in-memory listener data; fall back to a day-scoped query for races.
+      const dayStart = new Date(appointmentData.date);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(appointmentData.date);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      const dayAppointments = appointments.filter((apt) => {
+        const d = new Date(apt.date);
+        return d >= dayStart && d <= dayEnd;
+      });
+
+      if (
+        hasRoomConflict({
+          appointments: dayAppointments,
+          room: appointmentData.room || '',
+          date: appointmentData.date,
+          startTime: appointmentData.startTime,
+          endTime: appointmentData.endTime,
+          excludeId,
+        })
+      ) {
+        throw new Error(t.appointments.roomConflict);
+      }
+
       const appointmentsSnapshot = await getDocs(
-        query(collection(db, 'appointments'), orderBy('date', 'asc'))
+        query(
+          collection(db, 'appointments'),
+          where('date', '>=', Timestamp.fromDate(dayStart)),
+          where('date', '<=', Timestamp.fromDate(dayEnd))
+        )
       );
       const latest: Appointment[] = [];
       appointmentsSnapshot.forEach((aptDoc) => {
@@ -337,7 +335,7 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
         throw new Error(t.appointments.roomConflict);
       }
     },
-    []
+    [appointments]
   );
 
   const handleFormSubmit = useCallback(
@@ -350,6 +348,10 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
           await updateDoc(appointmentRef, {
             ...appointmentData,
             updatedAt: new Date(),
+          });
+          upsertAppointment({
+            ...editingAppointment,
+            ...appointmentData,
           });
         } else {
           await assertNoRoomConflict(appointmentData);
@@ -371,12 +373,17 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
               currentUser.fullName || currentUser.email || 'Unknown User'
             );
           }
+          upsertAppointment({
+            ...appointmentData,
+            id: docRef.id,
+            createdAt: new Date(),
+            createdBy: currentUser?.id || 'unknown',
+          });
         }
         setFormOpen(false);
         setEditingAppointment(null);
         setPreSelectedDate(null);
         setPreSelectedCaseId(null);
-        await refetchDashboard();
       } catch (err) {
         console.error('Form submit error:', err);
         if (err instanceof Error && err.message === t.appointments.roomConflict) {
@@ -386,7 +393,7 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
         throw err;
       }
     },
-    [editingAppointment, currentUser, refetchDashboard, assertNoRoomConflict]
+    [editingAppointment, currentUser, assertNoRoomConflict, upsertAppointment]
   );
 
   const handleDateClick = useCallback((date: Date) => {

@@ -5,7 +5,6 @@ import {
   getDocs,
   query,
   orderBy,
-  where,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -18,6 +17,7 @@ import { Case, Counselor, User, UserRole } from '../types';
 import { logCaseAssigned, logCaseProposed, logCaseCreated } from '../utils/activityLogger';
 import { t } from '../utils/translations';
 import { mapFirestoreCase } from '../components/Cases/casesUtils';
+import { loadLatestNotesByCaseIds } from '../components/Cases/meetingNotesUtils';
 import {
   CreateUserData,
   AdminTab,
@@ -44,7 +44,7 @@ export function useAdminData() {
     reactivateUser,
     getAllUsers,
   } = useAuth();
-  const { refetch: refetchDashboard } = useDashboardDataContext();
+  const { upsertCase, removeCase } = useDashboardDataContext();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [activeTab, setActiveTab] = useState<AdminTab>(0);
@@ -144,30 +144,7 @@ export function useAdminData() {
 
   const loadLatestNotes = async (cases: Case[]) => {
     try {
-      const notesPromises = cases.map(async (caseItem) => {
-        const notesRef = collection(db, 'meetingNotes');
-        const notesQuery = query(notesRef, where('caseId', '==', caseItem.id));
-        const notesSnapshot = await getDocs(notesQuery);
-
-        if (!notesSnapshot.empty) {
-          const notesData = notesSnapshot.docs.map((noteDoc) => {
-            const data = noteDoc.data();
-            return {
-              content: data.content as string,
-              createdAt: data.createdAt.toDate() as Date,
-            };
-          });
-          notesData.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-          return { caseId: caseItem.id, content: notesData[0].content };
-        }
-        return { caseId: caseItem.id, content: '' };
-      });
-
-      const notesResults = await Promise.all(notesPromises);
-      const notesMap: Record<string, string> = {};
-      notesResults.forEach(({ caseId, content }) => {
-        notesMap[caseId] = content;
-      });
+      const notesMap = await loadLatestNotesByCaseIds(cases.map((c) => c.id));
       setCaseNotes(notesMap);
     } catch (error) {
       console.error('Error loading latest notes:', error);
@@ -469,6 +446,11 @@ export function useAdminData() {
           }
 
           showSnackbar(t.cases.updateSuccess, 'success');
+          upsertCase({
+            ...editingCase,
+            ...caseData,
+            updatedAt: new Date(),
+          });
         } else {
           const docRef = await addDoc(collection(db, 'cases'), {
             ...firestorePayload,
@@ -501,12 +483,18 @@ export function useAdminData() {
             );
           }
           showSnackbar('Caz creat cu succes', 'success');
+          upsertCase({
+            ...caseData,
+            id: docRef.id,
+            createdBy: currentUser?.id || '',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          } as Case);
         }
         setCaseFormOpen(false);
         setEditingCase(null);
         await loadCases({ silent: true });
         await loadCounselors({ silent: true });
-        await refetchDashboard();
       } catch (error) {
         console.error('Error saving case:', error);
         const message =
@@ -524,7 +512,7 @@ export function useAdminData() {
       loadCounselors,
       requireAdminAccess,
       showSnackbar,
-      refetchDashboard,
+      upsertCase,
     ]
   );
 
@@ -535,8 +523,8 @@ export function useAdminData() {
 
         await deleteDoc(doc(db, 'cases', caseId));
         showSnackbar('Caz șters cu succes', 'success');
+        removeCase(caseId);
         await loadCases({ silent: true });
-        await refetchDashboard();
       } catch (error) {
         console.error('Error deleting case:', error);
         const message =
@@ -546,7 +534,7 @@ export function useAdminData() {
         showSnackbar(message, 'error');
       }
     },
-    [loadCases, requireAdminAccess, showSnackbar, refetchDashboard]
+    [loadCases, requireAdminAccess, showSnackbar, removeCase]
   );
 
   const handleCreateUser = useCallback(async () => {

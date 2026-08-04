@@ -42,7 +42,7 @@ const Dashboard: React.FC = () => {
     upcomingAppointments,
     loading,
     error,
-    refetch,
+    incrementSessionReportCount,
   } = useDashboardDataContext();
 
   const [caseSelectionModalOpen, setCaseSelectionModalOpen] = useState(false);
@@ -69,10 +69,13 @@ const Dashboard: React.FC = () => {
   };
 
   const handleReportSaved = () => {
+    const caseId = selectedCaseForReport?.id;
     setSessionReportOpen(false);
     setCaseSelectionModalOpen(false);
     setSelectedCaseForReport(null);
-    refetch();
+    if (caseId) {
+      incrementSessionReportCount(caseId);
+    }
   };
 
   const handleCancelAddForm = () => {

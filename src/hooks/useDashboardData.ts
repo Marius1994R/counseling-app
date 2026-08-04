@@ -212,15 +212,13 @@ export function useDashboardData() {
       // leader / admin: keep full team pulse (already capped)
 
       let counselorsData: Counselor[] = [];
-      if (currentUser.role === 'leader' || currentUser.role === 'admin') {
-        const counselorsSnapshot = await getDocs(collection(db, 'counselors'));
-        counselorsSnapshot.forEach((docSnap) => {
-          counselorsData.push(mapFirestoreCounselor(docSnap.id, docSnap.data()));
-        });
-        counselorsData = dedupeCounselors(counselorsData).sort((a, b) =>
-          a.fullName.localeCompare(b.fullName, 'ro')
-        );
-      }
+      const counselorsSnapshot = await getDocs(collection(db, 'counselors'));
+      counselorsSnapshot.forEach((docSnap) => {
+        counselorsData.push(mapFirestoreCounselor(docSnap.id, docSnap.data()));
+      });
+      counselorsData = dedupeCounselors(counselorsData).sort((a, b) =>
+        a.fullName.localeCompare(b.fullName, 'ro')
+      );
 
       const reportsRef = collection(db, 'sessionReports');
       const reportsSnapshot = await getDocs(reportsRef);
@@ -555,6 +553,61 @@ export function useDashboardData() {
     [cases]
   );
 
+  const upsertCase = useCallback((caseItem: Case) => {
+    setCases((prev) => {
+      const index = prev.findIndex((c) => c.id === caseItem.id);
+      if (index === -1) {
+        return [caseItem, ...prev];
+      }
+      const next = [...prev];
+      next[index] = caseItem;
+      return next;
+    });
+  }, []);
+
+  const removeCase = useCallback((caseId: string) => {
+    setCases((prev) => prev.filter((c) => c.id !== caseId));
+    setSessionReportCounts((prev) => {
+      if (!(caseId in prev)) return prev;
+      const next = { ...prev };
+      delete next[caseId];
+      return next;
+    });
+  }, []);
+
+  const upsertAppointment = useCallback((appointment: Appointment) => {
+    setAppointments((prev) => {
+      const index = prev.findIndex((a) => a.id === appointment.id);
+      if (index === -1) {
+        return [...prev, appointment].sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+      }
+      const next = [...prev];
+      next[index] = appointment;
+      return next;
+    });
+  }, []);
+
+  const removeAppointment = useCallback((appointmentId: string) => {
+    setAppointments((prev) => prev.filter((a) => a.id !== appointmentId));
+  }, []);
+
+  const replaceAppointments = useCallback((next: Appointment[]) => {
+    setAppointments(next);
+  }, []);
+
+  const incrementSessionReportCount = useCallback((caseId: string) => {
+    setSessionReportCounts((prev) => ({
+      ...prev,
+      [caseId]: (prev[caseId] ?? 0) + 1,
+    }));
+  }, []);
+
+  const replaceCounselors = useCallback((next: Counselor[]) => {
+    setCounselors(next);
+  }, []);
+
   return {
     cases,
     appointments,
@@ -579,5 +632,12 @@ export function useDashboardData() {
     pendingAssignmentCount,
     assignmentOutcomes,
     refetch: loadData,
+    upsertCase,
+    removeCase,
+    upsertAppointment,
+    removeAppointment,
+    replaceAppointments,
+    incrementSessionReportCount,
+    replaceCounselors,
   };
 }

@@ -45,7 +45,7 @@ function isActive(path: string, pathname: string, search: string): boolean {
 
 const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, mobileOpen = false, onMobileClose }) => {
   const { currentUser } = useAuth();
-  const { refetch, metrics } = useDashboardDataContext();
+  const { metrics } = useDashboardDataContext();
   const { openCaseReportModal } = useDashboardReport();
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,7 +60,6 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, mobileOpen = false
   const handleNav = (path: string) => {
     if (path === '/') {
       navigate(path);
-      refetch();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       navigate(path);

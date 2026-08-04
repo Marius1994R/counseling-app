@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { collection, getDocs } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
+import { useDashboardDataContext } from '../contexts/DashboardDataContext';
 import { db } from '../firebase';
 import { Case, CaseStatus } from '../types';
-import { loadVisibleCasesForUser } from '../components/Cases/casesUtils';
 import { TimeRangeFilter } from '../utils/timeRange';
 import {
   buildCaseListSummaries,
@@ -34,6 +34,7 @@ function parseTimeRangeFromParams(params: URLSearchParams): TimeRangeFilter {
 
 export function useSessionReportsData() {
   const { currentUser } = useAuth();
+  const { cases: cachedCases, loading: dashboardLoading } = useDashboardDataContext();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [allCases, setAllCases] = useState<Case[]>([]);
@@ -53,13 +54,13 @@ export function useSessionReportsData() {
   const prevCaseIdRef = useRef<string | null>(null);
 
   const loadData = useCallback(async () => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id || dashboardLoading) return;
 
     try {
       setLoading(true);
       setError(null);
 
-      const visibleCases = await loadVisibleCasesForUser(currentUser.id);
+      const visibleCases = cachedCases;
       const visibleCaseIds = new Set(visibleCases.map((c) => c.id));
 
       const reportsRef = collection(db, 'sessionReports');
@@ -91,10 +92,10 @@ export function useSessionReportsData() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.id, currentUser?.role]);
+  }, [currentUser?.id, currentUser?.role, cachedCases, dashboardLoading]);
 
   useEffect(() => {
-    loadData();
+    void loadData();
   }, [loadData]);
 
   useEffect(() => {

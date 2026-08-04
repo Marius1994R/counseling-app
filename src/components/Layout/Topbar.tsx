@@ -41,7 +41,6 @@ const Topbar: React.FC<TopbarProps> = ({
   const { openCaseReportModal } = useDashboardReport();
   const {
     cases,
-    refetch,
     newAssignmentModal,
     openAssignment,
     dismissAssignment,
@@ -101,7 +100,6 @@ const Topbar: React.FC<TopbarProps> = ({
   const handleGoHome = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.currentTarget.blur();
     navigate('/');
-    refetch();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

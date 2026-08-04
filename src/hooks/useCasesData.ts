@@ -1,25 +1,32 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { collection, getDocs, query, where, orderBy, updateDoc, doc } from 'firebase/firestore';
+import { updateDoc, doc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { useDashboardDataContext } from '../contexts/DashboardDataContext';
 import { db } from '../firebase';
 import { Case, CaseStatus, IssueType } from '../types';
 import { logCaseStatusChange } from '../utils/activityLogger';
 import { t } from '../utils/translations';
-import { getStatusFilterFromUrl, mapFirestoreCase, isCaseVisibleToCounselor } from '../components/Cases/casesUtils';
+import { getStatusFilterFromUrl } from '../components/Cases/casesUtils';
+import { loadLatestNotesByCaseIds } from '../components/Cases/meetingNotesUtils';
 
 const COMMON_ISSUE_TYPES: IssueType[] = ['spiritual', 'relational', 'personal'];
 
 export function useCasesData() {
   const { currentUser } = useAuth();
-  const { refetch: refetchDashboard } = useDashboardDataContext();
+  const {
+    cases: cachedCases,
+    sessionReportCounts,
+    loading: dashboardLoading,
+    upsertCase,
+    incrementSessionReportCount,
+  } = useDashboardDataContext();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [cases, setCases] = useState<Case[]>([]);
   const [filteredCases, setFilteredCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<CaseStatus | 'all'>(() =>
     getStatusFilterFromUrl(searchParams)
@@ -38,7 +45,6 @@ export function useCasesData() {
   const [sessionReportOpen, setSessionReportOpen] = useState(false);
   const [selectedCaseForNotes, setSelectedCaseForNotes] = useState<Case | null>(null);
   const [caseNotes, setCaseNotes] = useState<Record<string, string>>({});
-  const [caseReportsCount, setCaseReportsCount] = useState<Record<string, number>>({});
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
@@ -49,102 +55,21 @@ export function useCasesData() {
 
   const caseIdFilter = searchParams.get('caseId');
 
-  const loadLatestNotes = useCallback(async (casesToLoad: Case[]) => {
-    try {
-      const notesPromises = casesToLoad.map(async (caseItem) => {
-        const notesRef = collection(db, 'meetingNotes');
-        const notesQuery = query(notesRef, where('caseId', '==', caseItem.id));
-        const notesSnapshot = await getDocs(notesQuery);
-
-        if (!notesSnapshot.empty) {
-          const notesData = notesSnapshot.docs.map((noteDoc) => {
-            const data = noteDoc.data();
-            return {
-              id: noteDoc.id,
-              content: data.content,
-              createdAt: data.createdAt.toDate(),
-            };
-          });
-
-          notesData.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-          return { caseId: caseItem.id, content: notesData[0].content };
-        }
-        return { caseId: caseItem.id, content: '' };
-      });
-
-      const notesResults = await Promise.all(notesPromises);
-      const notesMap: Record<string, string> = {};
-      notesResults.forEach(({ caseId, content }) => {
-        notesMap[caseId] = content;
-      });
-      setCaseNotes(notesMap);
-    } catch (err) {
-      console.error('Error loading latest notes:', err);
-    }
-  }, []);
-
-  const loadSessionReportsCount = useCallback(async (casesToLoad: Case[]) => {
-    try {
-      const reportsPromises = casesToLoad.map(async (caseItem) => {
-        const reportsRef = collection(db, 'sessionReports');
-        const reportsQuery = query(reportsRef, where('caseId', '==', caseItem.id));
-        const reportsSnapshot = await getDocs(reportsQuery);
-        return { caseId: caseItem.id, count: reportsSnapshot.size };
-      });
-
-      const reportsResults = await Promise.all(reportsPromises);
-      const reportsMap: Record<string, number> = {};
-      reportsResults.forEach(({ caseId, count }) => {
-        reportsMap[caseId] = count;
-      });
-      setCaseReportsCount(reportsMap);
-    } catch (err) {
-      console.error('Error loading session reports count:', err);
-    }
-  }, []);
-
-  const refetch = useCallback(async () => {
-    if (!currentUser?.id) return;
-
-    try {
-      setLoading(true);
-
-      let counselorId: string | null = null;
-      const counselorsRef = collection(db, 'counselors');
-      const counselorsQuery = query(counselorsRef, where('linkedUserId', '==', currentUser.id));
-      const counselorsSnapshot = await getDocs(counselorsQuery);
-
-      if (!counselorsSnapshot.empty) {
-        counselorId = counselorsSnapshot.docs[0].id;
-      }
-
-      const casesRef = collection(db, 'cases');
-      const casesQuery = query(casesRef, orderBy('createdAt', 'desc'));
-      const casesSnapshot = await getDocs(casesQuery);
-
-      const casesData: Case[] = [];
-      casesSnapshot.forEach((caseDoc) => {
-        const caseItem = mapFirestoreCase(caseDoc.id, caseDoc.data());
-        if (isCaseVisibleToCounselor(caseItem, counselorId, currentUser.id)) {
-          casesData.push(caseItem);
-        }
-      });
-
-      setCases(casesData);
-      setFilteredCases(casesData);
-      await loadLatestNotes(casesData);
-      await loadSessionReportsCount(casesData);
-    } catch (err) {
-      console.error('Error loading cases:', err);
-      setError('Error loading cases');
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser?.id, loadLatestNotes, loadSessionReportsCount]);
-
+  // Reuse dashboard cache — no second full cases scan
   useEffect(() => {
-    refetch();
-  }, [refetch]);
+    if (dashboardLoading) {
+      setLoading(true);
+      return;
+    }
+    setCases(cachedCases);
+    setFilteredCases(cachedCases);
+    setLoading(false);
+
+    const ids = cachedCases.map((c) => c.id);
+    void loadLatestNotesByCaseIds(ids)
+      .then(setCaseNotes)
+      .catch((err) => console.error('Error loading latest notes:', err));
+  }, [dashboardLoading, cachedCases]);
 
   const handleStatusFilterChange = useCallback(
     (status: CaseStatus | 'all') => {
@@ -164,6 +89,23 @@ export function useCasesData() {
   useEffect(() => {
     setStatusFilter(getStatusFilterFromUrl(searchParams));
   }, [searchParams]);
+
+  useEffect(() => {
+    if (loading || searchParams.get('openNotes') !== 'true') return;
+
+    const targetId = searchParams.get('caseId');
+    if (!targetId) return;
+
+    const caseItem = cases.find((c) => c.id === targetId);
+    if (caseItem) {
+      setSelectedCaseForNotes(caseItem);
+      setMeetingNotesOpen(true);
+    }
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('openNotes');
+    setSearchParams(nextParams, { replace: true });
+  }, [loading, cases, searchParams, setSearchParams]);
 
   useEffect(() => {
     let filtered = cases;
@@ -188,29 +130,12 @@ export function useCasesData() {
     setFilteredCases(filtered);
   }, [cases, searchTerm, statusFilter, caseIdFilter]);
 
-  useEffect(() => {
-    if (loading || searchParams.get('openNotes') !== 'true') return;
-
-    const targetId = searchParams.get('caseId');
-    if (!targetId) return;
-
-    const caseItem = cases.find((c) => c.id === targetId);
-    if (caseItem) {
-      setSelectedCaseForNotes(caseItem);
-      setMeetingNotesOpen(true);
-    }
-
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete('openNotes');
-    setSearchParams(nextParams, { replace: true });
-  }, [loading, cases, searchParams, setSearchParams]);
-
   const handleEditCase = useCallback((caseItem: Case) => {
     setSelectedCase(caseItem);
     setEditData({
-      issueTypes: [...caseItem.issueTypes],
+      issueTypes: caseItem.issueTypes || [],
       status: caseItem.status,
-      description: caseItem.description,
+      description: caseItem.description || '',
     });
     setEditDialogOpen(true);
   }, []);
@@ -242,16 +167,19 @@ export function useCasesData() {
         );
       }
 
+      const updated: Case = {
+        ...selectedCase,
+        ...editData,
+        updatedAt: new Date(),
+      };
+
       setCases((prevCases) =>
-        prevCases.map((caseItem) =>
-          caseItem.id === selectedCase.id
-            ? { ...caseItem, ...editData, updatedAt: new Date() }
-            : caseItem
-        )
+        prevCases.map((caseItem) => (caseItem.id === selectedCase.id ? updated : caseItem))
       );
 
+      upsertCase(updated);
+
       setEditDialogOpen(false);
-      await refetchDashboard();
       setSnackbar({
         open: true,
         message: t.cases.updateSuccess || 'Caz actualizat cu succes',
@@ -267,7 +195,7 @@ export function useCasesData() {
     } finally {
       setSaveLoading(false);
     }
-  }, [selectedCase, editData, currentUser, refetchDashboard, saveLoading]);
+  }, [selectedCase, editData, currentUser, upsertCase, saveLoading]);
 
   const handleCloseEditDialog = useCallback(() => {
     if (saveLoading) return;
@@ -291,11 +219,23 @@ export function useCasesData() {
   }, []);
 
   const handleNoteAdded = useCallback(async () => {
-    if (cases.length > 0) {
-      await loadLatestNotes(cases);
-      await loadSessionReportsCount(cases);
+    if (cases.length === 0) return;
+    try {
+      const notes = await loadLatestNotesByCaseIds(cases.map((c) => c.id));
+      setCaseNotes(notes);
+    } catch (err) {
+      console.error('Error refreshing notes:', err);
     }
-  }, [cases, loadLatestNotes, loadSessionReportsCount]);
+  }, [cases]);
+
+  const handleSessionReportSaved = useCallback(async () => {
+    if (selectedCaseForNotes?.id) {
+      incrementSessionReportCount(selectedCaseForNotes.id);
+    }
+    await handleNoteAdded();
+    setSessionReportOpen(false);
+    setSelectedCaseForNotes(null);
+  }, [selectedCaseForNotes, incrementSessionReportCount, handleNoteAdded]);
 
   const handleCloseMeetingNotes = useCallback(() => {
     setMeetingNotesOpen(false);
@@ -314,10 +254,10 @@ export function useCasesData() {
 
   const handleIssueTypeToggle = useCallback((issueType: IssueType) => {
     setEditData((prev) => {
-      const isSelected = prev.issueTypes.includes(issueType);
+      const exists = prev.issueTypes.includes(issueType);
       return {
         ...prev,
-        issueTypes: isSelected
+        issueTypes: exists
           ? prev.issueTypes.filter((type) => type !== issueType)
           : [...prev.issueTypes, issueType],
       };
@@ -337,7 +277,7 @@ export function useCasesData() {
     statusFilter,
     caseIdFilter,
     caseNotes,
-    caseReportsCount,
+    caseReportsCount: sessionReportCounts,
     activeCasesCount,
     waitingCasesCount,
     editDialogOpen,
@@ -362,10 +302,10 @@ export function useCasesData() {
     handleOpenMeetingNotes,
     handleOpenSessionReport,
     handleNoteAdded,
+    handleSessionReportSaved,
     handleCloseMeetingNotes,
     handleCloseSessionReport,
     handleOpenDescription,
     handleIssueTypeToggle,
-    refetch,
   };
 }
