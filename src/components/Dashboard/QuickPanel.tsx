@@ -17,19 +17,25 @@ interface QuickPanelProps {
 }
 
 const QuickPanel: React.FC<QuickPanelProps> = (props) => (
-  <div className="space-y-4">
-    <AppointmentList
-      appointments={props.appointments}
-      loading={props.loading}
-      onViewCalendar={props.onViewCalendar}
-    />
-    <QuickActions
-      onRaportCaz={props.onRaportCaz}
-      onSchedule={props.onSchedule}
-      onAddCase={props.onAddCase}
-      onUpdateProfile={props.onUpdateProfile}
-    />
-    <AlertsPanel cases={props.cases} sessionReportCounts={props.sessionReportCounts} />
+  <div className="flex flex-col gap-4">
+    <div className="order-2 lg:order-1">
+      <AppointmentList
+        appointments={props.appointments}
+        loading={props.loading}
+        onViewCalendar={props.onViewCalendar}
+      />
+    </div>
+    <div className="order-1 lg:order-2">
+      <QuickActions
+        onRaportCaz={props.onRaportCaz}
+        onSchedule={props.onSchedule}
+        onAddCase={props.onAddCase}
+        onUpdateProfile={props.onUpdateProfile}
+      />
+    </div>
+    <div className="order-3">
+      <AlertsPanel cases={props.cases} sessionReportCounts={props.sessionReportCounts} />
+    </div>
   </div>
 );
 

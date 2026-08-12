@@ -600,6 +600,8 @@ export const t = {
       createUser: 'Creează Utilizator',
       createNewUser: 'Pasul 1: Creează utilizator',
       fullName: 'Nume Complet',
+      lastName: 'Nume',
+      firstName: 'Prenume',
       email: 'Email',
       role: 'Rol',
       status: 'Status',
@@ -607,7 +609,7 @@ export const t = {
       name: 'Nume',
       created: 'Creat',
       generatedPassword: 'Parolă Generată',
-      passwordHelperText: 'Parola este generată automat pe baza numelui complet',
+      passwordHelperText: 'Parola este generată automat pe baza prenumelui și numelui',
       copyCredentials: 'Copiază Credențiale',
       credentialsCopied: 'Credențiale copiate în clipboard',
       createUserSuccessCredentialsCopied:

@@ -28,7 +28,12 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+    if (trimmedEmail !== email) setEmail(trimmedEmail);
+    if (trimmedPassword !== password) setPassword(trimmedPassword);
+
+    if (!trimmedEmail || !trimmedPassword) {
       setError(t.login.fillFieldsError);
       return;
     }
@@ -36,7 +41,7 @@ const Login: React.FC = () => {
     try {
       setError('');
       setLoading(true);
-      await login(email, password);
+      await login(trimmedEmail, trimmedPassword);
       navigate('/');
     } catch (error: any) {
       setError(t.login.credentialsError);
@@ -103,7 +108,8 @@ const Login: React.FC = () => {
               autoComplete="email"
               autoFocus
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value.trim())}
+              onBlur={() => setEmail((value) => value.trim())}
               disabled={loading}
             />
             <TextField
@@ -116,7 +122,8 @@ const Login: React.FC = () => {
               id="password"
               autoComplete="current-password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value.trim())}
+              onBlur={() => setPassword((value) => value.trim())}
               disabled={loading}
               InputProps={{
                 endAdornment: (

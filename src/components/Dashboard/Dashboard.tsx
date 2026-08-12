@@ -120,42 +120,50 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div>
-      <KpiRow
-        metrics={metrics}
-        loading={loading}
-        onActiveClick={() => navigate('/cases?status=active')}
-        onPendingClick={() => navigate('/cases?status=waiting')}
-      />
-
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
-        <RecentActiveCases
-          cases={activeCases}
-          activities={activities}
-          sessionReportCounts={sessionReportCounts}
+    <div className="flex flex-col">
+      <div className="order-3 mt-6 lg:order-1 lg:mt-0">
+        <KpiRow
+          metrics={metrics}
           loading={loading}
-          onAddReport={handleAddReportForCase}
-        />
-        <QuickPanel
-          appointments={upcomingAppointments}
-          cases={cases}
-          sessionReportCounts={sessionReportCounts}
-          loading={loading}
-          onViewCalendar={() => navigate('/calendar')}
-          onRaportCaz={() => setCaseSelectionModalOpen(true)}
-          onSchedule={() => navigate('/calendar?new=true')}
-          onAddCase={() => navigate('/admin?tab=2&create=true')}
-          onUpdateProfile={() => navigate('/profile?edit=true')}
+          onActiveClick={() => navigate('/cases?status=active')}
+          onPendingClick={() => navigate('/cases?status=waiting')}
         />
       </div>
 
-      <Timeline
-        activities={activities}
-        loading={loading}
-        counselors={counselors}
-        showCounselorFilter={showTeamPulse}
-        onActivityClick={handleActivityClick}
-      />
+      <div className="order-1 mt-0 grid grid-cols-1 gap-6 lg:order-2 lg:mt-6 lg:grid-cols-[1fr_340px]">
+        <div className="order-2 lg:order-none">
+          <RecentActiveCases
+            cases={activeCases}
+            activities={activities}
+            sessionReportCounts={sessionReportCounts}
+            loading={loading}
+            onAddReport={handleAddReportForCase}
+          />
+        </div>
+        <div className="order-1 lg:order-none">
+          <QuickPanel
+            appointments={upcomingAppointments}
+            cases={cases}
+            sessionReportCounts={sessionReportCounts}
+            loading={loading}
+            onViewCalendar={() => navigate('/calendar')}
+            onRaportCaz={() => setCaseSelectionModalOpen(true)}
+            onSchedule={() => navigate('/calendar?new=true')}
+            onAddCase={() => navigate('/admin?tab=2&create=true')}
+            onUpdateProfile={() => navigate('/profile?edit=true')}
+          />
+        </div>
+      </div>
+
+      <div className="order-4 lg:order-3">
+        <Timeline
+          activities={activities}
+          loading={loading}
+          counselors={counselors}
+          showCounselorFilter={showTeamPulse}
+          onActivityClick={handleActivityClick}
+        />
+      </div>
 
       <Dialog open={caseSelectionModalOpen} onClose={handleCloseCaseSelection} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center' }}>

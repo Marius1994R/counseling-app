@@ -17,6 +17,7 @@ import {
 import { ContentCopy } from '@mui/icons-material';
 import { User, UserRole } from '../../types';
 import { CreateUserData, generatePassword, isValidEmail } from './adminUtils';
+import { composeDisplayName, splitDisplayName } from '../../utils/nameUtils';
 import { t } from '../../utils/translations';
 
 interface AdminUserDialogsProps {
@@ -59,9 +60,37 @@ const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
   const emailValid = isValidEmail(createUserData.email);
   const canSubmitCreate =
     !createUserLoading &&
-    Boolean(createUserData.fullName.trim()) &&
+    Boolean(createUserData.firstName.trim()) &&
+    Boolean(createUserData.lastName.trim()) &&
     Boolean(createUserData.password) &&
     emailValid;
+
+  const updateCreateName = (patch: { firstName?: string; lastName?: string }) => {
+    const firstName = patch.firstName ?? createUserData.firstName;
+    const lastName = patch.lastName ?? createUserData.lastName;
+    const fullName = composeDisplayName(firstName, lastName);
+    onCreateUserDataChange({
+      ...createUserData,
+      firstName,
+      lastName,
+      fullName,
+      password: generatePassword(fullName),
+    });
+  };
+
+  const editFirstName = editUserData.firstName ?? splitDisplayName(editUserData.fullName || '').firstName;
+  const editLastName = editUserData.lastName ?? splitDisplayName(editUserData.fullName || '').lastName;
+
+  const updateEditName = (patch: { firstName?: string; lastName?: string }) => {
+    const firstName = patch.firstName ?? editFirstName;
+    const lastName = patch.lastName ?? editLastName;
+    onEditUserDataChange({
+      ...editUserData,
+      firstName,
+      lastName,
+      fullName: composeDisplayName(firstName, lastName),
+    });
+  };
 
   return (
   <>
@@ -82,22 +111,26 @@ const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
       <DialogTitle>{t.admin.users.createNewUser}</DialogTitle>
       <DialogContent sx={{ position: 'relative' }}>
         <Box sx={{ pt: 1, opacity: createUserLoading ? 0.45 : 1, pointerEvents: createUserLoading ? 'none' : 'auto' }}>
-          <TextField
-            fullWidth
-            label={t.admin.users.fullName}
-            value={createUserData.fullName}
-            onChange={(e) => {
-              const fullName = e.target.value;
-              onCreateUserDataChange({
-                ...createUserData,
-                fullName,
-                password: generatePassword(fullName),
-              });
-            }}
-            margin="normal"
-            required
-            disabled={createUserLoading}
-          />
+          <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+            <TextField
+              fullWidth
+              label={t.admin.users.lastName}
+              value={createUserData.lastName}
+              onChange={(e) => updateCreateName({ lastName: e.target.value })}
+              margin="normal"
+              required
+              disabled={createUserLoading}
+            />
+            <TextField
+              fullWidth
+              label={t.admin.users.firstName}
+              value={createUserData.firstName}
+              onChange={(e) => updateCreateName({ firstName: e.target.value })}
+              margin="normal"
+              required
+              disabled={createUserLoading}
+            />
+          </Box>
           <TextField
             fullWidth
             label={t.admin.users.email}
@@ -212,15 +245,26 @@ const AdminUserDialogs: React.FC<AdminUserDialogsProps> = ({
       <DialogTitle>{t.admin.users.editUser}</DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 1, opacity: editUserLoading ? 0.45 : 1, pointerEvents: editUserLoading ? 'none' : 'auto' }}>
-          <TextField
-            fullWidth
-            label={t.admin.users.fullName}
-            value={editUserData.fullName}
-            onChange={(e) => onEditUserDataChange({ ...editUserData, fullName: e.target.value })}
-            margin="normal"
-            required
-            disabled={editUserLoading}
-          />
+          <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+            <TextField
+              fullWidth
+              label={t.admin.users.lastName}
+              value={editLastName}
+              onChange={(e) => updateEditName({ lastName: e.target.value })}
+              margin="normal"
+              required
+              disabled={editUserLoading}
+            />
+            <TextField
+              fullWidth
+              label={t.admin.users.firstName}
+              value={editFirstName}
+              onChange={(e) => updateEditName({ firstName: e.target.value })}
+              margin="normal"
+              required
+              disabled={editUserLoading}
+            />
+          </Box>
           <FormControl fullWidth margin="normal" required disabled={editUserLoading}>
             <InputLabel>{t.admin.users.role}</InputLabel>
             <Select

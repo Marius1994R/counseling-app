@@ -14,6 +14,7 @@ import AdminCasesPanel from './AdminCasesPanel';
 import AdminReceivedReportsPanel from './AdminReceivedReportsPanel';
 import AdminUserDialogs from './AdminUserDialogs';
 import ConfirmDialog from '../common/ConfirmDialog';
+import { emptyCreateUserData } from './adminUtils';
 import { t } from '../../utils/translations';
 
 type PendingConfirm =
@@ -176,7 +177,7 @@ const AdminTools: React.FC = () => {
         onCloseCreate={() => {
           data.closeCreateUserDialog();
           if (!data.createUserLoading) {
-            data.setCreateUserData({ email: '', password: '', fullName: '', role: 'counselor' });
+            data.setCreateUserData(emptyCreateUserData());
           }
         }}
         onCloseEdit={() => {

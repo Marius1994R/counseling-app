@@ -6,8 +6,24 @@ export const SUPREME_LEADER_EMAIL = 'marius.rasbici@biserica-lumina.ro';
 export interface CreateUserData {
   email: string;
   password: string;
+  /** Prenume */
+  firstName: string;
+  /** Nume de familie */
+  lastName: string;
+  /** Composed display name: Prenume Nume */
   fullName: string;
   role: UserRole;
+}
+
+export function emptyCreateUserData(): CreateUserData {
+  return {
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    fullName: '',
+    role: 'counselor',
+  };
 }
 
 export type AdminTab = 0 | 1 | 2 | 3;

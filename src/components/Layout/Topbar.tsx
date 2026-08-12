@@ -113,11 +113,11 @@ const Topbar: React.FC<TopbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-slate-200 bg-white px-4 sm:gap-3 lg:gap-4 lg:px-6">
+    <header className="relative sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-slate-200 bg-white px-4 sm:gap-3 lg:gap-4 lg:px-6">
       <button
         type="button"
         onClick={onMenuClick}
-        className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden"
+        className="relative z-10 rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden"
         aria-label="Deschide meniul"
       >
         <Bars3Icon className="h-5 w-5" />
@@ -126,31 +126,31 @@ const Topbar: React.FC<TopbarProps> = ({
       <button
         type="button"
         onClick={handleGoHome}
-        className="shrink-0 rounded-lg p-0.5 active:bg-slate-100 lg:hidden"
+        className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-lg p-0.5 active:bg-slate-100 lg:hidden"
         aria-label={t.navigation.dashboard}
       >
         <img
           src="/logo.svg"
           alt="Biserica Lumina"
-          className="h-8 w-auto max-w-[140px] object-contain object-left mix-blend-multiply"
+          className="h-8 w-auto max-w-[140px] object-contain mix-blend-multiply"
         />
       </button>
 
-      <div className="min-w-0 flex-1">
+      <div className="hidden min-w-0 flex-1 lg:block">
         <h1 className="truncate text-base font-semibold text-slate-900 sm:text-lg">
           {title ?? `Bine ai venit, ${firstName}!`}
         </h1>
-        <p className="hidden truncate text-xs text-slate-500 sm:block">
+        <p className="truncate text-xs text-slate-500">
           {subtitle ?? 'Panou de control – Departamentul de Consiliere'}
         </p>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="relative z-10 ml-auto flex items-center gap-2 sm:gap-3">
         {showReportActions && (
           <button
             type="button"
             onClick={() => navigate('/monthly-report')}
-            className="hidden rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition duration-200 ease-out hover:bg-slate-50 active:scale-[0.98] sm:inline-flex"
+            className="hidden rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition duration-200 ease-out hover:bg-slate-50 active:scale-[0.98] min-[800px]:inline-flex"
           >
             + Raport lunar
           </button>

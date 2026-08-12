@@ -30,10 +30,12 @@ import {
   countAdminCasesByStatus,
   enrichCounselorsList,
   isValidEmail,
+  emptyCreateUserData,
 } from '../components/Admin/adminUtils';
 import { countByWorkload, dedupeCounselors, mapFirestoreCounselor } from '../components/Counselors/counselorsUtils';
 import { syncLinkedUserAvatar } from '../utils/avatarUtils';
 import { assertUserHasRole } from '../utils/roleAuth';
+import { splitDisplayName } from '../utils/nameUtils';
 
 export function useAdminData() {
   const {
@@ -63,13 +65,10 @@ export function useAdminData() {
   const [editUserLoading, setEditUserLoading] = useState(false);
   const [reactivatingUserId, setReactivatingUserId] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [createUserData, setCreateUserData] = useState<CreateUserData>({
-    email: '',
-    password: '',
-    fullName: '',
-    role: 'counselor',
-  });
+  const [createUserData, setCreateUserData] = useState<CreateUserData>(emptyCreateUserData());
   const [editUserData, setEditUserData] = useState<Partial<CreateUserData>>({
+    firstName: '',
+    lastName: '',
     fullName: '',
     role: 'counselor',
   });
@@ -581,7 +580,11 @@ export function useAdminData() {
   );
 
   const handleCreateUser = useCallback(async () => {
-    if (!createUserData.fullName.trim() || !createUserData.password) {
+    if (
+      !createUserData.firstName.trim() ||
+      !createUserData.lastName.trim() ||
+      !createUserData.password
+    ) {
       showSnackbar(t.admin.users.createUserError, 'error');
       return;
     }
@@ -624,7 +627,7 @@ export function useAdminData() {
       setCreateDialogOpen(false);
       setNewlyCreatedUserId(newUserId);
       setPendingProfileRequired(createdRole === 'counselor');
-      setCreateUserData({ email: '', password: '', fullName: '', role: 'counselor' });
+      setCreateUserData(emptyCreateUserData());
       setEditingCounselor(null);
       setTab(1);
       setCounselorFormOpen(true);
@@ -710,7 +713,7 @@ export function useAdminData() {
 
   const openCreateUserDialog = useCallback(() => {
     credentialsManuallyCopiedRef.current = false;
-    setCreateUserData({ email: '', password: '', fullName: '', role: 'counselor' });
+    setCreateUserData(emptyCreateUserData());
     setCreateDialogOpen(true);
   }, []);
 
@@ -736,7 +739,13 @@ Link app: https://consiliere.biserica-lumina.ro/login`;
 
   const openEditDialog = useCallback((user: User) => {
     setSelectedUser(user);
-    setEditUserData({ fullName: user.fullName, role: user.role });
+    const { firstName, lastName } = splitDisplayName(user.fullName);
+    setEditUserData({
+      firstName,
+      lastName,
+      fullName: user.fullName,
+      role: user.role,
+    });
     setEditDialogOpen(true);
   }, []);
 
