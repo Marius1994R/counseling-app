@@ -104,26 +104,16 @@ const Header: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
             <Box
               component="img"
-              src="/favicon.svg"
-              alt="Consiliere360"
+              src="/logo.svg"
+              alt="Biserica Lumina"
               sx={{
-                width: 32,
-                height: 32
+                height: 32,
+                width: 'auto',
+                maxWidth: 160,
+                objectFit: 'contain',
+                mixBlendMode: 'multiply',
               }}
             />
-            {!isMobile && (
-              <Typography 
-                variant="h6" 
-                component="div" 
-                sx={{ 
-                  fontWeight: 'bold',
-                  fontSize: { xs: '1rem', sm: '1.25rem' },
-                  color: '#ffc700'
-                }}
-              >
-                Consiliere360
-              </Typography>
-            )}
           </Box>
           
           {/* Desktop Navigation */}
@@ -235,23 +225,16 @@ const Header: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
             <Box
               component="img"
-              src="/favicon.svg"
-              alt="Consiliere360"
+              src="/logo.svg"
+              alt="Biserica Lumina"
               sx={{
-                width: 32,
-                height: 32
+                height: 36,
+                width: 'auto',
+                maxWidth: 180,
+                objectFit: 'contain',
+                mixBlendMode: 'multiply',
               }}
             />
-            <Typography 
-              variant="h6" 
-              component="div" 
-              sx={{ 
-                fontWeight: 'bold',
-                color: '#ffc700'
-              }}
-            >
-              Consiliere360
-            </Typography>
           </Box>
           
           <List>

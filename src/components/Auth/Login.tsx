@@ -57,22 +57,31 @@ const Login: React.FC = () => {
         }}
       >
         <Paper elevation={3} sx={{ padding: 4, width: '100%' }}>
-          <Box sx={{ textAlign: 'center', mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
-              <Box
-                component="img"
-                src="/favicon.svg"
-                alt="Consiliere360"
-                sx={{
-                  width: 40,
-                  height: 40
-                }}
-              />
-              <Typography component="h1" variant="h4" sx={{ color: '#ffc700', fontWeight: 'bold' }}>
-                {t.login.title}
-              </Typography>
-            </Box>
-            <Typography variant="h6" sx={{ color: 'text.secondary', mt: 1 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+              mb: 3,
+            }}
+          >
+            <Box
+              component="img"
+              src="/logo.svg"
+              alt="Biserica Lumina"
+              sx={{
+                display: 'block',
+                height: 72,
+                width: 'auto',
+                maxWidth: '100%',
+                objectFit: 'contain',
+                mx: 'auto',
+                mb: 1.5,
+                mixBlendMode: 'multiply',
+              }}
+            />
+            <Typography variant="body1" sx={{ color: 'text.secondary' }}>
               {t.login.subtitle}
             </Typography>
           </Box>

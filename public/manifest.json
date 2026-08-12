@@ -1,20 +1,15 @@
 {
-  "short_name": "Consiliere360",
-  "name": "Consiliere360 - Church Counseling Management System",
+  "short_name": "Consiliere",
+  "name": "Biserica Lumina — Consiliere",
   "icons": [
     {
-      "src": "favicon.svg?v=3",
+      "src": "favicon.svg?v=7",
       "sizes": "any",
       "type": "image/svg+xml"
     },
     {
-      "src": "favicon.svg?v=3",
-      "sizes": "192x192",
-      "type": "image/svg+xml"
-    },
-    {
-      "src": "favicon.svg?v=3",
-      "sizes": "512x512",
+      "src": "logo.svg?v=7",
+      "sizes": "any",
       "type": "image/svg+xml"
     }
   ],

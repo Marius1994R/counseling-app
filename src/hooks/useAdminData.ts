@@ -606,7 +606,7 @@ export function useAdminData() {
       if (!alreadyCopied) {
         try {
           await navigator.clipboard.writeText(
-            `Email: ${email}\nPassword: ${password}\nLink app: https://consiliere360.vercel.app/`
+            `Email: ${email}\nPassword: ${password}\nLink app: https://consiliere.biserica-lumina.ro/login`
           );
           autoCopied = true;
         } catch {
@@ -723,7 +723,7 @@ export function useAdminData() {
   const copyUserCredentials = useCallback(() => {
     const credentials = `Email: ${createUserData.email}
 Password: ${createUserData.password}
-Link app: https://consiliere360.vercel.app/`;
+Link app: https://consiliere.biserica-lumina.ro/login`;
 
     navigator.clipboard
       .writeText(credentials)

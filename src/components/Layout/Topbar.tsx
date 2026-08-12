@@ -130,10 +130,9 @@ const Topbar: React.FC<TopbarProps> = ({
         aria-label={t.navigation.dashboard}
       >
         <img
-          src="/favicon.svg"
-          alt=""
-          className="h-9 w-9 rounded-lg"
-          aria-hidden="true"
+          src="/logo.svg"
+          alt="Biserica Lumina"
+          className="h-8 w-auto max-w-[140px] object-contain object-left mix-blend-multiply"
         />
       </button>
 

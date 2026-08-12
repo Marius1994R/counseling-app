@@ -73,17 +73,14 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, mobileOpen = false
         aria-label={t.navigation.dashboard}
       >
         <img
-          src="/favicon.svg"
-          alt=""
-          className="h-9 w-9 shrink-0 rounded-lg"
-          aria-hidden="true"
+          src="/logo.svg"
+          alt="Biserica Lumina"
+          className={
+            collapsed
+              ? 'h-9 w-9 shrink-0 object-cover object-left mix-blend-multiply'
+              : 'h-10 w-auto max-w-[180px] shrink-0 object-contain object-left mix-blend-multiply'
+          }
         />
-        {!collapsed && (
-          <div>
-            <p className="text-base font-semibold text-slate-900">Lumina</p>
-            <p className="text-[10px] font-medium uppercase tracking-widest text-slate-500">Consiliere</p>
-          </div>
-        )}
       </button>
 
       <nav className="space-y-1 overflow-y-auto px-3 py-4">
