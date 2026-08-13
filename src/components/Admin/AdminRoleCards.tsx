@@ -14,6 +14,7 @@ const AdminRoleCards: React.FC = () => (
         <li>• {t.roles.leaderDescription.editManageUsers}</li>
         <li>• {t.roles.leaderDescription.deactivateReactivateUsers}</li>
         <li>• {t.roles.leaderDescription.deleteUsers}</li>
+        <li>• {t.roles.leaderDescription.createDeleteCounselorProfiles}</li>
         <li>• {t.roles.leaderDescription.manageCounselorsCases}</li>
         <li>• {t.roles.leaderDescription.fullSystemAccess}</li>
       </ul>
@@ -28,7 +29,7 @@ const AdminRoleCards: React.FC = () => (
         <li>• {t.roles.adminDescription.viewAllUsers}</li>
         <li>• {t.roles.adminDescription.editUsersExceptLeaders}</li>
         <li>• {t.roles.adminDescription.deactivateReactivateExceptLeaders}</li>
-        <li>• {t.roles.adminDescription.manageCasesCounselors}</li>
+        <li>• {t.roles.adminDescription.manageCasesEditCounselors}</li>
         <li>• {t.roles.adminDescription.accessAdminTools}</li>
       </ul>
       <p className="mt-3 text-xs text-slate-500">

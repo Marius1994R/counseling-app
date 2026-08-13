@@ -782,7 +782,8 @@ export const t = {
       editManageUsers: 'Editează și gestionează toți utilizatorii',
       deactivateReactivateUsers: 'Dezactivează/reactivează orice utilizator',
       deleteUsers: 'Șterge permanent orice utilizator',
-      manageCounselorsCases: 'Gestionează consilieri și cazuri',
+      createDeleteCounselorProfiles: 'Creează și șterge profile de consilier',
+      manageCounselorsCases: 'Gestionează consilieri, cazuri și consimțăminte',
       fullSystemAccess: 'Acces complet la sistem',
       cannotEditDeleteOwn: 'Nu poți edita sau șterge propriul cont'
     },
@@ -790,9 +791,10 @@ export const t = {
       viewAllUsers: 'Vizualizează toți utilizatorii',
       editUsersExceptLeaders: 'Editează utilizatori (cu excepția liderilor)',
       deactivateReactivateExceptLeaders: 'Dezactivează/reactivează utilizatori (cu excepția liderilor)',
-      manageCasesCounselors: 'Gestionează cazuri și consilieri',
+      manageCasesEditCounselors: 'Gestionează cazuri și editează profile de consilier',
       accessAdminTools: 'Acces la unelte admin',
-      limitedCannotCreateUsers: 'Limitare: Nu poate crea utilizatori sau modifica conturile liderilor'
+      limitedCannotCreateUsers:
+        'Limitare: Nu poate crea utilizatori sau profile de consilier, nu poate șterge conturi/profile și nu poate modifica conturile liderilor'
     },
     counselorDescription: {
       viewOwnCasesOnly: 'Vizualizează doar cazurile alocate',
