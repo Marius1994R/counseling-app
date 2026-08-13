@@ -282,9 +282,9 @@ export function useAdminData() {
     [setSearchParams]
   );
 
-  // Tab 3 (Rapoarte primite) is leader-only
+  // Tabs 3–4 (Rapoarte primite, Consimțăminte) are leader-only
   useEffect(() => {
-    if (activeTab !== 3) return;
+    if (activeTab !== 3 && activeTab !== 4) return;
     if (currentUser?.role === 'leader') return;
     setTab(0);
   }, [activeTab, currentUser?.role, setTab]);

@@ -35,6 +35,7 @@ import {
 const REPORT_ACTIVITY_TYPES = [
   'session_report_added',
   'monthly_report_submitted',
+  'consent_uploaded',
 ] as const;
 
 const MAX_LIVE_REPORT_ACTIVITIES = 40;
@@ -75,7 +76,8 @@ export type AttentionNotificationType =
   | 'frequency_overdue'
   | 'monthly_report'
   | 'session_report_submitted'
-  | 'monthly_report_submitted';
+  | 'monthly_report_submitted'
+  | 'consent_uploaded';
 
 export interface AttentionNotification {
   id: string;
@@ -426,6 +428,26 @@ export function useAttentionNotifications() {
               .replace('{name}', counselorName)
               .replace('{month}', monthLabel || monthKey || 'luna curentă'),
             payload: { activity, monthKey: monthKey || undefined },
+            createdAt: activity.timestamp,
+          });
+        }
+
+        if (activity.type === 'consent_uploaded') {
+          const id = `consent_uploaded:${activity.id}`;
+          if (dismissedIds.has(id)) continue;
+          const caseTitle = String(
+            activity.metadata?.caseTitle || activity.title || 'caz'
+          );
+          const counselorName = String(activity.userName || 'Un consilier');
+          const caseId = String(activity.metadata?.caseId || '');
+          list.push({
+            id,
+            type: 'consent_uploaded',
+            title: t.notifications.consentUploadedTitle,
+            detail: t.notifications.consentUploadedDetail
+              .replace('{name}', counselorName)
+              .replace('{case}', caseTitle),
+            payload: { activity, caseId: caseId || undefined },
             createdAt: activity.timestamp,
           });
         }

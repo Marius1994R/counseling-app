@@ -12,6 +12,7 @@ export interface ActivityLog {
     | 'meeting_notes_added'
     | 'session_report_added'
     | 'monthly_report_submitted'
+    | 'consent_uploaded'
     | 'appointment_created'
     | 'appointment_updated'
     | 'appointment_deleted';
@@ -139,6 +140,28 @@ export const logMonthlyReportSubmitted = async (
     relatedTitle: monthLabel,
     metadata: {
       monthKey,
+    },
+  });
+};
+
+export const logConsentUploaded = async (
+  caseId: string,
+  caseTitle: string,
+  userId: string,
+  userName: string
+): Promise<void> => {
+  await logActivity({
+    type: 'consent_uploaded',
+    title: 'Consimțământ Încărcat',
+    description: `${userName} a atașat consimțământul pentru cazul "${caseTitle}"`,
+    timestamp: new Date(),
+    userId,
+    userName,
+    relatedId: caseId,
+    relatedTitle: caseTitle,
+    metadata: {
+      caseId,
+      caseTitle,
     },
   });
 };

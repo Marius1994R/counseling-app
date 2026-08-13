@@ -39,6 +39,8 @@ const accentForType = (
       return '#D97706';
     case 'frequency_overdue':
       return '#EA580C';
+    case 'consent_uploaded':
+      return '#0D9488';
     case 'monthly_report':
       return '#7C3AED';
     case 'session_report_submitted':
@@ -64,6 +66,8 @@ const typeLabel = (type: AttentionNotification['type']): string => {
       return t.notifications.typeStaleReport;
     case 'frequency_overdue':
       return t.notifications.typeFrequencyOverdue;
+    case 'consent_uploaded':
+      return t.notifications.typeConsentUploaded;
     case 'monthly_report':
       return t.notifications.typeMonthlyReport;
     case 'session_report_submitted':
@@ -190,9 +194,9 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
     }
 
     if (item.type === 'monthly_report') {
+      // Open the form only — keep the bell item until the report is actually submitted.
       onClose();
       navigate('/monthly-report');
-      void onDismiss(item.id);
       return;
     }
 
@@ -215,6 +219,13 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
     if (item.type === 'monthly_report_submitted') {
       onClose();
       navigate('/admin?tab=3');
+      void onDismiss(item.id);
+      return;
+    }
+
+    if (item.type === 'consent_uploaded') {
+      onClose();
+      navigate('/admin?tab=4');
       void onDismiss(item.id);
     }
   };

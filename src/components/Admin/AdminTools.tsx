@@ -12,6 +12,7 @@ import AdminUsersPanel from './AdminUsersPanel';
 import AdminCounselorsPanel from './AdminCounselorsPanel';
 import AdminCasesPanel from './AdminCasesPanel';
 import AdminReceivedReportsPanel from './AdminReceivedReportsPanel';
+import AdminConsentsPanel from './AdminConsentsPanel';
 import AdminUserDialogs from './AdminUserDialogs';
 import ConfirmDialog from '../common/ConfirmDialog';
 import { emptyCreateUserData } from './adminUtils';
@@ -57,7 +58,7 @@ const AdminTools: React.FC = () => {
       <AdminTabs
         activeTab={data.activeTab}
         onTabChange={data.setTab}
-        showReceivedReports={data.currentUser?.role === 'leader'}
+        showLeaderExtras={data.currentUser?.role === 'leader'}
       />
 
       {data.activeTab === 0 && (
@@ -106,6 +107,7 @@ const AdminTools: React.FC = () => {
           }}
           onDelete={data.handleDeleteCounselor}
           getCasesForCounselor={data.getCasesForCounselor}
+          currentUserRole={data.currentUser?.role}
         />
       )}
 
@@ -139,6 +141,10 @@ const AdminTools: React.FC = () => {
 
       {data.activeTab === 3 && data.currentUser?.role === 'leader' && (
         <AdminReceivedReportsPanel />
+      )}
+
+      {data.activeTab === 4 && data.currentUser?.role === 'leader' && (
+        <AdminConsentsPanel />
       )}
 
       <ConfirmDialog

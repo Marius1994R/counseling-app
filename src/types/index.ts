@@ -96,6 +96,12 @@ export interface Case {
   meetingFrequencyWeeks?: MeetingFrequencyWeeks | null;
   /** Date of the last recorded session meeting (from session reports) */
   lastMeetingDate?: Date | null;
+  /** True when a counseling consent file is attached (Phase 2+ writes this) */
+  consentAttached?: boolean;
+  consentFileName?: string | null;
+  consentContentType?: string | null;
+  consentUploadedAt?: Date | null;
+  consentUploadedByName?: string | null;
   createdAt: Date;
   updatedAt: Date;
   createdBy: string; // User ID who created the case

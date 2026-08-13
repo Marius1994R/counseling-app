@@ -15,7 +15,7 @@ const CounselorsManagement: React.FC = () => {
   if (data.loading) {
     return (
       <div>
-        <CounselorsPageHeader canAdd={data.canEdit} onAdd={data.handleAddCounselor} />
+        <CounselorsPageHeader canAdd={data.canAdd} onAdd={data.handleAddCounselor} />
         <CounselorsSkeleton />
       </div>
     );
@@ -23,7 +23,7 @@ const CounselorsManagement: React.FC = () => {
 
   return (
     <div>
-      <CounselorsPageHeader canAdd={data.canEdit} onAdd={data.handleAddCounselor} />
+      <CounselorsPageHeader canAdd={data.canAdd} onAdd={data.handleAddCounselor} />
 
       {data.error && (
         <Alert severity="error" sx={{ mb: 3 }} className="rounded-xl">
@@ -51,7 +51,7 @@ const CounselorsManagement: React.FC = () => {
         canEdit={data.canEdit}
         canDelete={data.canDelete}
         hasFilters={hasFilters}
-        canAdd={data.canEdit}
+        canAdd={data.canAdd}
         onAdd={data.handleAddCounselor}
       />
 

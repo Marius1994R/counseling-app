@@ -344,6 +344,8 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
   };
 
   const isPostUserCreateStep = Boolean(preselectedUserId && !counselorData);
+  /** Linked account is fixed after profile exists, or when continuing from user-create. */
+  const linkedUserLocked = Boolean(counselorData) || Boolean(preselectedUserId);
 
   return (
     <Dialog 
@@ -411,7 +413,9 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
                 {'Leagă la Cont Utilizator *'}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Selectează un cont utilizator pentru a completa automat numele și email-ul. Poți să le editezi manual.
+                {linkedUserLocked
+                  ? 'Contul utilizator este deja legat de acest profil și nu mai poate fi schimbat.'
+                  : 'Selectează un cont utilizator pentru a completa automat numele și email-ul. Poți să le editezi manual.'}
               </Typography>
               <FormControl fullWidth size="small" required error={!!errors.linkedUserId}>
                 <InputLabel>Selectează Cont Utilizator *</InputLabel>
@@ -419,7 +423,7 @@ const CounselorForm: React.FC<CounselorFormProps> = ({
                   value={formData.linkedUserId || ''}
                   onChange={(e) => handleUserSelect(e.target.value)}
                   label="Selectează Cont Utilizator *"
-                  disabled={loadingUsers}
+                  disabled={loadingUsers || linkedUserLocked}
                 >
                   {loadingUsers ? (
                     <MenuItem disabled>{t.common.loading}</MenuItem>

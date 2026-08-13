@@ -26,7 +26,7 @@ export function emptyCreateUserData(): CreateUserData {
   };
 }
 
-export type AdminTab = 0 | 1 | 2 | 3;
+export type AdminTab = 0 | 1 | 2 | 3 | 4;
 export type CaseStatusFilter = CaseStatus | 'all';
 
 /** Basic email format check (local@domain.tld). */
@@ -130,6 +130,7 @@ export function parseAdminTabFromUrl(tabParam: string | null): AdminTab {
   if (tabParam === '1') return 1;
   if (tabParam === '2') return 2;
   if (tabParam === '3') return 3;
+  if (tabParam === '4') return 4;
   return 0;
 }
 
@@ -137,6 +138,7 @@ export function adminTabToSearchParam(tab: AdminTab): Record<string, string> {
   if (tab === 1) return { tab: '1' };
   if (tab === 2) return { tab: '2' };
   if (tab === 3) return { tab: '3' };
+  if (tab === 4) return { tab: '4' };
   return {};
 }
 
@@ -171,8 +173,11 @@ export function canDeleteUser(
   user: User,
   currentUserId: string | undefined,
   canCreateUsers: boolean,
-  isSupremeLeader: boolean
+  isSupremeLeader: boolean,
+  currentUserRole?: UserRole
 ): boolean {
+  // Only leaders can delete user accounts; admins may edit/deactivate only
+  if (currentUserRole === 'admin') return false;
   if (!canCreateUsers) return false;
   return user.id !== currentUserId || isSupremeLeader;
 }

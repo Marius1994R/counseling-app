@@ -2,6 +2,7 @@ import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
+import { getStorage } from 'firebase/storage';
 import { getAnalytics } from 'firebase/analytics';
 
 // Firebase configuration
@@ -23,6 +24,9 @@ export const auth = getAuth(app);
 
 // Initialize Cloud Firestore and get a reference to the service
 export const db = getFirestore(app);
+
+// Counseling consent PDFs / images (caseConsents/{caseId}/…)
+export const storage = getStorage(app);
 
 // Initialize Cloud Functions (same region as deployed callable functions)
 export const functions = getFunctions(app, 'us-central1');

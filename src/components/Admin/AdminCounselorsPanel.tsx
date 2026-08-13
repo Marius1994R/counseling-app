@@ -1,7 +1,7 @@
 import React from 'react';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { Alert } from '@mui/material';
-import { Counselor } from '../../types';
+import { Counselor, UserRole } from '../../types';
 import { WorkloadFilter } from './adminUtils';
 import { t } from '../../utils/translations';
 import CounselorsToolbar from '../Counselors/CounselorsToolbar';
@@ -22,6 +22,7 @@ interface AdminCounselorsPanelProps {
   onEdit: (counselor: Counselor) => void;
   onDelete: (counselorId: string) => void;
   getCasesForCounselor: (counselorId: string) => import('../../types').Case[];
+  currentUserRole?: UserRole;
 }
 
 const AdminCounselorsPanel: React.FC<AdminCounselorsPanelProps> = ({
@@ -37,8 +38,11 @@ const AdminCounselorsPanel: React.FC<AdminCounselorsPanelProps> = ({
   onEdit,
   onDelete,
   getCasesForCounselor,
+  currentUserRole,
 }) => {
   const hasFilters = searchTerm.trim() !== '' || workloadFilter !== 'all';
+  const canDelete = currentUserRole === 'leader';
+  const canCreateProfile = currentUserRole === 'leader';
 
   if (loading) {
     return <AdminSkeleton />;
@@ -50,14 +54,16 @@ const AdminCounselorsPanel: React.FC<AdminCounselorsPanelProps> = ({
         <h2 className="text-base font-semibold text-slate-900">
           {t.adminTools.counselorsManagement}
         </h2>
-        <button
-          type="button"
-          onClick={onAdd}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-700 active:scale-[0.98]"
-        >
-          <PlusIcon className="h-4 w-4" />
-          {t.adminTools.addCounselor}
-        </button>
+        {canCreateProfile && (
+          <button
+            type="button"
+            onClick={onAdd}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-700 active:scale-[0.98]"
+          >
+            <PlusIcon className="h-4 w-4" />
+            {t.adminTools.addCounselor}
+          </button>
+        )}
       </div>
 
       {error && (
@@ -84,9 +90,9 @@ const AdminCounselorsPanel: React.FC<AdminCounselorsPanelProps> = ({
         onEdit={onEdit}
         onDelete={onDelete}
         canEdit
-        canDelete
+        canDelete={canDelete}
         hasFilters={hasFilters}
-        canAdd
+        canAdd={canCreateProfile}
         onAdd={onAdd}
       />
     </div>

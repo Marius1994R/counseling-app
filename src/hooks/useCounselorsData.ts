@@ -101,7 +101,8 @@ export function useCounselorsData() {
   );
 
   const canEdit = currentUser?.role === 'admin' || currentUser?.role === 'leader';
-  const canDelete = canEdit;
+  const canDelete = currentUser?.role === 'leader';
+  const canAdd = currentUser?.role === 'leader';
 
   const handleAddCounselor = useCallback(() => {
     setEditingCounselor(null);
@@ -227,6 +228,7 @@ export function useCounselorsData() {
     editingCounselor,
     canEdit,
     canDelete,
+    canAdd,
     handleAddCounselor,
     handleEditCounselor,
     handleDeleteCounselor,

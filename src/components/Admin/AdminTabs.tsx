@@ -4,6 +4,7 @@ import {
   UserGroupIcon,
   FolderIcon,
   DocumentTextIcon,
+  DocumentCheckIcon,
 } from '@heroicons/react/24/outline';
 import { AdminTab } from './adminUtils';
 import { t } from '../../utils/translations';
@@ -11,7 +12,7 @@ import { t } from '../../utils/translations';
 interface AdminTabsProps {
   activeTab: AdminTab;
   onTabChange: (tab: AdminTab) => void;
-  showReceivedReports?: boolean;
+  showLeaderExtras?: boolean;
 }
 
 interface TabButtonProps {
@@ -39,7 +40,7 @@ const TabButton: React.FC<TabButtonProps> = ({ active, onClick, icon, label }) =
 const AdminTabs: React.FC<AdminTabsProps> = ({
   activeTab,
   onTabChange,
-  showReceivedReports = false,
+  showLeaderExtras = false,
 }) => (
   <div className="mb-6 flex flex-wrap gap-2">
     <TabButton
@@ -60,12 +61,20 @@ const AdminTabs: React.FC<AdminTabsProps> = ({
       icon={<FolderIcon className="h-4 w-4" />}
       label={t.admin.tabs.allCases}
     />
-    {showReceivedReports && (
+    {showLeaderExtras && (
       <TabButton
         active={activeTab === 3}
         onClick={() => onTabChange(3)}
         icon={<DocumentTextIcon className="h-4 w-4" />}
         label={t.admin.tabs.receivedReports}
+      />
+    )}
+    {showLeaderExtras && (
+      <TabButton
+        active={activeTab === 4}
+        onClick={() => onTabChange(4)}
+        icon={<DocumentCheckIcon className="h-4 w-4" />}
+        label={t.admin.tabs.manageConsents}
       />
     )}
   </div>

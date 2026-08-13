@@ -80,7 +80,13 @@ const AdminUserTable: React.FC<AdminUserTableProps> = ({
               currentUserRole,
               isSupremeLeader
             );
-            const deletable = canDeleteUser(user, currentUserId, canCreateUsers, isSupremeLeader);
+            const deletable = canDeleteUser(
+              user,
+              currentUserId,
+              canCreateUsers,
+              isSupremeLeader,
+              currentUserRole
+            );
 
             return (
               <tr key={user.id} className="hover:bg-slate-50/80">

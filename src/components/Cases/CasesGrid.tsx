@@ -41,7 +41,7 @@ const CasesGrid: React.FC<CasesGridProps> = ({
 }) => {
   if (loading) {
     return (
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 min-[1366px]:grid-cols-2">
         {[1, 2].map((i) => (
           <div key={i} className="h-[28rem] animate-pulse rounded-xl bg-slate-100" />
         ))}
@@ -62,7 +62,7 @@ const CasesGrid: React.FC<CasesGridProps> = ({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6 min-[1366px]:grid-cols-2">
       {cases.map((caseItem) => (
         <CaseListCard
           key={caseItem.id}
