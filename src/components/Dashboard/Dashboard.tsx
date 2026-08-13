@@ -100,8 +100,7 @@ const Dashboard: React.FC = () => {
   };
 
   const activeCases = getActiveCases(cases);
-  const showTeamPulse =
-    currentUser?.role === 'leader' || currentUser?.role === 'admin';
+  const showTeamPulse = currentUser?.role === 'leader';
 
   const handleActivityClick = (activity: (typeof activities)[number]) => {
     const caseId =

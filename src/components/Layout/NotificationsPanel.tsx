@@ -37,6 +37,8 @@ const accentForType = (
       return '#2563EB';
     case 'stale_report':
       return '#D97706';
+    case 'frequency_overdue':
+      return '#EA580C';
     case 'monthly_report':
       return '#7C3AED';
     case 'session_report_submitted':
@@ -60,6 +62,8 @@ const typeLabel = (type: AttentionNotification['type']): string => {
       return t.notifications.typeAppointment;
     case 'stale_report':
       return t.notifications.typeStaleReport;
+    case 'frequency_overdue':
+      return t.notifications.typeFrequencyOverdue;
     case 'monthly_report':
       return t.notifications.typeMonthlyReport;
     case 'session_report_submitted':
@@ -170,6 +174,14 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
     }
 
     if (item.type === 'stale_report' && item.payload.caseItem) {
+      const caseId = item.payload.caseItem.id;
+      onClose();
+      navigate(`/cases?caseId=${caseId}`);
+      void onDismiss(item.id);
+      return;
+    }
+
+    if (item.type === 'frequency_overdue' && item.payload.caseItem) {
       const caseId = item.payload.caseItem.id;
       onClose();
       navigate(`/cases?caseId=${caseId}`);

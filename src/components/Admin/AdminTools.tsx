@@ -133,6 +133,7 @@ const AdminTools: React.FC = () => {
           onDelete={data.handleDeleteCase}
           onOpenSessionReport={data.handleOpenSessionReport}
           onOpenTimeline={setTimelineCase}
+          blurSensitiveContent={data.currentUser?.role === 'admin'}
         />
       )}
 
@@ -209,6 +210,7 @@ const AdminTools: React.FC = () => {
         caseData={data.editingCase}
         counselors={data.counselors}
         inactiveUserIds={data.users.filter((u) => !u.isActive).map((u) => u.id)}
+        restrictSensitiveContent={data.currentUser?.role === 'admin'}
       />
 
       <SessionReport
@@ -219,6 +221,7 @@ const AdminTools: React.FC = () => {
         onReportAdded={() => undefined}
         hideAddButton
         caseStatus={data.selectedCaseForSessionReport?.status}
+        restrictSensitiveContent={data.currentUser?.role === 'admin'}
       />
 
       <CaseTimelineDialog
@@ -226,6 +229,7 @@ const AdminTools: React.FC = () => {
         onClose={() => setTimelineCase(null)}
         caseItem={timelineCase}
         includeMeetingNotes={false}
+        restrictSessionReports={data.currentUser?.role === 'admin'}
       />
 
       <Snackbar

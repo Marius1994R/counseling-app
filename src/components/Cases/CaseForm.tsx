@@ -43,6 +43,8 @@ interface CaseFormProps {
   counselors: Counselor[];
   /** User IDs with isActive === false — excluded from counselor suggestions */
   inactiveUserIds?: ReadonlySet<string> | string[];
+  /** When editing: hide/blur description (admin). Create still allows writing it. */
+  restrictSensitiveContent?: boolean;
 }
 
 const CaseForm: React.FC<CaseFormProps> = ({
@@ -52,6 +54,7 @@ const CaseForm: React.FC<CaseFormProps> = ({
   caseData,
   counselors,
   inactiveUserIds,
+  restrictSensitiveContent = false,
 }) => {
   const initialCaseName = resolvePersonName({
     firstName: caseData?.firstName,
@@ -190,7 +193,7 @@ const CaseForm: React.FC<CaseFormProps> = ({
         status: caseData.status,
         counselorId:
           caseData.proposedCounselorId || caseData.assignedCounselorId || '',
-        description: caseData.description,
+        description: restrictSensitiveContent ? '' : caseData.description,
         referralSource: caseData.referralSource || '',
         priority: caseData.priority || 'normal',
       });
@@ -219,7 +222,7 @@ const CaseForm: React.FC<CaseFormProps> = ({
     }
     setErrors({});
     setSubmitting(false);
-  }, [caseData, open]);
+  }, [caseData, open, restrictSensitiveContent]);
 
   // Propose by default: prefill top-ranked counselor once basics + issue type are set
   useEffect(() => {
@@ -254,6 +257,8 @@ const CaseForm: React.FC<CaseFormProps> = ({
     rankedCounselors,
   ]);
 
+  const hideExistingDescription = Boolean(restrictSensitiveContent && caseData);
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -267,8 +272,9 @@ const CaseForm: React.FC<CaseFormProps> = ({
     else if (!isValidRoPhoneDigits(formData.phoneNumber)) {
       newErrors.phoneNumber = 'Introdu exact 9 cifre pentru numărul de telefon românesc';
     }
-    if (!formData.description.trim()) newErrors.description = 'Problem description is required';
-
+    if (!hideExistingDescription && !formData.description.trim()) {
+      newErrors.description = 'Problem description is required';
+    }
     if (
       (formData.status === 'active' || formData.status === 'finished' || forceAssign) &&
       !formData.counselorId
@@ -349,7 +355,9 @@ const CaseForm: React.FC<CaseFormProps> = ({
         civilStatus: formData.civilStatus as CivilStatus,
         issueTypes: formData.issueTypes,
         phoneNumber: toE164RoPhone(formData.phoneNumber),
-        description: formData.description.trim(),
+        description: hideExistingDescription
+          ? (caseData?.description || '').trim()
+          : formData.description.trim(),
         referralSource: formData.referralSource || null,
         priority: formData.priority,
         ...assignment,
@@ -661,19 +669,78 @@ const CaseForm: React.FC<CaseFormProps> = ({
               </Box>
             )}
 
-            <TextField
-              fullWidth
-              label={t.cases.description}
-              multiline
-              rows={4}
-              value={formData.description}
-              onChange={handleChange('description')}
-              error={!!errors.description}
-              helperText={errors.description}
-              placeholder="Descrie problemele și dificultățile pe care le întâmpină persoana..."
-              size="small"
-              required
-            />
+            {hideExistingDescription ? (
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  {t.cases.description}
+                </Typography>
+                <Box
+                  sx={{
+                    position: 'relative',
+                    overflow: 'hidden',
+                    borderRadius: 1,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    bgcolor: 'grey.50',
+                    p: 2,
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      filter: 'blur(6px)',
+                      userSelect: 'none',
+                      pointerEvents: 'none',
+                      color: 'text.secondary',
+                    }}
+                    aria-hidden
+                  >
+                    Conținut confidențial rezervat. Detaliile cazului nu sunt afișate pentru acest rol.
+                  </Typography>
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: 'rgba(248,250,252,0.45)',
+                      px: 2,
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        bgcolor: 'background.paper',
+                        px: 1.5,
+                        py: 0.75,
+                        borderRadius: 999,
+                        fontWeight: 600,
+                        color: 'text.secondary',
+                        boxShadow: 1,
+                        textAlign: 'center',
+                      }}
+                    >
+                      {t.adminTools.sensitiveContentRestricted}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            ) : (
+              <TextField
+                fullWidth
+                label={t.cases.description}
+                multiline
+                rows={4}
+                value={formData.description}
+                onChange={handleChange('description')}
+                error={!!errors.description}
+                helperText={errors.description}
+                placeholder="Descrie problemele și dificultățile pe care le întâmpină persoana..."
+                size="small"
+                required
+              />
+            )}
           </Box>
         </DialogContent>
 
@@ -705,7 +772,7 @@ const CaseForm: React.FC<CaseFormProps> = ({
               formData.issueTypes.length === 0 ||
               !formData.phoneNumber.trim() ||
               !isValidRoPhoneDigits(formData.phoneNumber) ||
-              !formData.description.trim() ||
+              (!hideExistingDescription && !formData.description.trim()) ||
               ((formData.status === 'active' ||
                 formData.status === 'finished' ||
                 forceAssign) &&

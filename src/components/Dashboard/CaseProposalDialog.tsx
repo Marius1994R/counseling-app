@@ -41,8 +41,11 @@ interface CaseProposalDialogProps {
   fallbackTitle?: string;
   loading: boolean | 'accept' | 'refuse' | null;
   error?: string | null;
+  /** True when we confirmed the case document no longer exists. */
+  caseMissing?: boolean;
   onAccept: () => void;
   onRefuse: () => void;
+  onClearStale?: () => void;
 }
 
 const CaseProposalDialog: React.FC<CaseProposalDialogProps> = ({
@@ -51,8 +54,10 @@ const CaseProposalDialog: React.FC<CaseProposalDialogProps> = ({
   fallbackTitle,
   loading,
   error,
+  caseMissing = false,
   onAccept,
   onRefuse,
+  onClearStale,
 }) => {
   const isBusy = Boolean(loading);
   const isAccepting = loading === true || loading === 'accept';
@@ -274,10 +279,21 @@ const CaseProposalDialog: React.FC<CaseProposalDialogProps> = ({
           )}
         </Box>
 
-        {!caseItem && (
-          <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
-            Detaliile complete ale cazului nu sunt disponibile momentan.
+        {caseMissing ? (
+          <Alert severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
+            <Typography variant="subtitle2" fontWeight={700}>
+              {t.assignments.caseMissingTitle}
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 0.5 }}>
+              {t.assignments.caseMissingDetail}
+            </Typography>
           </Alert>
+        ) : (
+          !caseItem && (
+            <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
+              Detaliile complete ale cazului nu sunt disponibile momentan.
+            </Alert>
+          )
         )}
         {error && (
           <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
@@ -296,42 +312,63 @@ const CaseProposalDialog: React.FC<CaseProposalDialogProps> = ({
           '& > :not(style) ~ :not(style)': { ml: 0 },
         }}
       >
-        <Button
-          onClick={onRefuse}
-          disabled={isBusy}
-          variant="outlined"
-          color="inherit"
-          fullWidth
-          startIcon={isRefusing ? <CircularProgress size={17} color="inherit" /> : undefined}
-          sx={{ borderColor: '#CBD5E1', color: '#475569', fontWeight: 700, py: 1.1 }}
-        >
-          {t.dashboard.refuseProposal}
-        </Button>
-        <Button
-          variant="contained"
-          onClick={onAccept}
-          disabled={isBusy}
-          fullWidth
-          startIcon={isAccepting ? <CircularProgress size={17} color="inherit" /> : undefined}
-          sx={{
-            py: 1.1,
-            fontWeight: 700,
-            color: HEADER_TITLE,
-            backgroundColor: BRAND_YELLOW_HEADER,
-            boxShadow: 'none',
-            '&:hover': {
-              backgroundColor: '#FDE68A',
-              boxShadow: 'none',
-            },
-            '&.Mui-disabled': {
-              color: HEADER_SUBTITLE,
+        {caseMissing ? (
+          <Button
+            variant="contained"
+            onClick={onClearStale}
+            disabled={isBusy}
+            fullWidth
+            sx={{
+              py: 1.1,
+              fontWeight: 700,
+              color: HEADER_TITLE,
               backgroundColor: BRAND_YELLOW_HEADER,
-              opacity: 0.7,
-            },
-          }}
-        >
-          {t.dashboard.acceptProposal}
-        </Button>
+              boxShadow: 'none',
+              '&:hover': { backgroundColor: '#FDE68A', boxShadow: 'none' },
+            }}
+          >
+            {t.assignments.clearStaleNotification}
+          </Button>
+        ) : (
+          <>
+            <Button
+              onClick={onRefuse}
+              disabled={isBusy}
+              variant="outlined"
+              color="inherit"
+              fullWidth
+              startIcon={isRefusing ? <CircularProgress size={17} color="inherit" /> : undefined}
+              sx={{ borderColor: '#CBD5E1', color: '#475569', fontWeight: 700, py: 1.1 }}
+            >
+              {t.dashboard.refuseProposal}
+            </Button>
+            <Button
+              variant="contained"
+              onClick={onAccept}
+              disabled={isBusy}
+              fullWidth
+              startIcon={isAccepting ? <CircularProgress size={17} color="inherit" /> : undefined}
+              sx={{
+                py: 1.1,
+                fontWeight: 700,
+                color: HEADER_TITLE,
+                backgroundColor: BRAND_YELLOW_HEADER,
+                boxShadow: 'none',
+                '&:hover': {
+                  backgroundColor: '#FDE68A',
+                  boxShadow: 'none',
+                },
+                '&.Mui-disabled': {
+                  color: HEADER_SUBTITLE,
+                  backgroundColor: BRAND_YELLOW_HEADER,
+                  opacity: 0.7,
+                },
+              }}
+            >
+              {t.dashboard.acceptProposal}
+            </Button>
+          </>
+        )}
       </DialogActions>
     </Dialog>
   );

@@ -22,8 +22,12 @@ export function useCaseTimeline() {
   const [error, setError] = useState<string | null>(null);
 
   const loadTimeline = useCallback(
-    async (caseItem: Case, options?: { includeMeetingNotes?: boolean }) => {
+    async (caseItem: Case, options?: {
+      includeMeetingNotes?: boolean;
+      includeSessionReportContent?: boolean;
+    }) => {
       const includeMeetingNotes = options?.includeMeetingNotes !== false;
+      const includeSessionReportContent = options?.includeSessionReportContent !== false;
       try {
         setLoading(true);
         setError(null);
@@ -72,13 +76,19 @@ export function useCaseTimeline() {
           const createdAt = data.createdAt?.toDate?.() as Date | undefined;
           if (!createdAt) return;
           const sessionNumber = (data.sessionNumber as number) || 1;
-          const mainTheme = String(data.mainTheme || '');
+          const mainTheme = includeSessionReportContent
+            ? String(data.mainTheme || '')
+            : '';
           merged.push({
             id: `report-${docSnap.id}`,
             kind: 'report',
             at: createdAt,
             title: t.caseTimeline.reportTitle.replace('{n}', String(sessionNumber)),
-            summary: mainTheme ? truncate(mainTheme) : undefined,
+            summary: mainTheme
+              ? truncate(mainTheme)
+              : includeSessionReportContent
+                ? undefined
+                : t.adminTools.sensitiveContentRestricted,
             sourceId: docSnap.id,
             authorName: data.createdByName as string | undefined,
           });

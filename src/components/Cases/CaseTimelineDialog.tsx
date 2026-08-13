@@ -25,6 +25,8 @@ interface CaseTimelineDialogProps {
   onOpenNotes?: () => void;
   /** When false, meeting note content is not fetched or shown (admin privacy). */
   includeMeetingNotes?: boolean;
+  /** When true, hide session-report themes and block opening reports. */
+  restrictSessionReports?: boolean;
 }
 
 const CaseTimelineDialog: React.FC<CaseTimelineDialogProps> = ({
@@ -33,18 +35,22 @@ const CaseTimelineDialog: React.FC<CaseTimelineDialogProps> = ({
   caseItem,
   onOpenNotes,
   includeMeetingNotes = true,
+  restrictSessionReports = false,
 }) => {
   const navigate = useNavigate();
   const { items, loading, error, loadTimeline, reset } = useCaseTimeline();
 
   useEffect(() => {
     if (open && caseItem) {
-      void loadTimeline(caseItem, { includeMeetingNotes });
+      void loadTimeline(caseItem, {
+        includeMeetingNotes,
+        includeSessionReportContent: !restrictSessionReports,
+      });
     }
     if (!open) {
       reset();
     }
-  }, [open, caseItem, includeMeetingNotes, loadTimeline, reset]);
+  }, [open, caseItem, includeMeetingNotes, restrictSessionReports, loadTimeline, reset]);
 
   const handleItemAction = (item: CaseTimelineItem) => {
     if (!caseItem) return;
@@ -54,6 +60,7 @@ const CaseTimelineDialog: React.FC<CaseTimelineDialogProps> = ({
       return;
     }
     if (item.kind === 'report') {
+      if (restrictSessionReports) return;
       onClose();
       navigate(`/session-reports?caseId=${caseItem.id}`);
       return;
@@ -66,7 +73,7 @@ const CaseTimelineDialog: React.FC<CaseTimelineDialogProps> = ({
 
   const actionLabel = (item: CaseTimelineItem): string | null => {
     if (item.kind === 'note' && onOpenNotes) return t.caseTimeline.openNotes;
-    if (item.kind === 'report') return t.caseTimeline.openReports;
+    if (item.kind === 'report' && !restrictSessionReports) return t.caseTimeline.openReports;
     if (item.kind === 'appointment') return t.caseTimeline.openCalendar;
     return null;
   };

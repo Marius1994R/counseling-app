@@ -164,7 +164,6 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
       const linkedCounselorId = currentUser
         ? findCounselorForUser(counselors, currentUser)?.id
         : undefined;
-      const canViewAllCaseTitles = isAdminOrLeader(currentUser?.role);
 
       filtered = filtered.filter((appointment) => {
         const matchesBasic =
@@ -174,10 +173,10 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
         const isOwnAppointment =
           appointment.createdBy === currentUser?.id ||
           (linkedCounselorId != null && appointment.counselorId === linkedCounselorId);
-        const canMatchCaseTitle = canViewAllCaseTitles || isOwnAppointment;
 
+        // Case titles are private — only searchable on own appointments.
         const matchesCase =
-          canMatchCaseTitle &&
+          isOwnAppointment &&
           !!appointment.caseTitle &&
           appointment.caseTitle.toLowerCase().includes(term);
 
@@ -197,33 +196,52 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
     return getAppointmentsForDate(filteredAppointments, selectedDate);
   }, [filteredAppointments, selectedDate]);
 
-  const canViewAppointmentCaseDetails = useCallback(
+  const isOwnAppointmentForUser = useCallback(
     (appointment: Appointment) => {
-      if (isAdminOrLeader(currentUser?.role)) return true;
       if (!currentUser) return false;
-      if (appointment.createdBy === currentUser.id) return true;
+      if (
+        appointment.createdBy === currentUser.id ||
+        (appointment.createdBy === 'current-user' && currentUser.role === 'counselor')
+      ) {
+        return true;
+      }
       const linkedCounselor = findCounselorForUser(counselors, currentUser);
       return !!linkedCounselor && appointment.counselorId === linkedCounselor.id;
     },
     [currentUser, counselors]
   );
 
+  /** Case title / description — only for appointments that belong to the current user. */
+  const canViewAppointmentCaseDetails = useCallback(
+    (appointment: Appointment) => isOwnAppointmentForUser(appointment),
+    [isOwnAppointmentForUser]
+  );
+
+  /** Edit only own (non-past) appointments — including for admin/leader. */
   const canEditAppointment = useCallback(
     (appointment: Appointment) => {
       if (isPastAppointment(appointment)) return false;
-      const isOwnAppointment =
-        appointment.createdBy === currentUser?.id ||
-        (appointment.createdBy === 'current-user' && currentUser?.role === 'counselor');
+      if (!currentUser) return false;
       return (
-        isOwnAppointment || currentUser?.role === 'leader' || currentUser?.role === 'admin'
+        appointment.createdBy === currentUser.id ||
+        (appointment.createdBy === 'current-user' && currentUser.role === 'counselor')
       );
     },
     [currentUser]
   );
 
+  /** Counselors: delete own only. Admin/leader: delete any non-past appointment. */
   const canDeleteAppointment = useCallback(
-    (appointment: Appointment) => canEditAppointment(appointment),
-    [canEditAppointment]
+    (appointment: Appointment) => {
+      if (isPastAppointment(appointment)) return false;
+      if (!currentUser) return false;
+      if (isAdminOrLeader(currentUser.role)) return true;
+      return (
+        appointment.createdBy === currentUser.id ||
+        (appointment.createdBy === 'current-user' && currentUser.role === 'counselor')
+      );
+    },
+    [currentUser]
   );
 
   const handleAddAppointment = useCallback(() => {
@@ -237,16 +255,11 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
         setError(t.appointments.pastCannotModify);
         return;
       }
-      const isOwnAppointment =
+      const isCreator =
         appointment.createdBy === currentUser?.id ||
         (appointment.createdBy === 'current-user' && currentUser?.role === 'counselor');
 
-      if (
-        currentUser &&
-        !isOwnAppointment &&
-        currentUser.role !== 'leader' &&
-        currentUser.role !== 'admin'
-      ) {
+      if (!currentUser || !isCreator) {
         setError('You can only edit appointments created by you');
         return;
       }
@@ -263,7 +276,7 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
         setError(t.appointments.pastCannotModify);
         throw new Error(t.appointments.pastCannotModify);
       }
-      const isOwnAppointment =
+      const isCreator =
         appointment &&
         (appointment.createdBy === currentUser?.id ||
           (appointment.createdBy === 'current-user' && currentUser?.role === 'counselor'));
@@ -271,9 +284,8 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
       if (
         currentUser &&
         appointment &&
-        !isOwnAppointment &&
-        currentUser.role !== 'leader' &&
-        currentUser.role !== 'admin'
+        !isCreator &&
+        !isAdminOrLeader(currentUser.role)
       ) {
         setError('You can only delete appointments created by you');
         throw new Error('You can only delete appointments created by you');

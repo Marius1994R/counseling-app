@@ -1,5 +1,5 @@
 import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
-import { Case, CasePriority, CaseStatus, IssueType, ReferralSource } from '../../types';
+import { Case, CasePriority, CaseStatus, IssueType, ReferralSource, MeetingFrequencyWeeks } from '../../types';
 import { db } from '../../firebase';
 import { getCaseDisplayId, getInitials, getStatusLabel } from '../Dashboard/dashboardUtils';
 import { t } from '../../utils/translations';
@@ -146,10 +146,20 @@ export function mapFirestoreCase(
     proposedByUserId: data.proposedByUserId ?? null,
     proposedByUserName: data.proposedByUserName ?? null,
     meetingFeedback: data.meetingFeedback || '',
+    meetingFrequencyWeeks: parseMeetingFrequencyWeeks(data.meetingFrequencyWeeks),
+    lastMeetingDate: data.lastMeetingDate?.toDate?.() ?? null,
     createdAt: data.createdAt?.toDate?.() ?? new Date(),
     updatedAt: data.updatedAt?.toDate?.() ?? new Date(),
     createdBy: data.createdBy || '',
   };
+}
+
+function parseMeetingFrequencyWeeks(value: unknown): MeetingFrequencyWeeks | null {
+  if (value === 1 || value === 2 || value === 3 || value === 4) return value;
+  if (value === '1' || value === '2' || value === '3' || value === '4') {
+    return Number(value) as MeetingFrequencyWeeks;
+  }
+  return null;
 }
 
 export function isCaseVisibleToCounselor(

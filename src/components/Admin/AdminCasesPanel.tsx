@@ -26,6 +26,8 @@ interface AdminCasesPanelProps {
   onDelete: (caseId: string) => void | Promise<void>;
   onOpenSessionReport: (caseItem: Case) => void;
   onOpenTimeline: (caseItem: Case) => void;
+  /** Admin role: blur description and restrict session report content. */
+  blurSensitiveContent?: boolean;
 }
 
 const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
@@ -45,6 +47,7 @@ const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
   onDelete,
   onOpenSessionReport,
   onOpenTimeline,
+  blurSensitiveContent = false,
 }) => {
   const [deleteTarget, setDeleteTarget] = useState<Case | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -159,6 +162,7 @@ const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
           onDelete={(caseItem) => setDeleteTarget(caseItem)}
           hideMeetingNotes
           showCaseId
+          blurSensitiveContent={blurSensitiveContent}
         />
       )}
 

@@ -14,6 +14,9 @@ import {
   RadioGroup,
   FormControl,
   FormControlLabel,
+  InputLabel,
+  Select,
+  MenuItem,
   Snackbar,
   Alert,
   CircularProgress,
@@ -22,15 +25,47 @@ import {
   Add,
   Note
 } from '@mui/icons-material';
-import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, getDoc, updateDoc, doc, query, where } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase';
 import { logSessionReportAdded } from '../../utils/activityLogger';
+import { MeetingFrequencyWeeks } from '../../types';
+import { t } from '../../utils/translations';
+import {
+  MEETING_FREQUENCY_OPTIONS,
+  isMeetingFrequencyWeeks,
+  meetingFrequencyLabel,
+} from '../../utils/meetingFrequency';
+
+function todayDateInputValue(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function parseDateInputLocal(value: string): Date | null {
+  if (!value) return null;
+  const [y, m, d] = value.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  const date = new Date(y, m - 1, d);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+}
+
+function isFutureDate(date: Date): boolean {
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  return date.getTime() > today.getTime();
+}
 
 interface SessionReportRecord {
   id: string;
   caseId: string;
   sessionNumber: number;
+  meetingDate?: Date | null;
+  meetingFrequencyWeeks?: MeetingFrequencyWeeks | null;
   mainTheme: string;
   personResponse: string;
   previousTaskCompleted: 'yes' | 'no' | 'partial';
@@ -55,6 +90,8 @@ interface SessionReportProps {
   caseStatus?: string; // Case status to determine if add button should be shown
   autoOpenAddForm?: boolean; // Automatically open the add report form when dialog opens
   onCancelAddForm?: () => void; // Callback when add form is canceled
+  /** Blur report bodies (admin cannot read confidential session content). */
+  restrictSensitiveContent?: boolean;
 }
 
 const SessionReport: React.FC<SessionReportProps> = ({
@@ -66,7 +103,8 @@ const SessionReport: React.FC<SessionReportProps> = ({
   hideAddButton = false,
   caseStatus,
   autoOpenAddForm = false,
-  onCancelAddForm
+  onCancelAddForm,
+  restrictSensitiveContent = false,
 }) => {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -79,6 +117,9 @@ const SessionReport: React.FC<SessionReportProps> = ({
 
   // Form state
   const [sessionNumber, setSessionNumber] = useState(1);
+  const [meetingDate, setMeetingDate] = useState(todayDateInputValue);
+  const [meetingFrequencyWeeks, setMeetingFrequencyWeeks] = useState<MeetingFrequencyWeeks | ''>('');
+  const [caseHasFrequency, setCaseHasFrequency] = useState(false);
   const [mainTheme, setMainTheme] = useState('');
   const [personResponse, setPersonResponse] = useState('');
   const [previousTaskCompleted, setPreviousTaskCompleted] = useState<'yes' | 'no' | 'partial'>('yes');
@@ -87,6 +128,8 @@ const SessionReport: React.FC<SessionReportProps> = ({
   const [nextCommitments, setNextCommitments] = useState<'yes' | 'no'>('yes');
   const [nextCommitmentsDetails, setNextCommitmentsDetails] = useState('');
   const [noCommitmentsReason, setNoCommitmentsReason] = useState('');
+
+  const frequencyRequired = sessionNumber === 1 || !caseHasFrequency;
 
   const loadReports = useCallback(async (isInitialLoad: boolean = false) => {
     if (!caseId) {
@@ -110,20 +153,27 @@ const SessionReport: React.FC<SessionReportProps> = ({
       if (generation !== loadGenerationRef.current) return;
       
       const reportsData: SessionReportRecord[] = [];
-      reportsSnapshot.forEach((doc) => {
-        const data = doc.data();
+      reportsSnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const freq = data.meetingFrequencyWeeks;
         reportsData.push({
-          id: doc.id,
+          id: docSnap.id,
           caseId: data.caseId,
           sessionNumber: data.sessionNumber || 1,
-          mainTheme: data.mainTheme,
-          personResponse: data.personResponse,
+          meetingDate: data.meetingDate?.toDate?.() ?? null,
+          meetingFrequencyWeeks: isMeetingFrequencyWeeks(freq) ? freq : null,
+          mainTheme: restrictSensitiveContent ? '' : data.mainTheme,
+          personResponse: restrictSensitiveContent ? '' : data.personResponse,
           previousTaskCompleted: data.previousTaskCompleted,
-          previousTaskNotCompletedReason: data.previousTaskNotCompletedReason || '',
-          progressNoted: data.progressNoted,
+          previousTaskNotCompletedReason: restrictSensitiveContent
+            ? ''
+            : data.previousTaskNotCompletedReason || '',
+          progressNoted: restrictSensitiveContent ? '' : data.progressNoted,
           nextCommitments: data.nextCommitments,
-          nextCommitmentsDetails: data.nextCommitmentsDetails,
-          noCommitmentsReason: data.noCommitmentsReason,
+          nextCommitmentsDetails: restrictSensitiveContent
+            ? ''
+            : data.nextCommitmentsDetails,
+          noCommitmentsReason: restrictSensitiveContent ? '' : data.noCommitmentsReason,
           createdAt: data.createdAt.toDate(),
           createdBy: data.createdBy,
           createdByName: data.createdByName
@@ -150,12 +200,35 @@ const SessionReport: React.FC<SessionReportProps> = ({
         setReportsLoading(false);
       }
     }
+  }, [caseId, restrictSensitiveContent]);
+
+  const loadCaseFrequency = useCallback(async () => {
+    if (!caseId) {
+      setCaseHasFrequency(false);
+      setMeetingFrequencyWeeks('');
+      return;
+    }
+    try {
+      const caseSnap = await getDoc(doc(db, 'cases', caseId));
+      const raw = caseSnap.exists() ? caseSnap.data()?.meetingFrequencyWeeks : null;
+      if (isMeetingFrequencyWeeks(raw)) {
+        setCaseHasFrequency(true);
+        setMeetingFrequencyWeeks(raw);
+      } else {
+        setCaseHasFrequency(false);
+        setMeetingFrequencyWeeks('');
+      }
+    } catch (err) {
+      console.error('Error loading case meeting frequency:', err);
+      setCaseHasFrequency(false);
+    }
   }, [caseId]);
 
   const resetForm = useCallback(() => {
     // Set session number to next available
     const maxSession = reports.length > 0 ? Math.max(...reports.map(r => r.sessionNumber), 0) : 0;
     setSessionNumber(maxSession + 1);
+    setMeetingDate(todayDateInputValue());
     setMainTheme('');
     setPersonResponse('');
     setPreviousTaskCompleted('yes');
@@ -164,10 +237,12 @@ const SessionReport: React.FC<SessionReportProps> = ({
     setNextCommitments('yes');
     setNextCommitmentsDetails('');
     setNoCommitmentsReason('');
-  }, [reports]);
+    void loadCaseFrequency();
+  }, [reports, loadCaseFrequency]);
 
   useEffect(() => {
     if (open && caseId) {
+      setMeetingDate(todayDateInputValue());
       setMainTheme('');
       setPersonResponse('');
       setPreviousTaskCompleted('yes');
@@ -183,16 +258,34 @@ const SessionReport: React.FC<SessionReportProps> = ({
       }
 
       void loadReports(true);
+      void loadCaseFrequency();
     } else if (!open) {
       setAddReportOpen(false);
       setExpandedReportId(null);
       setReports([]);
       setReportsLoading(false);
+      setCaseHasFrequency(false);
+      setMeetingFrequencyWeeks('');
     }
-  }, [open, caseId, autoOpenAddForm, caseStatus, loadReports]);
+  }, [open, caseId, autoOpenAddForm, caseStatus, loadReports, loadCaseFrequency]);
 
   const handleAddReport = async () => {
     if (loading) return;
+
+    const parsedMeetingDate = parseDateInputLocal(meetingDate);
+    if (!parsedMeetingDate) {
+      setSnackbar({ open: true, message: t.sessionReports.meetingDateRequired, severity: 'error' });
+      return;
+    }
+    if (isFutureDate(parsedMeetingDate)) {
+      setSnackbar({ open: true, message: t.sessionReports.meetingDateFuture, severity: 'error' });
+      return;
+    }
+
+    if (frequencyRequired && !isMeetingFrequencyWeeks(meetingFrequencyWeeks)) {
+      setSnackbar({ open: true, message: t.sessionReports.meetingFrequencyRequired, severity: 'error' });
+      return;
+    }
 
     // Validate required fields
     if (!mainTheme.trim() || !personResponse.trim() || !progressNoted.trim()) {
@@ -208,10 +301,15 @@ const SessionReport: React.FC<SessionReportProps> = ({
 
     try {
       setLoading(true);
+
+      const frequencyToSave = isMeetingFrequencyWeeks(meetingFrequencyWeeks)
+        ? meetingFrequencyWeeks
+        : null;
       
-      const reportData = {
+      const reportData: Record<string, unknown> = {
         caseId,
         sessionNumber,
+        meetingDate: parsedMeetingDate,
         mainTheme: mainTheme.trim(),
         personResponse: personResponse.trim(),
         previousTaskCompleted,
@@ -225,7 +323,23 @@ const SessionReport: React.FC<SessionReportProps> = ({
         createdByName: currentUser?.fullName || ''
       };
 
+      if (frequencyToSave != null) {
+        reportData.meetingFrequencyWeeks = frequencyToSave;
+      }
+
       await addDoc(collection(db, 'sessionReports'), reportData);
+
+      const caseUpdate: Record<string, unknown> = {
+        lastMeetingDate: parsedMeetingDate,
+        updatedAt: new Date(),
+      };
+      if (frequencyToSave != null) {
+        caseUpdate.meetingFrequencyWeeks = frequencyToSave;
+      }
+      await updateDoc(doc(db, 'cases', caseId), caseUpdate);
+      if (frequencyToSave != null) {
+        setCaseHasFrequency(true);
+      }
       
       // Log the activity
       if (currentUser?.id && currentUser?.fullName) {
@@ -336,33 +450,108 @@ const SessionReport: React.FC<SessionReportProps> = ({
                     key={report.id} 
                     variant="outlined"
                     sx={{ 
-                      cursor: 'pointer',
-                      '&:hover': { boxShadow: 2 }
+                      cursor: restrictSensitiveContent ? 'default' : 'pointer',
+                      '&:hover': restrictSensitiveContent ? undefined : { boxShadow: 2 },
+                      position: 'relative',
+                      overflow: 'hidden',
                     }}
-                    onClick={() => setExpandedReportId(expandedReportId === report.id ? null : report.id)}
+                    onClick={
+                      restrictSensitiveContent
+                        ? undefined
+                        : () =>
+                            setExpandedReportId(
+                              expandedReportId === report.id ? null : report.id
+                            )
+                    }
                   >
                     <CardContent>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <Box>
+                        <Box sx={{ width: '100%' }}>
                           <Typography variant="subtitle1" fontWeight="bold">
                             Raport Sesiune {report.sessionNumber}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            {report.createdAt.toLocaleDateString('ro-RO')} - {report.createdByName}
+                            {report.meetingDate
+                              ? `${report.meetingDate.toLocaleDateString('ro-RO')} · ${report.createdByName}`
+                              : `${report.createdAt.toLocaleDateString('ro-RO')} - ${report.createdByName}`}
                           </Typography>
-                          {!expandedReportId && (
-                            <Typography variant="body2" sx={{ mt: 1, fontWeight: 'medium' }}>
-                              Tema: {report.mainTheme}
-                            </Typography>
+                          {restrictSensitiveContent ? (
+                            <Box sx={{ position: 'relative', mt: 1.5 }}>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  filter: 'blur(6px)',
+                                  userSelect: 'none',
+                                  pointerEvents: 'none',
+                                }}
+                                aria-hidden
+                              >
+                                Conținut confidențial al raportului de sesiune. Detaliile nu sunt
+                                disponibile pentru acest rol.
+                              </Typography>
+                              <Box
+                                sx={{
+                                  position: 'absolute',
+                                  inset: 0,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    bgcolor: 'background.paper',
+                                    px: 1.5,
+                                    py: 0.75,
+                                    borderRadius: 999,
+                                    fontWeight: 600,
+                                    color: 'text.secondary',
+                                    boxShadow: 1,
+                                    textAlign: 'center',
+                                  }}
+                                >
+                                  Conținut confidențial — vizibil doar pentru lideri.
+                                </Typography>
+                              </Box>
+                            </Box>
+                          ) : (
+                            !expandedReportId && (
+                              <Typography variant="body2" sx={{ mt: 1, fontWeight: 'medium' }}>
+                                Tema: {report.mainTheme}
+                              </Typography>
+                            )
                           )}
                         </Box>
                       </Box>
 
-                      {expandedReportId === report.id && (
+                      {!restrictSensitiveContent && expandedReportId === report.id && (
                         <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #e0e0e0' }}>
                           <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
                             Detalii Raport
                           </Typography>
+
+                          {report.meetingDate && (
+                            <Box sx={{ mb: 1 }}>
+                              <Typography variant="caption" color="text.secondary">
+                                {t.sessionReports.meetingDate}:
+                              </Typography>
+                              <Typography variant="body2">
+                                {report.meetingDate.toLocaleDateString('ro-RO')}
+                              </Typography>
+                            </Box>
+                          )}
+
+                          {report.meetingFrequencyWeeks && (
+                            <Box sx={{ mb: 1 }}>
+                              <Typography variant="caption" color="text.secondary">
+                                {t.sessionReports.meetingFrequency}:
+                              </Typography>
+                              <Typography variant="body2">
+                                {meetingFrequencyLabel(report.meetingFrequencyWeeks)}
+                              </Typography>
+                            </Box>
+                          )}
                           
                           <Box sx={{ mb: 1 }}>
                             <Typography variant="caption" color="text.secondary">
@@ -467,6 +656,59 @@ const SessionReport: React.FC<SessionReportProps> = ({
                 size="small"
                 inputProps={{ min: 1 }}
               />
+            </Box>
+
+            <Box>
+              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
+                {t.sessionReports.meetingDate} *
+              </Typography>
+              <TextField
+                fullWidth
+                type="date"
+                value={meetingDate}
+                onChange={(e) => setMeetingDate(e.target.value)}
+                size="small"
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ max: todayDateInputValue() }}
+                required
+              />
+            </Box>
+
+            <Box>
+              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
+                {t.sessionReports.meetingFrequency}
+                {frequencyRequired ? ' *' : ''}
+              </Typography>
+              {!frequencyRequired && (
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                  {t.sessionReports.meetingFrequencyOptionalHint}
+                </Typography>
+              )}
+              <FormControl fullWidth size="small" required={frequencyRequired}>
+                <InputLabel id="meeting-frequency-label">{t.sessionReports.meetingFrequency}</InputLabel>
+                <Select
+                  labelId="meeting-frequency-label"
+                  label={t.sessionReports.meetingFrequency}
+                  value={meetingFrequencyWeeks}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setMeetingFrequencyWeeks(
+                      value === '' ? '' : (Number(value) as MeetingFrequencyWeeks)
+                    );
+                  }}
+                >
+                  {!frequencyRequired && (
+                    <MenuItem value="">
+                      <em>—</em>
+                    </MenuItem>
+                  )}
+                  {MEETING_FREQUENCY_OPTIONS.map((weeks) => (
+                    <MenuItem key={weeks} value={weeks}>
+                      {meetingFrequencyLabel(weeks)}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Box>
 
             {/* Q1: Main theme */}

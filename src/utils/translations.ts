@@ -78,6 +78,7 @@ export const t = {
     typeAssignment: 'Alocare',
     typeAppointment: 'Programare',
     typeStaleReport: 'Raport',
+    typeFrequencyOverdue: 'Frecvență',
     eventDetail: 'Eveniment nou pe care nu l-ai văzut încă',
     assignmentProposedTitle: 'Caz propus pentru tine',
     assignmentAssignedTitle: 'Caz nou alocat',
@@ -92,6 +93,9 @@ export const t = {
     appointmentDetail: '{case} · {time}',
     staleReportTitle: 'Raport de sesiune lipsă',
     staleReportDetail: 'Cazul „{name}” nu are raport de peste 30 de zile',
+    frequencyOverdueTitle: 'Frecvență întâlniri depășită',
+    frequencyOverdueDetail:
+      'Cazul „{name}” · {frequency} — depășită cu o săptămână',
     typeMonthlyReport: 'Raport lunar',
     monthlyReportDueTitle: 'Completează raportul lunar',
     monthlyReportDueDetail: 'Te rugăm să completezi raportul pentru {month}',
@@ -270,6 +274,10 @@ export const t = {
     refuseSuccess: 'Ai refuzat propunerea',
     acceptError: 'Eroare la acceptarea propunerii',
     refuseError: 'Eroare la refuzarea propunerii',
+    caseMissingTitle: 'Cazul nu mai există',
+    caseMissingDetail:
+      'Acest caz a fost șters. Poți curăța notificarea — nu mai este nevoie să accepți sau să refuzi.',
+    clearStaleNotification: 'Curăță notificarea',
   },
 
   // Admin Tools
@@ -293,7 +301,9 @@ export const t = {
     cases: 'Cazuri',
     linkUserAccount: 'Leagă la Cont Utilizator *',
     manageReports: 'Vezi Rapoartele',
-    openReports: 'Deschide Rapoarte'
+    openReports: 'Deschide Rapoarte',
+    sensitiveContentRestricted:
+      'Conținut confidențial — vizibil doar pentru lideri.',
   },
 
   // Appointments
@@ -470,6 +480,18 @@ export const t = {
     selectCaseForReport: 'Selectează caz pentru raport',
     noActiveCases: 'Nu există cazuri active disponibile pentru raportare',
     reportDetails: 'Detalii raport',
+    meetingDate: 'Data întâlnirii',
+    meetingDateRequired: 'Data întâlnirii este obligatorie',
+    meetingDateFuture: 'Data întâlnirii nu poate fi în viitor',
+    meetingFrequency: 'Frecvența întâlnirilor',
+    meetingFrequencyRequired: 'Selectează frecvența întâlnirilor',
+    meetingFrequencyOptionalHint: 'Poți actualiza frecvența dacă s-a schimbat',
+    frequencyOptions: {
+      1: 'Săptămânal',
+      2: 'La 2 săptămâni',
+      3: 'La 3 săptămâni',
+      4: 'Lunar',
+    },
     fields: {
       mainTheme: '1. Tema principală abordată',
       personResponse: '2. Răspuns persoana consiliată',

@@ -49,6 +49,8 @@ const Topbar: React.FC<TopbarProps> = ({
     refuseProposal,
     assignmentActionLoading,
     assignmentActionError,
+    clearStaleAssignmentModal,
+    isAssignmentCaseMissing,
   } = useDashboardDataContext();
   const { count: notificationCount, items: notificationItems, dismiss: dismissNotification } =
     useAttentionNotifications();
@@ -202,8 +204,12 @@ const Topbar: React.FC<TopbarProps> = ({
           }
           loading={assignmentActionLoading}
           error={assignmentActionError}
+          caseMissing={isAssignmentCaseMissing}
           onAccept={acceptProposal}
           onRefuse={refuseProposal}
+          onClearStale={() => {
+            void clearStaleAssignmentModal();
+          }}
         />
 
         <Dialog
@@ -217,22 +223,38 @@ const Topbar: React.FC<TopbarProps> = ({
             {t.dashboard.newCaseAssigned}
           </DialogTitle>
           <DialogContent>
-            <Typography variant="body1">
-              {t.dashboard.newCaseAssignedMessage}
-              {newAssignmentModal?.metadata?.caseTitle
-                ? ` ${t.cases.caseTitle}: ${String(newAssignmentModal.metadata.caseTitle)}`
-                : ''}
-            </Typography>
+            {isAssignmentCaseMissing ? (
+              <Typography variant="body1">{t.assignments.caseMissingDetail}</Typography>
+            ) : (
+              <Typography variant="body1">
+                {t.dashboard.newCaseAssignedMessage}
+                {newAssignmentModal?.metadata?.caseTitle
+                  ? ` ${t.cases.caseTitle}: ${String(newAssignmentModal.metadata.caseTitle)}`
+                  : ''}
+              </Typography>
+            )}
           </DialogContent>
           <DialogActions sx={{ flexWrap: 'wrap', gap: 1, px: 3, pb: 2 }}>
-            <Button
-              variant="contained"
-              onClick={handleSeeCase}
-              startIcon={<Assignment />}
-              sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B89A00' } }}
-            >
-              {t.dashboard.seeCase}
-            </Button>
+            {isAssignmentCaseMissing ? (
+              <Button
+                variant="contained"
+                onClick={() => {
+                  void clearStaleAssignmentModal();
+                }}
+                sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B89A00' } }}
+              >
+                {t.assignments.clearStaleNotification}
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                onClick={handleSeeCase}
+                startIcon={<Assignment />}
+                sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B89A00' } }}
+              >
+                {t.dashboard.seeCase}
+              </Button>
+            )}
           </DialogActions>
         </Dialog>
 

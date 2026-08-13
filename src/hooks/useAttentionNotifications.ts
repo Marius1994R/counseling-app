@@ -26,6 +26,11 @@ import {
   monthlyReportDueDismissalId,
   monthlyReportOverdueDismissalId,
 } from '../components/MonthlyReport/monthlyReportUtils';
+import {
+  isMeetingFrequencyOverdue,
+  meetingFrequencyLabel,
+  toMeetingDateKey,
+} from '../utils/meetingFrequency';
 
 const REPORT_ACTIVITY_TYPES = [
   'session_report_added',
@@ -34,17 +39,31 @@ const REPORT_ACTIVITY_TYPES = [
 
 const MAX_LIVE_REPORT_ACTIVITIES = 40;
 
-function mapReportActivityDoc(id: string, data: DocumentData): ActivityRecord {
-  return {
-    id,
-    type: data.type,
-    title: data.title,
-    description: data.description,
-    timestamp: data.timestamp.toDate(),
-    userId: data.userId,
-    userName: data.userName,
-    metadata: data.metadata,
-  };
+function mapReportActivityDoc(id: string, data: DocumentData): ActivityRecord | null {
+  try {
+    const rawTs = data.timestamp;
+    const timestamp =
+      typeof rawTs?.toDate === 'function'
+        ? rawTs.toDate()
+        : rawTs instanceof Date
+          ? rawTs
+          : new Date(rawTs || Date.now());
+    if (Number.isNaN(timestamp.getTime())) return null;
+
+    return {
+      id,
+      type: data.type,
+      title: data.title,
+      description: data.description,
+      timestamp,
+      userId: data.userId,
+      userName: data.userName,
+      metadata: data.metadata,
+    };
+  } catch (err) {
+    console.error('Skipping malformed report activity:', id, err);
+    return null;
+  }
 }
 
 export type AttentionNotificationType =
@@ -53,6 +72,7 @@ export type AttentionNotificationType =
   | 'assignment_outcome'
   | 'appointment'
   | 'stale_report'
+  | 'frequency_overdue'
   | 'monthly_report'
   | 'session_report_submitted'
   | 'monthly_report_submitted';
@@ -179,7 +199,8 @@ export function useAttentionNotifications() {
       (snapshot) => {
         const items: ActivityRecord[] = [];
         snapshot.forEach((docSnap) => {
-          items.push(mapReportActivityDoc(docSnap.id, docSnap.data()));
+          const mapped = mapReportActivityDoc(docSnap.id, docSnap.data());
+          if (mapped) items.push(mapped);
         });
         items.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
         setLiveReportActivities(items.slice(0, MAX_LIVE_REPORT_ACTIVITIES));
@@ -318,6 +339,26 @@ export function useAttentionNotifications() {
         ),
         payload: { caseItem },
         createdAt: caseItem.updatedAt,
+      });
+    }
+
+    for (const caseItem of cases) {
+      if (caseItem.status !== 'active') continue;
+      const frequency = caseItem.meetingFrequencyWeeks;
+      const lastMeeting = caseItem.lastMeetingDate;
+      if (!frequency || !lastMeeting) continue;
+      if (!isMeetingFrequencyOverdue(lastMeeting, frequency)) continue;
+      const id = `frequency_overdue:${caseItem.id}:${toMeetingDateKey(lastMeeting)}`;
+      if (dismissedIds.has(id)) continue;
+      list.push({
+        id,
+        type: 'frequency_overdue',
+        title: t.notifications.frequencyOverdueTitle,
+        detail: t.notifications.frequencyOverdueDetail
+          .replace('{name}', caseItem.counseledName)
+          .replace('{frequency}', meetingFrequencyLabel(frequency)),
+        payload: { caseItem },
+        createdAt: lastMeeting,
       });
     }
 

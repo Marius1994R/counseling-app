@@ -11,7 +11,7 @@ import CalendarMonthGrid from './CalendarMonthGrid';
 import CalendarDayDialog from './CalendarDayDialog';
 import CalendarSkeleton from './CalendarSkeleton';
 import { countFutureAppointments } from './calendarUtils';
-import { getEventsForDate, isPastEvent } from './eventUtils';
+import { getEventsForDate } from './eventUtils';
 import { t } from '../../utils/translations';
 
 const CalendarManagement: React.FC = () => {
@@ -64,15 +64,11 @@ const CalendarManagement: React.FC = () => {
 
   const handleEditEvent = useCallback(
     (event: ChurchEvent) => {
-      if (isPastEvent(event)) {
-        showSnackbar(t.events.pastCannotModify, 'error');
-        return;
-      }
       setEditingEvent(event);
       setPreSelectedEventDate(null);
       setEventFormOpen(true);
     },
-    [showSnackbar]
+    []
   );
 
   const handleCloseEventForm = useCallback(() => {
@@ -84,10 +80,6 @@ const CalendarManagement: React.FC = () => {
   const handleEventSubmit = useCallback(
     async (eventData: Omit<ChurchEvent, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>) => {
       try {
-        if (editingEvent && isPastEvent(editingEvent)) {
-          showSnackbar(t.events.pastCannotModify, 'error');
-          return;
-        }
         if (editingEvent) {
           await updateEvent(editingEvent.id, eventData);
           showSnackbar(t.events.updateSuccess, 'success');
@@ -106,11 +98,6 @@ const CalendarManagement: React.FC = () => {
 
   const handleDeleteEvent = useCallback(
     async (eventId: string) => {
-      const eventItem = events.find((e) => e.id === eventId);
-      if (eventItem && isPastEvent(eventItem)) {
-        showSnackbar(t.events.pastCannotModify, 'error');
-        throw new Error(t.events.pastCannotModify);
-      }
       try {
         await deleteEvent(eventId);
         showSnackbar(t.events.deleteSuccess, 'success');
@@ -120,7 +107,7 @@ const CalendarManagement: React.FC = () => {
         throw error;
       }
     },
-    [events, deleteEvent, showSnackbar]
+    [deleteEvent, showSnackbar]
   );
 
   const handleDeleteAppointment = useCallback(

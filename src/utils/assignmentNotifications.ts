@@ -23,30 +23,36 @@ export function filterPendingAssignments(
       activity.metadata?.assignmentSource === 'proposal_accept';
     if (isProposalAcceptance) return false;
 
-    // Proposals stay until Accept/Refuse (case state) — dismiss must not hide them.
-    if (activity.type === 'case_proposed') {
-      return true;
-    }
+    // Dismissed (including auto-cleared deleted cases) stay hidden.
+    if (dismissedIds.has(activity.id)) return false;
 
-    return !dismissedIds.has(activity.id);
+    return true;
   });
 }
 
 /**
  * Keep only proposals that are still pending on the live case for this counselor.
  * Newest activity per case wins.
+ * Missing case in cache: keep briefly so live notify works while warmCases runs;
+ * older orphans are dropped (deleted cases are also auto-dismissed).
  */
 export function filterActiveProposals(
   activities: ActivityRecord[],
   cases: Case[],
-  counselorRecordId: string | null
+  counselorRecordId: string | null,
+  options?: { missingCaseGraceMs?: number; now?: number }
 ): ActivityRecord[] {
+  const graceMs = options?.missingCaseGraceMs ?? 90_000;
+  const now = options?.now ?? Date.now();
+
   const active = activities.filter((activity) => {
     if (activity.type !== 'case_proposed') return false;
     const caseId = String(activity.metadata?.caseId || '');
     if (!caseId) return false;
     const caseItem = cases.find((c) => c.id === caseId);
-    if (!caseItem) return false;
+    if (!caseItem) {
+      return now - activity.timestamp.getTime() < graceMs;
+    }
     if (caseItem.assignmentStatus !== 'pending') return false;
     if (counselorRecordId && caseItem.proposedCounselorId !== counselorRecordId) {
       return false;

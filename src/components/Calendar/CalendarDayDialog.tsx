@@ -16,7 +16,6 @@ import {
   getEventDisplayStyles,
   formatEventDateRange,
   formatEventTimeRange,
-  isPastEvent,
 } from './eventUtils';
 import ConfirmDialog from '../common/ConfirmDialog';
 
@@ -206,9 +205,7 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
     if (target.kind === 'appointment' && !canEdit(target.item) && !canDelete(target.item)) {
       return;
     }
-    if (target.kind === 'event' && isPastEvent(target.item)) {
-      return;
-    }
+    // Events: leaders/admins may delete past events too.
     try {
       setDeleteLoading(true);
       if (target.kind === 'appointment') {
@@ -346,7 +343,8 @@ const CalendarDayDialog: React.FC<CalendarDayDialogProps> = ({
 
             {sortedEvents.map((event) => {
               const hasDetails = Boolean(event.description || event.registrationUrl);
-              const canModifyEvent = canManageEvents && !isPastEvent(event);
+              // Leaders/admins can always edit or delete events (including past ones).
+              const canModifyEvent = canManageEvents;
               const titleKey = `event-title-${event.id}`;
               const descKey = `event-desc-${event.id}`;
               const eventLabel = `${event.name} · ${formatEventTimeRange(event)}`;

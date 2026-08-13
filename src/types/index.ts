@@ -59,6 +59,9 @@ export type ReferralSource = 'pastor' | 'self' | 'friend' | 'other';
 /** Intake priority for triage visibility */
 export type CasePriority = 'normal' | 'high';
 
+/** Meeting cadence in weeks: 1=weekly, 2=biweekly, 3=every 3 weeks, 4=monthly */
+export type MeetingFrequencyWeeks = 1 | 2 | 3 | 4;
+
 // Case interface
 export interface Case {
   id: string;
@@ -89,6 +92,10 @@ export interface Case {
   proposedByUserId?: string | null;
   proposedByUserName?: string | null;
   meetingFeedback?: string; // Notes from counseling sessions
+  /** Agreed meeting cadence in weeks (1=weekly, 2=biweekly, 3=every 3 weeks, 4=monthly) */
+  meetingFrequencyWeeks?: MeetingFrequencyWeeks | null;
+  /** Date of the last recorded session meeting (from session reports) */
+  lastMeetingDate?: Date | null;
   createdAt: Date;
   updatedAt: Date;
   createdBy: string; // User ID who created the case

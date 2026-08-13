@@ -42,6 +42,8 @@ interface CaseListCardProps {
   hideMeetingNotes?: boolean;
   /** Short case id (#C-xxxx) — shown in admin only. */
   showCaseId?: boolean;
+  /** Blur description and restrict session-report actions (admin role). */
+  blurSensitiveContent?: boolean;
 }
 
 const CaseListCard: React.FC<CaseListCardProps> = ({
@@ -57,6 +59,7 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
   onDelete,
   hideMeetingNotes = false,
   showCaseId = false,
+  blurSensitiveContent = false,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const showReports = reportsCount > 0 || caseItem.status === 'active';
@@ -121,7 +124,7 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
             )}
 
             <div className="mt-4 flex flex-wrap gap-2">
-              {caseItem.status === 'active' && (
+              {caseItem.status === 'active' && !blurSensitiveContent && (
                 <button
                   type="button"
                   onClick={onOpenAddReport}
@@ -235,19 +238,38 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
             {t.cases.description}
           </h3>
-          <p className="whitespace-pre-wrap break-words rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm leading-relaxed text-slate-600">
-            {isTruncated
-              ? `${description.substring(0, 150)}...`
-              : description || t.cases.noDescriptionProvided}
-          </p>
-          {isTruncated && (
-            <button
-              type="button"
-              onClick={onOpenDescription}
-              className="mt-2 text-sm font-medium text-brand-600 hover:text-brand-700"
-            >
-              {t.cases.viewFullDescription}
-            </button>
+          {blurSensitiveContent ? (
+            <div className="relative overflow-hidden rounded-lg border border-slate-100 bg-slate-50 p-3">
+              <p
+                className="select-none whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-600 blur-[6px]"
+                aria-hidden
+              >
+                Conținut confidențial rezervat. Detaliile cazului nu sunt afișate pentru acest rol.
+                Text placeholder pentru efectul de blur pe descrierea cazului.
+              </p>
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-50/40 px-3">
+                <p className="rounded-full bg-white/90 px-3 py-1 text-center text-xs font-medium text-slate-600 shadow-sm">
+                  {t.adminTools.sensitiveContentRestricted}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="whitespace-pre-wrap break-words rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm leading-relaxed text-slate-600">
+                {isTruncated
+                  ? `${description.substring(0, 150)}...`
+                  : description || t.cases.noDescriptionProvided}
+              </p>
+              {isTruncated && (
+                <button
+                  type="button"
+                  onClick={onOpenDescription}
+                  className="mt-2 text-sm font-medium text-brand-600 hover:text-brand-700"
+                >
+                  {t.cases.viewFullDescription}
+                </button>
+              )}
+            </>
           )}
         </div>
 
