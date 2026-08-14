@@ -47,6 +47,16 @@ const SessionReportsTimeline: React.FC<SessionReportsTimelineProps> = ({
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
+            {onAddReport && (
+              <button
+                type="button"
+                onClick={onAddReport}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-brand-700 active:scale-[0.98]"
+              >
+                <PlusIcon className="h-4 w-4" />
+                {t.sessionReports.addReport}
+              </button>
+            )}
             {isDrawer && onClose && (
               <button
                 type="button"
@@ -65,16 +75,6 @@ const SessionReportsTimeline: React.FC<SessionReportsTimelineProps> = ({
         {summary.reports.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-4 py-10 text-center">
             <p className="text-sm text-slate-500">{t.sessionReports.addFirstReportHint}</p>
-            {onAddReport && (
-              <button
-                type="button"
-                onClick={onAddReport}
-                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-700 active:scale-[0.98]"
-              >
-                <PlusIcon className="h-4 w-4" />
-                {t.sessionReports.addReport}
-              </button>
-            )}
           </div>
         ) : (
           <div className="relative space-y-4">

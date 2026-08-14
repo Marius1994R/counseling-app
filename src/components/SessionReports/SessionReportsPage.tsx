@@ -59,9 +59,13 @@ const SessionReportsPage: React.FC = () => {
     );
   }
 
+  const canAddReport =
+    selectedSummary?.case.status === 'active' ||
+    selectedSummary?.case.status === 'finished';
+
   const dossierProps = {
     summary: data.selectedSummary,
-    onAddReport: handleAddReportFromDossier,
+    onAddReport: canAddReport ? handleAddReportFromDossier : undefined,
   };
 
   return (
