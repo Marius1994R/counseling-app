@@ -1,5 +1,5 @@
 import { Case, Counselor, Sex } from '../../types';
-import { normalizeSpecialties } from '../Profile/profileUtils';
+import { normalizeSpecialties, normalizeSpecialtyCategories } from '../Profile/profileUtils';
 import { resolvePersonName } from '../../utils/nameUtils';
 
 export type WorkloadFilter = 'all' | 'low' | 'moderate' | 'high';
@@ -34,6 +34,8 @@ export function mapFirestoreCounselor(
     fullName: data.fullName,
   });
 
+  const specialties = normalizeSpecialties(data.specialties || []);
+
   return {
     id,
     fullName: name.fullName,
@@ -43,8 +45,8 @@ export function mapFirestoreCounselor(
     phoneNumber: data.phoneNumber || '',
     sex: data.sex === 'feminin' || data.sex === 'masculin' ? (data.sex as Sex) : undefined,
     birthDate: parseCounselorBirthDate(data.birthDate),
-    specialties: normalizeSpecialties(data.specialties || []),
-    specialtyCategories: data.specialtyCategories || undefined,
+    specialties,
+    specialtyCategories: normalizeSpecialtyCategories(data.specialtyCategories, specialties),
     activeCases: data.activeCases || 0,
     workloadLevel: data.workloadLevel || 'low',
     linkedUserId: data.linkedUserId || undefined,
