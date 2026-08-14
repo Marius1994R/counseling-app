@@ -97,7 +97,9 @@ const ResourcesPage: React.FC = () => {
   return (
     <div>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <p className="text-sm text-slate-600 sm:max-w-xl">{t.resources.accessHint}</p>
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm font-medium text-amber-950 sm:max-w-xl">
+          {t.resources.accessHint}
+        </p>
         {data.canManage && (
           <button
             type="button"
