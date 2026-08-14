@@ -62,10 +62,10 @@ const Topbar: React.FC<TopbarProps> = ({
   const firstName = currentUser?.fullName?.split(' ')[0] ?? 'Utilizator';
   const roleLabel =
     currentUser?.role === 'leader'
-      ? 'Lider'
+      ? t.roles.leader
       : currentUser?.role === 'admin'
-        ? 'Coordonator'
-        : 'Consilier';
+        ? t.roles.admin
+        : t.roles.counselor;
 
   const proposedCase = cases.find(
     (caseItem) => caseItem.id === String(newAssignmentModal?.metadata?.caseId ?? '')

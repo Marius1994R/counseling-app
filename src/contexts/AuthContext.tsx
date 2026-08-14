@@ -23,6 +23,7 @@ import { SUPREME_LEADER_EMAIL } from '../components/Admin/adminUtils';
 import { fetchFreshUserRole } from '../utils/roleAuth';
 import { getRoleLabel } from '../components/Profile/profileUtils';
 import { t } from '../utils/translations';
+import { clearResourcesCache } from '../components/Resources/resourcesCache';
 
 export interface RoleUpdateNotice {
   message: string;
@@ -98,6 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentUser(null);
     setRoleUpdateNotice(null);
     localStorage.removeItem('counselingAppUser');
+    clearResourcesCache();
   }, []);
 
   const verifyPrivilege = useCallback(

@@ -13,6 +13,7 @@ import CounselorsManagement from './components/Counselors/CounselorsManagement';
 import CalendarManagement from './components/Calendar/CalendarManagement';
 import SessionReportsPage from './components/SessionReports/SessionReportsPage';
 import MonthlyReportPage from './components/MonthlyReport/MonthlyReportPage';
+import ResourcesPage from './components/Resources/ResourcesPage';
 import AdminTools from './components/Admin/AdminTools';
 import MyProfile from './components/Profile/MyProfile';
 import RoleUpdateNotifier from './components/Auth/RoleUpdateNotifier';
@@ -143,6 +144,14 @@ const AppContent: React.FC = () => {
         element={
           <ProtectedRoute>
             <MonthlyReportPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/resources"
+        element={
+          <ProtectedRoute>
+            <ResourcesPage />
           </ProtectedRoute>
         }
       />

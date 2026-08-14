@@ -6,10 +6,12 @@ import {
   DocumentChartBarIcon,
   DocumentTextIcon,
   UserIcon,
+  BookOpenIcon,
   ChevronDownIcon,
   ChevronUpIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
+import { t } from '../../utils/translations';
 
 interface QuickAction {
   label: string;
@@ -58,6 +60,11 @@ const QuickActions: React.FC<QuickActionsProps> = ({
       label: 'Actualizează profil',
       icon: UserIcon,
       onClick: onUpdateProfile,
+    },
+    {
+      label: t.navigation.resources,
+      icon: BookOpenIcon,
+      onClick: () => navigate('/resources'),
     },
     {
       label: 'Adaugă caz nou',

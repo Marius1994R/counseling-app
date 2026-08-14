@@ -1,5 +1,6 @@
 import { Case, CaseStatus, Counselor, User, UserRole } from '../../types';
 import { WorkloadFilter, enrichCounselorWithWorkload, filterCounselors, countByWorkload } from '../Counselors/counselorsUtils';
+import { t } from '../../utils/translations';
 
 export const SUPREME_LEADER_EMAIL = 'marius.rasbici@biserica-lumina.ro';
 
@@ -62,7 +63,15 @@ export function getRoleBadgeClass(role: UserRole): string {
 }
 
 export function getRoleLabel(role: UserRole): string {
-  return role.charAt(0).toUpperCase() + role.slice(1);
+  switch (role) {
+    case 'leader':
+      return t.roles.leader;
+    case 'admin':
+      return t.roles.admin;
+    case 'counselor':
+    default:
+      return t.roles.counselor;
+  }
 }
 
 export function filterAdminCases(

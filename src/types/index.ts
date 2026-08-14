@@ -212,3 +212,45 @@ export interface ActivityItem {
   userId: string;
   userName: string;
 }
+
+/** External resource link kind (Google Docs/Sheets/other) */
+export type ResourceLinkKind = 'doc' | 'sheet' | 'other';
+
+/** Preset accent color for a resource folder icon */
+export type ResourceFolderColor =
+  | 'brand'
+  | 'slate'
+  | 'sky'
+  | 'emerald'
+  | 'amber'
+  | 'rose'
+  | 'violet'
+  | 'orange';
+
+/** Folder in the department resources tree */
+export interface ResourceFolder {
+  id: string;
+  name: string;
+  parentId: string | null;
+  allowAdmins: boolean;
+  allowCounselors: boolean;
+  color: ResourceFolderColor;
+  sortOrder: number;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/** External URL link inside a resource folder */
+export interface ResourceLink {
+  id: string;
+  folderId: string;
+  title: string;
+  url: string;
+  kind: ResourceLinkKind;
+  sortOrder: number;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+

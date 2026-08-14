@@ -8,7 +8,6 @@ const AdminPageHeader: React.FC = () => (
       <ShieldCheckIcon className="h-7 w-7 text-brand-gold sm:h-8 sm:w-8" />
       {t.admin.title}
     </h1>
-    <p className="mt-1 text-sm text-slate-500">{t.admin.subtitle}</p>
   </div>
 );
 
