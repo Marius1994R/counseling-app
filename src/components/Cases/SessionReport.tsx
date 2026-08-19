@@ -90,7 +90,12 @@ interface SessionReportProps {
   onClose: () => void;
   caseId: string;
   caseTitle: string;
-  onReportAdded?: () => void;
+  onReportAdded?: (result?: {
+    caseId: string;
+    meetingDate: Date;
+    meetingFrequencyWeeks: MeetingFrequencyWeeks | null;
+    sessionNumber: number;
+  }) => void;
   hideAddButton?: boolean; // Hide the "Adaugă Raport Post-Sesiune" button
   caseStatus?: string; // Case status to determine if add button should be shown
   autoOpenAddForm?: boolean; // Automatically open the add report form when dialog opens
@@ -364,7 +369,12 @@ const SessionReport: React.FC<SessionReportProps> = ({
       
       // Close the dialog and trigger callback to close all modals
       if (onReportAdded) {
-        onReportAdded();
+        onReportAdded({
+          caseId,
+          meetingDate: parsedMeetingDate,
+          meetingFrequencyWeeks: frequencyToSave,
+          sessionNumber,
+        });
       } else {
         // If no callback, just close the dialog
         onClose();

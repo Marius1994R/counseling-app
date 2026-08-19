@@ -1,5 +1,6 @@
 import { Appointment, Case, CaseStatus, ChurchEvent } from '../../types';
 import { getAppointmentDateTime, toDateKey } from '../Calendar/calendarUtils';
+import { isMeetingFrequencyOverdue } from '../../utils/meetingFrequency';
 import { t } from '../../utils/translations';
 
 export interface ActivityRecord {
@@ -334,4 +335,109 @@ export function getLastActivityForCase(caseId: string, activities: ActivityRecor
       a.description?.includes(caseId)
   );
   return match?.timestamp ?? null;
+}
+
+export interface DashboardActionMetrics {
+  reportsNeeded: number;
+  casesWithoutConsent: number;
+  frequencyOverdue: number;
+  activeCases: number;
+}
+
+export interface DashboardActionCaseBuckets {
+  reportsNeededCaseIds: string[];
+  casesWithoutConsentIds: string[];
+  frequencyOverdueCaseIds: string[];
+}
+
+export function computeDashboardActionMetrics(
+  cases: Case[],
+  appointments: Appointment[],
+  activities: ActivityRecord[],
+  sessionReportCounts: Record<string, number>,
+  now = new Date()
+): DashboardActionMetrics {
+  const buckets = collectDashboardActionCaseBuckets(
+    cases,
+    appointments,
+    activities,
+    sessionReportCounts,
+    now
+  );
+  return {
+    reportsNeeded: buckets.reportsNeededCaseIds.length,
+    casesWithoutConsent: buckets.casesWithoutConsentIds.length,
+    frequencyOverdue: buckets.frequencyOverdueCaseIds.length,
+    activeCases: cases.filter((caseItem) => caseItem.status === 'active').length,
+  };
+}
+
+export function collectDashboardActionCaseBuckets(
+  cases: Case[],
+  appointments: Appointment[],
+  activities: ActivityRecord[],
+  sessionReportCounts: Record<string, number>,
+  now = new Date()
+): DashboardActionCaseBuckets {
+  const reportActivityByCaseId = new Map<string, Date>();
+  activities.forEach((activity) => {
+    const caseId =
+      typeof activity.metadata?.caseId === 'string'
+        ? activity.metadata.caseId
+        : undefined;
+    if (!caseId) return;
+
+    if (activity.type === 'session_report_added') {
+      const current = reportActivityByCaseId.get(caseId);
+      if (!current || current.getTime() < activity.timestamp.getTime()) {
+        reportActivityByCaseId.set(caseId, activity.timestamp);
+      }
+    }
+  });
+
+  const latestPastAppointmentByCaseId = new Map<string, Date>();
+  appointments.forEach((appointment) => {
+    if (!appointment.caseId) return;
+    const endAt = getAppointmentDateTime(
+      appointment,
+      appointment.endTime || appointment.startTime
+    );
+    if (endAt.getTime() > now.getTime()) return;
+    const current = latestPastAppointmentByCaseId.get(appointment.caseId);
+    if (!current || current.getTime() < endAt.getTime()) {
+      latestPastAppointmentByCaseId.set(appointment.caseId, endAt);
+    }
+  });
+
+  const reportsNeededCaseIds: string[] = [];
+  const casesWithoutConsentIds: string[] = [];
+  const frequencyOverdueCaseIds: string[] = [];
+
+  cases.forEach((caseItem) => {
+    if (caseItem.status !== 'active') return;
+
+    const reportCount = sessionReportCounts[caseItem.id] ?? 0;
+    const latestPastAppointment = latestPastAppointmentByCaseId.get(caseItem.id);
+    const lastReportActivity = reportActivityByCaseId.get(caseItem.id);
+    const needsReportAfterAppointment =
+      reportCount >= 0 &&
+      Boolean(
+        latestPastAppointment &&
+          (!lastReportActivity || lastReportActivity.getTime() < latestPastAppointment.getTime())
+      );
+    const isOverdueByFrequency = Boolean(
+      caseItem.meetingFrequencyWeeks &&
+        caseItem.lastMeetingDate &&
+        isMeetingFrequencyOverdue(caseItem.lastMeetingDate, caseItem.meetingFrequencyWeeks, now)
+    );
+    if (needsReportAfterAppointment) reportsNeededCaseIds.push(caseItem.id);
+    if (!caseItem.consentAttached) casesWithoutConsentIds.push(caseItem.id);
+    if (isOverdueByFrequency) frequencyOverdueCaseIds.push(caseItem.id);
+  });
+
+  return {
+    reportsNeededCaseIds,
+    casesWithoutConsentIds,
+    frequencyOverdueCaseIds,
+  };
 }

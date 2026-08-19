@@ -96,7 +96,7 @@ export const t = {
     staleReportDetail: 'Cazul „{name}” nu are raport de peste 30 de zile',
     frequencyOverdueTitle: 'Frecvență întâlniri depășită',
     frequencyOverdueDetail:
-      'Cazul „{name}” · {frequency} — depășită cu o săptămână',
+      'Cazul „{name}” · {frequency} — depășită cu {overdue}',
     typeMonthlyReport: 'Raport lunar',
     monthlyReportDueTitle: 'Completează raportul lunar',
     monthlyReportDueDetail: 'Te rugăm să completezi raportul pentru {month}',

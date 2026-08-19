@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -21,7 +21,11 @@ import { Case } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDashboardDataContext } from '../../contexts/DashboardDataContext';
 import { useDashboardReport } from '../../contexts/DashboardReportContext';
-import { getActiveCases } from './dashboardUtils';
+import {
+  collectDashboardActionCaseBuckets,
+  computeDashboardActionMetrics,
+  getActiveCases,
+} from './dashboardUtils';
 import KpiRow from './KpiRow';
 import RecentActiveCases from './RecentActiveCases';
 import QuickPanel from './QuickPanel';
@@ -35,14 +39,16 @@ const Dashboard: React.FC = () => {
   const { registerOpenCaseReportModal } = useDashboardReport();
   const {
     cases,
+    appointments,
     activities,
     counselors,
     sessionReportCounts,
-    metrics,
     upcomingAppointments,
     loading,
     error,
     incrementSessionReportCount,
+    upsertCase,
+    refetch,
   } = useDashboardDataContext();
 
   const [caseSelectionModalOpen, setCaseSelectionModalOpen] = useState(false);
@@ -79,15 +85,31 @@ const Dashboard: React.FC = () => {
     setReportFromSelection(false);
   };
 
-  const handleReportSaved = () => {
+  const handleReportSaved = (result?: {
+    caseId: string;
+    meetingDate: Date;
+    meetingFrequencyWeeks: Case['meetingFrequencyWeeks'];
+    sessionNumber: number;
+  }) => {
     const caseId = selectedCaseForReport?.id;
+    const caseItem = selectedCaseForReport;
     setSessionReportOpen(false);
     setCaseSelectionModalOpen(false);
     setSelectedCaseForReport(null);
     setReportFromSelection(false);
-    if (caseId) {
+    if (caseId && caseItem) {
       incrementSessionReportCount(caseId);
+      if (result?.caseId === caseId) {
+        upsertCase({
+          ...caseItem,
+          lastMeetingDate: result.meetingDate,
+          meetingFrequencyWeeks:
+            result.meetingFrequencyWeeks ?? caseItem.meetingFrequencyWeeks ?? null,
+          updatedAt: new Date(),
+        });
+      }
     }
+    void refetch();
   };
 
   const handleCancelAddForm = () => {
@@ -101,6 +123,36 @@ const Dashboard: React.FC = () => {
 
   const activeCases = getActiveCases(cases);
   const showTeamPulse = currentUser?.role === 'leader';
+  const actionCaseBuckets = useMemo(
+    () => collectDashboardActionCaseBuckets(cases, appointments, activities, sessionReportCounts),
+    [cases, appointments, activities, sessionReportCounts]
+  );
+  const actionMetrics = useMemo(
+    () =>
+      computeDashboardActionMetrics(
+        cases,
+        appointments,
+        activities,
+        sessionReportCounts
+      ),
+    [cases, appointments, activities, sessionReportCounts]
+  );
+
+  const openCasesWithIds = (
+    caseIds: string[],
+    focus: 'reportsNeeded' | 'consentMissing' | 'frequencyOverdue'
+  ) => {
+    if (caseIds.length === 0) return;
+    const params = new URLSearchParams();
+    params.set('status', 'active');
+    params.set('focus', focus);
+    if (caseIds.length === 1) {
+      params.set('caseId', caseIds[0]);
+    } else {
+      params.set('caseIds', caseIds.join(','));
+    }
+    navigate(`/cases?${params.toString()}`);
+  };
 
   const handleActivityClick = (activity: (typeof activities)[number]) => {
     const caseId =
@@ -122,10 +174,18 @@ const Dashboard: React.FC = () => {
     <div className="flex flex-col">
       <div className="order-3 mt-6 lg:order-1 lg:mt-0">
         <KpiRow
-          metrics={metrics}
+          metrics={actionMetrics}
           loading={loading}
+          onReportsClick={() =>
+            openCasesWithIds(actionCaseBuckets.reportsNeededCaseIds, 'reportsNeeded')
+          }
+          onConsentClick={() =>
+            openCasesWithIds(actionCaseBuckets.casesWithoutConsentIds, 'consentMissing')
+          }
+          onFrequencyClick={() =>
+            openCasesWithIds(actionCaseBuckets.frequencyOverdueCaseIds, 'frequencyOverdue')
+          }
           onActiveClick={() => navigate('/cases?status=active')}
-          onPendingClick={() => navigate('/cases?status=waiting')}
         />
       </div>
 

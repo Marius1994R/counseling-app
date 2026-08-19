@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { updateDoc, doc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
@@ -54,6 +54,16 @@ export function useCasesData() {
   const [selectedCaseForDescription, setSelectedCaseForDescription] = useState<Case | null>(null);
 
   const caseIdFilter = searchParams.get('caseId');
+  const caseIdsFilter = useMemo(
+    () =>
+      searchParams
+        .get('caseIds')
+        ?.split(',')
+        .map((id) => id.trim())
+        .filter(Boolean) ?? [],
+    [searchParams]
+  );
+  const focusFilter = searchParams.get('focus');
 
   // Reuse dashboard cache — no second full cases scan
   useEffect(() => {
@@ -82,6 +92,8 @@ export function useCasesData() {
   const clearCaseIdFilter = useCallback(() => {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete('caseId');
+    nextParams.delete('caseIds');
+    nextParams.delete('focus');
     nextParams.delete('openNotes');
     setSearchParams(nextParams, { replace: true });
   }, [searchParams, setSearchParams]);
@@ -112,6 +124,9 @@ export function useCasesData() {
 
     if (caseIdFilter) {
       filtered = filtered.filter((caseItem) => caseItem.id === caseIdFilter);
+    } else if (caseIdsFilter.length > 0) {
+      const idSet = new Set(caseIdsFilter);
+      filtered = filtered.filter((caseItem) => idSet.has(caseItem.id));
     } else {
       if (searchTerm) {
         filtered = filtered.filter(
@@ -128,7 +143,16 @@ export function useCasesData() {
     }
 
     setFilteredCases(filtered);
-  }, [cases, searchTerm, statusFilter, caseIdFilter]);
+  }, [cases, searchTerm, statusFilter, caseIdFilter, caseIdsFilter]);
+
+  const focusFilterLabel =
+    focusFilter === 'reportsNeeded'
+      ? 'Rapoarte necesare'
+      : focusFilter === 'consentMissing'
+        ? 'Fără consimțământ'
+        : focusFilter === 'frequencyOverdue'
+          ? 'Frecvență depășită'
+          : null;
 
   const handleEditCase = useCallback((caseItem: Case) => {
     setSelectedCase(caseItem);
@@ -276,6 +300,8 @@ export function useCasesData() {
     setSearchTerm,
     statusFilter,
     caseIdFilter,
+    caseIdsFilter,
+    focusFilterLabel,
     caseNotes,
     caseReportsCount: sessionReportCounts,
     activeCasesCount,

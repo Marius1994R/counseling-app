@@ -76,6 +76,8 @@ const Cases: React.FC = () => {
     <div>
       <CasesPageHeader
         caseIdFilter={data.caseIdFilter}
+        caseIdsFilter={data.caseIdsFilter}
+        focusFilterLabel={data.focusFilterLabel}
         onClearCaseFilter={data.clearCaseIdFilter}
       />
 

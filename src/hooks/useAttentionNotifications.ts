@@ -27,6 +27,7 @@ import {
   monthlyReportOverdueDismissalId,
 } from '../components/MonthlyReport/monthlyReportUtils';
 import {
+  formatMeetingFrequencyOverdueBy,
   isMeetingFrequencyOverdue,
   meetingFrequencyLabel,
   toMeetingDateKey,
@@ -358,7 +359,8 @@ export function useAttentionNotifications() {
         title: t.notifications.frequencyOverdueTitle,
         detail: t.notifications.frequencyOverdueDetail
           .replace('{name}', caseItem.counseledName)
-          .replace('{frequency}', meetingFrequencyLabel(frequency)),
+          .replace('{frequency}', meetingFrequencyLabel(frequency))
+          .replace('{overdue}', formatMeetingFrequencyOverdueBy(lastMeeting, frequency)),
         payload: { caseItem },
         createdAt: lastMeeting,
       });
