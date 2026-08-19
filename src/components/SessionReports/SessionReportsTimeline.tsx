@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Drawer } from '@mui/material';
 import { Close } from '@mui/icons-material';
 import { PlusIcon } from '@heroicons/react/24/outline';
-import { CaseReportSummary, formatReportDate } from './sessionReportsUtils';
+import { CaseReportSummary, formatReportDate, toRoadSessionNumber } from './sessionReportsUtils';
 import SessionReportDetailCard from './SessionReportDetailCard';
 import { t } from '../../utils/translations';
 
@@ -24,6 +24,7 @@ const SessionReportsTimeline: React.FC<SessionReportsTimelineProps> = ({
 }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const isDrawer = variant === 'drawer';
+  const sessionNumbers = summary?.reports.map((report) => report.sessionNumber) ?? [];
 
   const content = !summary ? (
     <div className="flex flex-1 items-center justify-center p-8 text-center">
@@ -101,7 +102,8 @@ const SessionReportsTimeline: React.FC<SessionReportsTimelineProps> = ({
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
                         <p className="text-sm font-semibold text-slate-900">
-                          {t.sessionReports.sessionNumber} {report.sessionNumber}
+                          {t.sessionReports.sessionNumber}{' '}
+                          {toRoadSessionNumber(report.sessionNumber, sessionNumbers)}
                         </p>
                         <p className="mt-0.5 text-xs text-slate-500">
                           {formatReportDate(report.createdAt)} — {report.createdByName}

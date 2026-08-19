@@ -7,7 +7,6 @@ import {
   buildNextAppointmentByCaseId,
   formatTimeAgo,
   getCalendarDatePath,
-  getCaseProgress,
 } from './dashboardUtils';
 import { t } from '../../utils/translations';
 import { useTimedPulse } from '../../hooks/useTimedPulse';
@@ -72,7 +71,7 @@ const RecentActiveCases: React.FC<RecentActiveCasesProps> = ({
               <DashboardCaseCard
                 key={caseItem.id}
                 caseItem={caseItem}
-                progress={getCaseProgress(caseItem.status, sessionReportCounts[caseItem.id] ?? 0)}
+                reportCount={sessionReportCounts[caseItem.id] ?? 0}
                 lastActivityLabel={getLastActivity(caseItem)}
                 nextAppointment={nextAppointment}
                 pulseAppointment={pulseAppointment}
@@ -80,6 +79,7 @@ const RecentActiveCases: React.FC<RecentActiveCasesProps> = ({
                 onNotes={() => navigate(`/cases?caseId=${caseItem.id}&openNotes=true`)}
                 onAddReport={() => onAddReport(caseItem)}
                 onSchedule={() => navigate(`/calendar?new=true&caseId=${caseItem.id}`)}
+                onOpenReports={() => navigate(`/session-reports?caseId=${caseItem.id}`)}
                 onOpenAppointment={
                   nextAppointment
                     ? () => navigate(getCalendarDatePath(nextAppointment.date))

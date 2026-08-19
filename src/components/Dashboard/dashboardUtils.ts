@@ -230,6 +230,43 @@ export function getCaseProgress(status: CaseStatus, sessionCount: number): numbe
   return 0;
 }
 
+export const SESSION_ROAD_MIN_NODES = 5;
+export const SESSION_ROAD_EXPANDED_NODES = 8;
+export const SESSION_ROAD_EXPAND_AT = 3;
+
+export type SessionRoadNode = {
+  session: number;
+  state: 'done' | 'next' | 'open';
+};
+
+export function getSessionRoadCapacity(reportCount: number): number {
+  return reportCount >= SESSION_ROAD_EXPAND_AT
+    ? SESSION_ROAD_EXPANDED_NODES
+    : SESSION_ROAD_MIN_NODES;
+}
+
+/**
+ * 0–2 reports: 5 nodes. 3rd report: expand to 8 (compressed).
+ * 9th report onward: hide the oldest so 8 stay visible.
+ */
+export function buildSessionRoad(reportCount: number): {
+  hiddenDone: number;
+  nodes: SessionRoadNode[];
+  nextSession: number;
+  capacity: number;
+} {
+  const count = Math.max(0, Math.floor(reportCount));
+  const capacity = getSessionRoadCapacity(count);
+  const hiddenDone = Math.max(0, count - capacity);
+  const nodes: SessionRoadNode[] = [];
+  for (let session = hiddenDone; session < hiddenDone + capacity; session += 1) {
+    if (session < count) nodes.push({ session, state: 'done' });
+    else if (session === count) nodes.push({ session, state: 'next' });
+    else nodes.push({ session, state: 'open' });
+  }
+  return { hiddenDone, nodes, nextSession: count, capacity };
+}
+
 export function getAppointmentDisplayName(appointment: Appointment): string {
   return appointment.caseTitle ?? appointment.title;
 }

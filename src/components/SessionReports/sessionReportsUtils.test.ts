@@ -5,8 +5,11 @@ import {
   computeSessionReportMetrics,
   filterCaseSummaries,
   createEmptyCaseSummary,
+  nextStoredSessionNumber,
+  parseSessionNumber,
   SessionReportRecord,
   shouldUseAllTimeForDeepLink,
+  toRoadSessionNumber,
 } from './sessionReportsUtils';
 import { getCutoffDate } from '../../utils/timeRange';
 
@@ -209,5 +212,18 @@ describe('sessionReportsUtils', () => {
     expect(metrics.totalReports).toBe(2);
     expect(metrics.casesWithReports).toBe(1);
     expect(metrics.reportsThisMonth).toBeGreaterThanOrEqual(0);
+  });
+
+  it('starts new session numbers at 0 and maps legacy 1-based to the road', () => {
+    expect(parseSessionNumber(0)).toBe(0);
+    expect(parseSessionNumber(undefined)).toBe(0);
+    expect(nextStoredSessionNumber([])).toBe(0);
+    expect(nextStoredSessionNumber([0, 1])).toBe(2);
+    expect(nextStoredSessionNumber([1, 2])).toBe(3);
+    expect(toRoadSessionNumber(0, [])).toBe(0);
+    expect(toRoadSessionNumber(1, [1, 2])).toBe(0);
+    expect(toRoadSessionNumber(2, [1, 2])).toBe(1);
+    expect(toRoadSessionNumber(0, [0, 1])).toBe(0);
+    expect(toRoadSessionNumber(1, [0, 1])).toBe(1);
   });
 });

@@ -6,6 +6,7 @@ import {
   getInitials,
   getStatusLabel,
 } from './dashboardUtils';
+import SessionRoad from './SessionRoad';
 import {
   translateIssueType,
   getIssueTypeBadgeClass,
@@ -14,7 +15,7 @@ import { t } from '../../utils/translations';
 
 interface DashboardCaseCardProps {
   caseItem: Case;
-  progress: number;
+  reportCount: number;
   lastActivityLabel: string;
   nextAppointment?: Appointment;
   pulseAppointment?: boolean;
@@ -23,6 +24,7 @@ interface DashboardCaseCardProps {
   onAddReport: () => void;
   onSchedule: () => void;
   onOpenAppointment?: () => void;
+  onOpenReports?: () => void;
 }
 
 const statusBadgeClass: Record<string, string> = {
@@ -42,7 +44,7 @@ const avatarColors = [
 
 const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
   caseItem,
-  progress,
+  reportCount,
   lastActivityLabel,
   nextAppointment,
   pulseAppointment = false,
@@ -51,6 +53,7 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
   onAddReport,
   onSchedule,
   onOpenAppointment,
+  onOpenReports,
 }) => {
   const colorIndex = caseItem.counseledName.charCodeAt(0) % avatarColors.length;
 
@@ -112,16 +115,7 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
           </div>
 
           <div className="mt-3">
-            <div className="mb-1 flex justify-between text-xs text-slate-500">
-              <span>Progres</span>
-              <span>{progress}%</span>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
-              <div
-                className="h-full rounded-full bg-brand-600 transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
+            <SessionRoad reportCount={reportCount} onOpenReports={onOpenReports} />
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">

@@ -36,6 +36,11 @@ import {
   isMeetingFrequencyWeeks,
   meetingFrequencyLabel,
 } from '../../utils/meetingFrequency';
+import {
+  nextStoredSessionNumber,
+  parseSessionNumber,
+  toRoadSessionNumber,
+} from '../SessionReports/sessionReportsUtils';
 
 function todayDateInputValue(): string {
   const d = new Date();
@@ -116,7 +121,7 @@ const SessionReport: React.FC<SessionReportProps> = ({
   const loadGenerationRef = useRef(0);
 
   // Form state
-  const [sessionNumber, setSessionNumber] = useState(1);
+  const [sessionNumber, setSessionNumber] = useState(0);
   const [meetingDate, setMeetingDate] = useState(todayDateInputValue);
   const [meetingFrequencyWeeks, setMeetingFrequencyWeeks] = useState<MeetingFrequencyWeeks | ''>('');
   const [caseHasFrequency, setCaseHasFrequency] = useState(false);
@@ -129,7 +134,9 @@ const SessionReport: React.FC<SessionReportProps> = ({
   const [nextCommitmentsDetails, setNextCommitmentsDetails] = useState('');
   const [noCommitmentsReason, setNoCommitmentsReason] = useState('');
 
-  const frequencyRequired = sessionNumber === 1 || !caseHasFrequency;
+  const storedSessionNumbers = reports.map((r) => r.sessionNumber);
+  const roadSessionNumber = toRoadSessionNumber(sessionNumber, storedSessionNumbers);
+  const frequencyRequired = roadSessionNumber === 0 || !caseHasFrequency;
 
   const loadReports = useCallback(async (isInitialLoad: boolean = false) => {
     if (!caseId) {
@@ -159,7 +166,7 @@ const SessionReport: React.FC<SessionReportProps> = ({
         reportsData.push({
           id: docSnap.id,
           caseId: data.caseId,
-          sessionNumber: data.sessionNumber || 1,
+          sessionNumber: parseSessionNumber(data.sessionNumber),
           meetingDate: data.meetingDate?.toDate?.() ?? null,
           meetingFrequencyWeeks: isMeetingFrequencyWeeks(freq) ? freq : null,
           mainTheme: restrictSensitiveContent ? '' : data.mainTheme,
@@ -187,8 +194,7 @@ const SessionReport: React.FC<SessionReportProps> = ({
       
       // Update session number once reports are loaded (for both autoOpenAddForm and manual opens)
       if (isInitialLoad) {
-        const maxSession = reportsData.length > 0 ? Math.max(...reportsData.map(r => r.sessionNumber), 0) : 0;
-        setSessionNumber(maxSession + 1);
+        setSessionNumber(nextStoredSessionNumber(reportsData.map((r) => r.sessionNumber)));
       }
     } catch (error) {
       console.error('Error loading reports:', error);
@@ -226,8 +232,7 @@ const SessionReport: React.FC<SessionReportProps> = ({
 
   const resetForm = useCallback(() => {
     // Set session number to next available
-    const maxSession = reports.length > 0 ? Math.max(...reports.map(r => r.sessionNumber), 0) : 0;
-    setSessionNumber(maxSession + 1);
+    setSessionNumber(nextStoredSessionNumber(reports.map((r) => r.sessionNumber)));
     setMeetingDate(todayDateInputValue());
     setMainTheme('');
     setPersonResponse('');
@@ -346,7 +351,7 @@ const SessionReport: React.FC<SessionReportProps> = ({
         await logSessionReportAdded(
           caseId,
           caseTitle,
-          sessionNumber,
+          toRoadSessionNumber(sessionNumber, storedSessionNumbers),
           currentUser.id,
           currentUser.fullName
         );
@@ -399,8 +404,7 @@ const SessionReport: React.FC<SessionReportProps> = ({
                     startIcon={<Add />}
                     onClick={() => {
                       // Update session number before opening form
-                      const maxSession = reports.length > 0 ? Math.max(...reports.map(r => r.sessionNumber), 0) : 0;
-                      setSessionNumber(maxSession + 1);
+                      setSessionNumber(nextStoredSessionNumber(reports.map((r) => r.sessionNumber)));
                       setAddReportOpen(true);
                     }}
                     sx={{ 
@@ -468,7 +472,7 @@ const SessionReport: React.FC<SessionReportProps> = ({
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <Box sx={{ width: '100%' }}>
                           <Typography variant="subtitle1" fontWeight="bold">
-                            Raport Sesiune {report.sessionNumber}
+                            Raport Sesiune {toRoadSessionNumber(report.sessionNumber, storedSessionNumbers)}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
                             {report.meetingDate
@@ -652,9 +656,12 @@ const SessionReport: React.FC<SessionReportProps> = ({
                 fullWidth
                 type="number"
                 value={sessionNumber}
-                onChange={(e) => setSessionNumber(parseInt(e.target.value) || 1)}
+                onChange={(e) => {
+                  const parsed = parseInt(e.target.value, 10);
+                  setSessionNumber(Number.isFinite(parsed) && parsed >= 0 ? parsed : 0);
+                }}
                 size="small"
-                inputProps={{ min: 1 }}
+                inputProps={{ min: 0 }}
               />
             </Box>
 

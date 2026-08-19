@@ -9,6 +9,10 @@ import {
   isCaseLifecycleActivityType,
   sortTimelineNewestFirst,
 } from '../components/Cases/caseTimelineUtils';
+import {
+  parseSessionNumber,
+  toRoadSessionNumber,
+} from '../components/SessionReports/sessionReportsUtils';
 
 function truncate(text: string, max = 140): string {
   const trimmed = text.trim();
@@ -71,26 +75,42 @@ export function useCaseTimeline() {
           });
         });
 
+        const reportEntries: {
+          id: string;
+          createdAt: Date;
+          sessionNumber: number;
+          mainTheme: string;
+          authorName: string | undefined;
+        }[] = [];
         reportsSnap.forEach((docSnap) => {
           const data = docSnap.data();
           const createdAt = data.createdAt?.toDate?.() as Date | undefined;
           if (!createdAt) return;
-          const sessionNumber = (data.sessionNumber as number) || 1;
-          const mainTheme = includeSessionReportContent
-            ? String(data.mainTheme || '')
-            : '';
+          reportEntries.push({
+            id: docSnap.id,
+            createdAt,
+            sessionNumber: parseSessionNumber(data.sessionNumber),
+            mainTheme: includeSessionReportContent ? String(data.mainTheme || '') : '',
+            authorName: data.createdByName as string | undefined,
+          });
+        });
+        const reportSessionNumbers = reportEntries.map((entry) => entry.sessionNumber);
+        reportEntries.forEach((entry) => {
           merged.push({
-            id: `report-${docSnap.id}`,
+            id: `report-${entry.id}`,
             kind: 'report',
-            at: createdAt,
-            title: t.caseTimeline.reportTitle.replace('{n}', String(sessionNumber)),
-            summary: mainTheme
-              ? truncate(mainTheme)
+            at: entry.createdAt,
+            title: t.caseTimeline.reportTitle.replace(
+              '{n}',
+              String(toRoadSessionNumber(entry.sessionNumber, reportSessionNumbers))
+            ),
+            summary: entry.mainTheme
+              ? truncate(entry.mainTheme)
               : includeSessionReportContent
                 ? undefined
                 : t.adminTools.sensitiveContentRestricted,
-            sourceId: docSnap.id,
-            authorName: data.createdByName as string | undefined,
+            sourceId: entry.id,
+            authorName: entry.authorName,
           });
         });
 

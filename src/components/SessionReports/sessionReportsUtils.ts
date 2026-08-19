@@ -35,7 +35,7 @@ export function parseSessionReportDoc(
   return {
     id,
     caseId: data.caseId as string,
-    sessionNumber: (data.sessionNumber as number) || 1,
+    sessionNumber: parseSessionNumber(data.sessionNumber),
     mainTheme: data.mainTheme as string,
     personResponse: data.personResponse as string,
     previousTaskCompleted: data.previousTaskCompleted as 'yes' | 'no' | 'partial',
@@ -48,6 +48,29 @@ export function parseSessionReportDoc(
     createdBy: data.createdBy as string,
     createdByName: data.createdByName as string,
   };
+}
+
+export function parseSessionNumber(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+/** Next stored session index. Empty case starts at 0 (matches drum de sesiuni). */
+export function nextStoredSessionNumber(sessionNumbers: number[]): number {
+  if (sessionNumbers.length === 0) return 0;
+  return Math.max(...sessionNumbers) + 1;
+}
+
+/**
+ * Road / UI index is 0-based. Legacy reports start at 1 — map them down so
+ * labels match drum de sesiuni. Cases that already have session 0 stay as stored.
+ */
+export function toRoadSessionNumber(
+  sessionNumber: number,
+  allSessionNumbers: number[]
+): number {
+  if (allSessionNumbers.length === 0) return sessionNumber;
+  if (allSessionNumbers.some((n) => n === 0)) return sessionNumber;
+  return sessionNumber - 1;
 }
 
 export function buildCaseSummaries(

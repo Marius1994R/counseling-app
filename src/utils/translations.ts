@@ -154,6 +154,7 @@ export const t = {
     quickPanel: 'Panou rapid',
     alerts: 'Atenție',
     progress: 'Progres',
+    sessionRoadCaption: '{count} {reports} · următoarea: sesiunea {next}',
     viewCase: 'Vezi',
     notes: 'Note',
     schedule: 'Programează',
