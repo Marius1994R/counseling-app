@@ -1,7 +1,11 @@
 import React from 'react';
 import { ClipboardDocumentListIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
-import { Case } from '../../types';
-import { getInitials, getStatusLabel } from './dashboardUtils';
+import { Appointment, Case } from '../../types';
+import {
+  formatNextAppointmentChipLabel,
+  getInitials,
+  getStatusLabel,
+} from './dashboardUtils';
 import {
   translateIssueType,
   getIssueTypeBadgeClass,
@@ -12,10 +16,13 @@ interface DashboardCaseCardProps {
   caseItem: Case;
   progress: number;
   lastActivityLabel: string;
+  nextAppointment?: Appointment;
+  pulseAppointment?: boolean;
   onView: () => void;
   onNotes: () => void;
   onAddReport: () => void;
   onSchedule: () => void;
+  onOpenAppointment?: () => void;
 }
 
 const statusBadgeClass: Record<string, string> = {
@@ -37,10 +44,13 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
   caseItem,
   progress,
   lastActivityLabel,
+  nextAppointment,
+  pulseAppointment = false,
   onView,
   onNotes,
   onAddReport,
   onSchedule,
+  onOpenAppointment,
 }) => {
   const colorIndex = caseItem.counseledName.charCodeAt(0) % avatarColors.length;
 
@@ -55,8 +65,22 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-2">
-            <div>
-              <p className="font-semibold text-slate-900">{caseItem.counseledName}</p>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-semibold text-slate-900">{caseItem.counseledName}</p>
+                {nextAppointment && (
+                  <button
+                    type="button"
+                    onClick={onOpenAppointment}
+                    className={`${
+                      pulseAppointment ? 'animate-schedule-pulse ' : ''
+                    }shrink-0 rounded-full bg-brand-600 px-2 py-0.5 text-xs font-medium text-white transition hover:bg-brand-700`}
+                    title={t.dashboard.upcomingAppointments}
+                  >
+                    {formatNextAppointmentChipLabel(nextAppointment)}
+                  </button>
+                )}
+              </div>
               <p className="text-sm text-slate-500">
                 {caseItem.assignedCounselorName ?? 'Nealocat'}
               </p>

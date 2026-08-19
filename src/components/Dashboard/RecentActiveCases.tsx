@@ -1,9 +1,16 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardCaseCard from './DashboardCaseCard';
-import { Case } from '../../types';
-import { ActivityRecord, formatTimeAgo, getCaseProgress } from './dashboardUtils';
+import { Appointment, Case } from '../../types';
+import {
+  ActivityRecord,
+  buildNextAppointmentByCaseId,
+  formatTimeAgo,
+  getCalendarDatePath,
+  getCaseProgress,
+} from './dashboardUtils';
 import { t } from '../../utils/translations';
+import { useTimedPulse } from '../../hooks/useTimedPulse';
 
 const DISPLAY_LIMIT = 2;
 
@@ -11,6 +18,7 @@ interface RecentActiveCasesProps {
   cases: Case[];
   activities: ActivityRecord[];
   sessionReportCounts: Record<string, number>;
+  upcomingAppointments: Appointment[];
   loading?: boolean;
   onAddReport: (caseItem: Case) => void;
 }
@@ -19,11 +27,18 @@ const RecentActiveCases: React.FC<RecentActiveCasesProps> = ({
   cases,
   activities,
   sessionReportCounts,
+  upcomingAppointments,
   loading,
   onAddReport,
 }) => {
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
+  const pulseAppointment = useTimedPulse(5000, !loading);
+
+  const nextAppointmentByCaseId = useMemo(
+    () => buildNextAppointmentByCaseId(upcomingAppointments),
+    [upcomingAppointments]
+  );
 
   const getLastActivity = (caseItem: Case): string => {
     const caseActivity = activities.find(
@@ -51,18 +66,28 @@ const RecentActiveCases: React.FC<RecentActiveCasesProps> = ({
         <p className="py-8 text-center text-sm text-slate-500">Nu există cazuri active momentan.</p>
       ) : (
         <div className="space-y-4">
-          {visibleCases.map((caseItem) => (
-            <DashboardCaseCard
-              key={caseItem.id}
-              caseItem={caseItem}
-              progress={getCaseProgress(caseItem.status, sessionReportCounts[caseItem.id] ?? 0)}
-              lastActivityLabel={getLastActivity(caseItem)}
-              onView={() => navigate(`/cases?caseId=${caseItem.id}`)}
-              onNotes={() => navigate(`/cases?caseId=${caseItem.id}&openNotes=true`)}
-              onAddReport={() => onAddReport(caseItem)}
-              onSchedule={() => navigate(`/calendar?new=true&caseId=${caseItem.id}`)}
-            />
-          ))}
+          {visibleCases.map((caseItem) => {
+            const nextAppointment = nextAppointmentByCaseId[caseItem.id];
+            return (
+              <DashboardCaseCard
+                key={caseItem.id}
+                caseItem={caseItem}
+                progress={getCaseProgress(caseItem.status, sessionReportCounts[caseItem.id] ?? 0)}
+                lastActivityLabel={getLastActivity(caseItem)}
+                nextAppointment={nextAppointment}
+                pulseAppointment={pulseAppointment}
+                onView={() => navigate(`/cases?caseId=${caseItem.id}`)}
+                onNotes={() => navigate(`/cases?caseId=${caseItem.id}&openNotes=true`)}
+                onAddReport={() => onAddReport(caseItem)}
+                onSchedule={() => navigate(`/calendar?new=true&caseId=${caseItem.id}`)}
+                onOpenAppointment={
+                  nextAppointment
+                    ? () => navigate(getCalendarDatePath(nextAppointment.date))
+                    : undefined
+                }
+              />
+            );
+          })}
         </div>
       )}
 

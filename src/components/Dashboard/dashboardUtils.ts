@@ -1,4 +1,5 @@
 import { Appointment, Case, CaseStatus, ChurchEvent } from '../../types';
+import { getAppointmentDateTime, toDateKey } from '../Calendar/calendarUtils';
 import { t } from '../../utils/translations';
 
 export interface ActivityRecord {
@@ -231,6 +232,55 @@ export function getCaseProgress(status: CaseStatus, sessionCount: number): numbe
 
 export function getAppointmentDisplayName(appointment: Appointment): string {
   return appointment.caseTitle ?? appointment.title;
+}
+
+/** Earliest future appointment per case (by start time). Skips appointments without caseId. */
+export function buildNextAppointmentByCaseId(
+  appointments: Appointment[],
+  now = new Date()
+): Record<string, Appointment> {
+  const map: Record<string, Appointment> = {};
+  for (const apt of appointments) {
+    if (!apt.caseId) continue;
+    const start = getAppointmentDateTime(apt, apt.startTime);
+    if (start <= now) continue;
+    const existing = map[apt.caseId];
+    if (!existing || start < getAppointmentDateTime(existing, existing.startTime)) {
+      map[apt.caseId] = apt;
+    }
+  }
+  return map;
+}
+
+/** Chip label: „Astăzi 10:00”, „Mâine 10:00”, or „Joi 21 aug · 10:00”. */
+export function formatNextAppointmentChipLabel(
+  appointment: Appointment,
+  now = new Date()
+): string {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const target = new Date(
+    appointment.date.getFullYear(),
+    appointment.date.getMonth(),
+    appointment.date.getDate()
+  );
+  const time = appointment.startTime;
+
+  if (target.getTime() === today.getTime()) return `${t.dashboard.today} ${time}`;
+  if (target.getTime() === tomorrow.getTime()) return `Mâine ${time}`;
+
+  const weekday = appointment.date.toLocaleDateString('ro-RO', { weekday: 'short' });
+  const dayMonth = appointment.date.toLocaleDateString('ro-RO', {
+    day: 'numeric',
+    month: 'short',
+  });
+  const weekdayLabel = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+  return `${weekdayLabel} ${dayMonth} - ${time}`;
+}
+
+export function getCalendarDatePath(date: Date): string {
+  return `/calendar?date=${toDateKey(date)}`;
 }
 
 export function getActiveCases(cases: Case[], limit?: number): Case[] {

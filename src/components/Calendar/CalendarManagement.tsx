@@ -158,15 +158,6 @@ const CalendarManagement: React.FC = () => {
         </Alert>
       )}
 
-      <CalendarToolbar
-        searchTerm={data.searchTerm}
-        onSearchChange={data.setSearchTerm}
-        counselorFilter={data.counselorFilter}
-        onCounselorFilterChange={data.setCounselorFilter}
-        counselors={data.counselors}
-        filteredCount={countFutureAppointments(data.filteredAppointments)}
-      />
-
       <div
         className={
           isMobile
@@ -183,6 +174,17 @@ const CalendarManagement: React.FC = () => {
         />
 
         {!isMobile && <CalendarDayDialog variant="panel" {...dayPanelProps} />}
+      </div>
+
+      <div className="mt-4">
+        <CalendarToolbar
+          searchTerm={data.searchTerm}
+          onSearchChange={data.setSearchTerm}
+          counselorFilter={data.counselorFilter}
+          onCounselorFilterChange={data.setCounselorFilter}
+          counselors={data.counselors}
+          filteredCount={countFutureAppointments(data.filteredAppointments)}
+        />
       </div>
 
       {isMobile && (

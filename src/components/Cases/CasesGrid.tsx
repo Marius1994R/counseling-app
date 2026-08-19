@@ -1,6 +1,6 @@
 import React from 'react';
 import { FolderIcon } from '@heroicons/react/24/outline';
-import { Case } from '../../types';
+import { Appointment, Case } from '../../types';
 import { t } from '../../utils/translations';
 import CaseListCard from './CaseListCard';
 
@@ -9,6 +9,8 @@ interface CasesGridProps {
   loading: boolean;
   caseNotes: Record<string, string>;
   caseReportsCount: Record<string, number>;
+  nextAppointmentByCaseId?: Record<string, Appointment>;
+  pulseAppointment?: boolean;
   hasActiveFilters: boolean;
   onOpenNotes: (caseItem: Case) => void;
   onOpenAddReport: (caseItem: Case) => void;
@@ -16,6 +18,7 @@ interface CasesGridProps {
   onOpenTimeline: (caseItem: Case) => void;
   onEdit: (caseItem: Case) => void;
   onOpenDescription: (caseItem: Case) => void;
+  onOpenAppointment?: (appointment: Appointment) => void;
   onDelete?: (caseItem: Case) => void;
   hideMeetingNotes?: boolean;
   showCaseId?: boolean;
@@ -27,6 +30,8 @@ const CasesGrid: React.FC<CasesGridProps> = ({
   loading,
   caseNotes,
   caseReportsCount,
+  nextAppointmentByCaseId,
+  pulseAppointment = false,
   hasActiveFilters,
   onOpenNotes,
   onOpenAddReport,
@@ -34,6 +39,7 @@ const CasesGrid: React.FC<CasesGridProps> = ({
   onOpenTimeline,
   onEdit,
   onOpenDescription,
+  onOpenAppointment,
   onDelete,
   hideMeetingNotes = false,
   showCaseId = false,
@@ -63,24 +69,34 @@ const CasesGrid: React.FC<CasesGridProps> = ({
 
   return (
     <div className="grid grid-cols-1 gap-6 min-[1366px]:grid-cols-2">
-      {cases.map((caseItem) => (
-        <CaseListCard
-          key={caseItem.id}
-          caseItem={caseItem}
-          latestNote={caseNotes[caseItem.id] ?? ''}
-          reportsCount={caseReportsCount[caseItem.id] ?? 0}
-          onOpenNotes={() => onOpenNotes(caseItem)}
-          onOpenAddReport={() => onOpenAddReport(caseItem)}
-          onOpenReports={() => onOpenReports(caseItem)}
-          onOpenTimeline={() => onOpenTimeline(caseItem)}
-          onEdit={() => onEdit(caseItem)}
-          onOpenDescription={() => onOpenDescription(caseItem)}
-          onDelete={onDelete ? () => onDelete(caseItem) : undefined}
-          hideMeetingNotes={hideMeetingNotes}
-          showCaseId={showCaseId}
-          blurSensitiveContent={blurSensitiveContent}
-        />
-      ))}
+      {cases.map((caseItem) => {
+        const nextAppointment = nextAppointmentByCaseId?.[caseItem.id];
+        return (
+          <CaseListCard
+            key={caseItem.id}
+            caseItem={caseItem}
+            latestNote={caseNotes[caseItem.id] ?? ''}
+            reportsCount={caseReportsCount[caseItem.id] ?? 0}
+            nextAppointment={nextAppointment}
+            pulseAppointment={pulseAppointment}
+            onOpenNotes={() => onOpenNotes(caseItem)}
+            onOpenAddReport={() => onOpenAddReport(caseItem)}
+            onOpenReports={() => onOpenReports(caseItem)}
+            onOpenTimeline={() => onOpenTimeline(caseItem)}
+            onEdit={() => onEdit(caseItem)}
+            onOpenDescription={() => onOpenDescription(caseItem)}
+            onOpenAppointment={
+              nextAppointment && onOpenAppointment
+                ? () => onOpenAppointment(nextAppointment)
+                : undefined
+            }
+            onDelete={onDelete ? () => onDelete(caseItem) : undefined}
+            hideMeetingNotes={hideMeetingNotes}
+            showCaseId={showCaseId}
+            blurSensitiveContent={blurSensitiveContent}
+          />
+        );
+      })}
     </div>
   );
 };

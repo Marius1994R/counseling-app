@@ -14,7 +14,7 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
 } from '@heroicons/react/24/outline';
-import { Case } from '../../types';
+import { Appointment, Case } from '../../types';
 import { t } from '../../utils/translations';
 import ConfirmDialog from '../common/ConfirmDialog';
 import { useAuth } from '../../contexts/AuthContext';
@@ -24,6 +24,7 @@ import {
   uploadCaseConsent,
   validateConsentFile,
 } from '../../utils/consentUpload';
+import { formatNextAppointmentChipLabel } from '../Dashboard/dashboardUtils';
 import {
   getCaseDisplayId,
   getInitials,
@@ -41,12 +42,15 @@ interface CaseListCardProps {
   caseItem: Case;
   latestNote: string;
   reportsCount: number;
+  nextAppointment?: Appointment;
+  pulseAppointment?: boolean;
   onOpenNotes: () => void;
   onOpenAddReport: () => void;
   onOpenReports: () => void;
   onOpenTimeline: () => void;
   onEdit: () => void;
   onOpenDescription: () => void;
+  onOpenAppointment?: () => void;
   onDelete?: () => void;
   /** Hide sensitive meeting-notes preview (e.g. admin case management). */
   hideMeetingNotes?: boolean;
@@ -63,12 +67,15 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
   caseItem,
   latestNote,
   reportsCount,
+  nextAppointment,
+  pulseAppointment = false,
   onOpenNotes,
   onOpenAddReport,
   onOpenReports,
   onOpenTimeline,
   onEdit,
   onOpenDescription,
+  onOpenAppointment,
   onDelete,
   hideMeetingNotes = false,
   showCaseId = false,
@@ -171,9 +178,23 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
                     {showCaseId && (
                       <p className="text-xs text-slate-400">{getCaseDisplayId(caseItem)}</p>
                     )}
-                    <h2 className="text-lg font-semibold text-slate-900">
-                      {caseItem.counseledName}
-                    </h2>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-lg font-semibold text-slate-900">
+                        {caseItem.counseledName}
+                      </h2>
+                      {nextAppointment && (
+                        <button
+                          type="button"
+                          onClick={onOpenAppointment}
+                          className={`${
+                            pulseAppointment ? 'animate-schedule-pulse ' : ''
+                          }shrink-0 rounded-full bg-brand-600 px-2.5 py-0.5 text-xs font-medium text-white transition hover:bg-brand-700`}
+                          title={t.dashboard.upcomingAppointments}
+                        >
+                          {formatNextAppointmentChipLabel(nextAppointment)}
+                        </button>
+                      )}
+                    </div>
                     <p className="text-sm text-slate-500">{caseItem.title}</p>
                   </div>
                   <div className="flex shrink-0 flex-wrap justify-end gap-1.5">

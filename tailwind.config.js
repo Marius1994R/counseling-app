@@ -40,9 +40,14 @@ module.exports = {
           '35%': { transform: 'rotate(2deg)' },
           '40%': { transform: 'rotate(0deg)' },
         },
+        'schedule-pulse': {
+          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+          '50%': { opacity: '0.82', transform: 'scale(1.04)' },
+        },
       },
       animation: {
         'bell-dance': 'bell-dance 2.4s ease-in-out infinite',
+        'schedule-pulse': 'schedule-pulse 1.8s ease-in-out infinite',
       },
     },
   },

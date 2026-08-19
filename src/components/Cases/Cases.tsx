@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -19,19 +19,36 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { useCasesData } from '../../hooks/useCasesData';
-import { Case, CaseStatus } from '../../types';
+import { useDashboardDataContext } from '../../contexts/DashboardDataContext';
+import {
+  buildNextAppointmentByCaseId,
+  getCalendarDatePath,
+} from '../Dashboard/dashboardUtils';
+import { Appointment, Case, CaseStatus } from '../../types';
 import MeetingNotes from './MeetingNotes';
 import SessionReport from './SessionReport';
 import CaseTimelineDialog from './CaseTimelineDialog';
 import CasesPageHeader from './CasesPageHeader';
 import CasesToolbar from './CasesToolbar';
 import CasesGrid from './CasesGrid';
+import { useTimedPulse } from '../../hooks/useTimedPulse';
 import { t } from '../../utils/translations';
 
 const Cases: React.FC = () => {
   const navigate = useNavigate();
   const data = useCasesData();
+  const { upcomingAppointments } = useDashboardDataContext();
   const [timelineCase, setTimelineCase] = useState<Case | null>(null);
+
+  const nextAppointmentByCaseId = useMemo(
+    () => buildNextAppointmentByCaseId(upcomingAppointments),
+    [upcomingAppointments]
+  );
+  const pulseAppointment = useTimedPulse(5000, !data.loading);
+
+  const handleOpenAppointment = (appointment: Appointment) => {
+    navigate(getCalendarDatePath(appointment.date));
+  };
 
   const handleOpenReports = (caseItem: { id: string }) => {
     navigate(`/session-reports?caseId=${caseItem.id}`);
@@ -83,6 +100,8 @@ const Cases: React.FC = () => {
         loading={data.loading}
         caseNotes={data.caseNotes}
         caseReportsCount={data.caseReportsCount}
+        nextAppointmentByCaseId={nextAppointmentByCaseId}
+        pulseAppointment={pulseAppointment}
         hasActiveFilters={hasActiveFilters}
         onOpenNotes={data.handleOpenMeetingNotes}
         onOpenAddReport={data.handleOpenSessionReport}
@@ -90,6 +109,7 @@ const Cases: React.FC = () => {
         onOpenTimeline={handleOpenTimeline}
         onEdit={data.handleEditCase}
         onOpenDescription={data.handleOpenDescription}
+        onOpenAppointment={handleOpenAppointment}
       />
 
       <Dialog

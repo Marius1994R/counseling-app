@@ -135,6 +135,7 @@ const Dashboard: React.FC = () => {
             cases={activeCases}
             activities={activities}
             sessionReportCounts={sessionReportCounts}
+            upcomingAppointments={upcomingAppointments}
             loading={loading}
             onAddReport={handleAddReportForCase}
           />

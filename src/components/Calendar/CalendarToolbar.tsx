@@ -23,7 +23,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   const countLabel = filteredCount === 1 ? 'programare' : 'programări';
 
   return (
-    <div className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="mb-0 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="grid flex-1 gap-4 sm:grid-cols-2">
           <div>
