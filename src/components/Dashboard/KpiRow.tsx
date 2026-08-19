@@ -47,7 +47,7 @@ const KpiRow: React.FC<KpiRowProps> = ({
       label="Fără consimțământ"
       value={metrics.casesWithoutConsent}
       icon={<PencilSquareIcon className="h-4 w-4" />}
-      variant="primary"
+      variant="danger"
       trendText={
         metrics.casesWithoutConsent === 0 ? 'Totul este încărcat' : 'Cazuri fără document'
       }

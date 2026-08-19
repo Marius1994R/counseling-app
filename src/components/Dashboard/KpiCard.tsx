@@ -1,6 +1,6 @@
 import React from 'react';
 
-type KpiVariant = 'primary' | 'success' | 'warning' | 'info';
+type KpiVariant = 'primary' | 'success' | 'warning' | 'info' | 'danger';
 
 interface KpiCardProps {
   label: string;
@@ -22,6 +22,7 @@ const variantStyles: Record<
   success: { iconBg: 'bg-green-50', iconText: 'text-green-500', badgeBg: 'bg-green-600' },
   warning: { iconBg: 'bg-amber-50', iconText: 'text-amber-500', badgeBg: 'bg-amber-500' },
   info: { iconBg: 'bg-sky-50', iconText: 'text-sky-500', badgeBg: 'bg-sky-600' },
+  danger: { iconBg: 'bg-red-50', iconText: 'text-red-500', badgeBg: 'bg-red-600' },
 };
 
 const KpiCard: React.FC<KpiCardProps> = ({
