@@ -321,6 +321,21 @@ export function getCalendarDatePath(date: Date): string {
   return `/calendar?date=${toDateKey(date)}`;
 }
 
+/** Overdue by frequency, but only when no future appointment is already scheduled. */
+export function isFrequencyOverdueActionable(
+  caseItem: Pick<Case, 'id' | 'lastMeetingDate' | 'meetingFrequencyWeeks'>,
+  nextAppointmentByCaseId: Record<string, Appointment>,
+  now = new Date()
+): boolean {
+  if (!caseItem.meetingFrequencyWeeks || !caseItem.lastMeetingDate) return false;
+  if (nextAppointmentByCaseId[caseItem.id]) return false;
+  return isMeetingFrequencyOverdue(
+    caseItem.lastMeetingDate,
+    caseItem.meetingFrequencyWeeks,
+    now
+  );
+}
+
 export function getActiveCases(cases: Case[], limit?: number): Case[] {
   const active = cases
     .filter((c) => c.status === 'active')
@@ -409,6 +424,8 @@ export function collectDashboardActionCaseBuckets(
     }
   });
 
+  const nextAppointmentByCaseId = buildNextAppointmentByCaseId(appointments, now);
+
   const reportsNeededCaseIds: string[] = [];
   const casesWithoutConsentIds: string[] = [];
   const frequencyOverdueCaseIds: string[] = [];
@@ -425,10 +442,10 @@ export function collectDashboardActionCaseBuckets(
         latestPastAppointment &&
           (!lastReportActivity || lastReportActivity.getTime() < latestPastAppointment.getTime())
       );
-    const isOverdueByFrequency = Boolean(
-      caseItem.meetingFrequencyWeeks &&
-        caseItem.lastMeetingDate &&
-        isMeetingFrequencyOverdue(caseItem.lastMeetingDate, caseItem.meetingFrequencyWeeks, now)
+    const isOverdueByFrequency = isFrequencyOverdueActionable(
+      caseItem,
+      nextAppointmentByCaseId,
+      now
     );
     if (needsReportAfterAppointment) reportsNeededCaseIds.push(caseItem.id);
     if (!caseItem.consentAttached) casesWithoutConsentIds.push(caseItem.id);

@@ -48,3 +48,11 @@ export function formatMeetingFrequencyOverdueBy(
 export function toMeetingDateKey(date: Date): string {
   return date.toISOString().split('T')[0];
 }
+
+/** Stable bell id for one overdue cycle (case + last meeting date). */
+export function frequencyOverdueNotificationId(
+  caseId: string,
+  lastMeetingDate: Date
+): string {
+  return `frequency_overdue:${caseId}:${toMeetingDateKey(lastMeetingDate)}`;
+}

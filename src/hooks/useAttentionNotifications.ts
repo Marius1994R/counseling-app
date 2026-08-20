@@ -15,7 +15,11 @@ import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useEvents } from '../contexts/EventsContext';
 import { useDashboardDataContext } from '../contexts/DashboardDataContext';
-import { ActivityRecord } from '../components/Dashboard/dashboardUtils';
+import {
+  ActivityRecord,
+  buildNextAppointmentByCaseId,
+  isFrequencyOverdueActionable,
+} from '../components/Dashboard/dashboardUtils';
 import { Appointment, Case, ChurchEvent } from '../types';
 import { t } from '../utils/translations';
 import {
@@ -28,9 +32,9 @@ import {
 } from '../components/MonthlyReport/monthlyReportUtils';
 import {
   formatMeetingFrequencyOverdueBy,
+  frequencyOverdueNotificationId,
   isMeetingFrequencyOverdue,
   meetingFrequencyLabel,
-  toMeetingDateKey,
 } from '../utils/meetingFrequency';
 
 const REPORT_ACTIVITY_TYPES = [
@@ -248,6 +252,54 @@ export function useAttentionNotifications() {
     };
   }, [currentUser?.id, dueMonthKey]);
 
+  /**
+   * If frequency is overdue but a future appointment already covers it, resolve this
+   * notification cycle (same id as a manual dismiss). KPI can still resurface later;
+   * the bell stays quiet until a new lastMeetingDate cycle.
+   */
+  useEffect(() => {
+    if (!currentUser?.id || currentUser.id.startsWith('demo-') || !dismissalsLoaded) {
+      return;
+    }
+
+    const now = new Date();
+    const nextByCase = buildNextAppointmentByCaseId(upcomingAppointments, now);
+    const idsToResolve: string[] = [];
+
+    for (const caseItem of cases) {
+      if (caseItem.status !== 'active') continue;
+      const frequency = caseItem.meetingFrequencyWeeks;
+      const lastMeeting = caseItem.lastMeetingDate;
+      if (!frequency || !lastMeeting) continue;
+      if (!isMeetingFrequencyOverdue(lastMeeting, frequency, now)) continue;
+      if (!nextByCase[caseItem.id]) continue;
+
+      const id = frequencyOverdueNotificationId(caseItem.id, lastMeeting);
+      if (dismissedIds.has(id)) continue;
+      idsToResolve.push(id);
+    }
+
+    if (idsToResolve.length === 0) return;
+
+    setDismissedIds((prev) => {
+      const next = new Set(prev);
+      idsToResolve.forEach((id) => next.add(id));
+      return next;
+    });
+
+    void Promise.all(
+      idsToResolve.map((id) => saveDismissedId(currentUser.id, id))
+    ).catch((err) => {
+      console.error('Error resolving frequency-overdue notifications:', err);
+    });
+  }, [
+    cases,
+    upcomingAppointments,
+    dismissedIds,
+    dismissalsLoaded,
+    currentUser?.id,
+  ]);
+
   const items = useMemo(() => {
     const list: AttentionNotification[] = [];
     const now = Date.now();
@@ -345,13 +397,19 @@ export function useAttentionNotifications() {
       });
     }
 
+    const nextAppointmentByCaseId = buildNextAppointmentByCaseId(
+      upcomingAppointments,
+      new Date(now)
+    );
     for (const caseItem of cases) {
       if (caseItem.status !== 'active') continue;
       const frequency = caseItem.meetingFrequencyWeeks;
       const lastMeeting = caseItem.lastMeetingDate;
       if (!frequency || !lastMeeting) continue;
-      if (!isMeetingFrequencyOverdue(lastMeeting, frequency)) continue;
-      const id = `frequency_overdue:${caseItem.id}:${toMeetingDateKey(lastMeeting)}`;
+      if (!isFrequencyOverdueActionable(caseItem, nextAppointmentByCaseId, new Date(now))) {
+        continue;
+      }
+      const id = frequencyOverdueNotificationId(caseItem.id, lastMeeting);
       if (dismissedIds.has(id)) continue;
       list.push({
         id,
