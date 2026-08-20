@@ -884,7 +884,7 @@ export const t = {
 
   resources: {
     title: 'Resurse',
-    subtitle: 'Documente și foi de calcul ale departamentului.',
+    subtitle: 'Documente, prezentări, audio și video ale departamentului.',
     accessHint:
       'Dacă nu aveți acces la un fișier, vă rugăm să cereți acces liderului.',
     addFolder: 'Adaugă folder',
@@ -902,10 +902,14 @@ export const t = {
     folderColor: 'Culoare folder',
     maxDepthError: 'Nu poți adăuga mai mult de {max} niveluri de foldere',
     linkTitle: 'Titlu',
-    linkUrl: 'URL (Google Docs / Sheets)',
+    linkUrl: 'URL (Docs / Sheets / PowerPoint / PDF / Audio / Video)',
     linkKind: 'Tip',
     kindDoc: 'Document',
     kindSheet: 'Foaie de calcul',
+    kindPowerpoint: 'PowerPoint',
+    kindPdf: 'PDF',
+    kindAudio: 'Audio',
+    kindVideo: 'Video',
     kindOther: 'Alt link',
     folder: 'Folder',
     noFoldersYet: 'Creează mai întâi un folder',
@@ -931,6 +935,8 @@ export const t = {
     chipLeadersOnly: 'Doar lideri',
     expand: 'Extinde',
     collapse: 'Restrânge',
+    dragLinkHint: 'Trage linkul într-un folder pentru a-l muta',
+    dropLinkHere: 'Eliberează pentru a muta aici',
   },
 
   // Validation Errors

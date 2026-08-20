@@ -65,6 +65,16 @@ const ResourcesPage: React.FC = () => {
     });
   }, []);
 
+  const handleEnsureExpanded = useCallback((folderId: string) => {
+    setExpandedIds((prev) => {
+      if (prev.has(folderId)) return prev;
+      const next = new Set(prev);
+      next.add(folderId);
+      saveExpandedFolderIds(Array.from(next));
+      return next;
+    });
+  }, []);
+
   const visibleFolders = useMemo(() => {
     const byId = new Map(data.folders.map((f) => [f.id, f]));
     return data.folders
@@ -148,6 +158,7 @@ const ResourcesPage: React.FC = () => {
           canManage={data.canManage}
           expandedIds={expandedIds}
           onToggleExpanded={handleToggleExpanded}
+          onEnsureExpanded={handleEnsureExpanded}
           onAddSubfolder={(parent) =>
             setFolderDialog({ open: true, mode: 'create', defaultParentId: parent.id })
           }
@@ -160,6 +171,16 @@ const ResourcesPage: React.FC = () => {
           onDeleteFolder={(folder) => setPendingDelete({ type: 'folder', folder })}
           onEditLink={(link) => setLinkDialog({ open: true, mode: 'edit', link })}
           onDeleteLink={(link) => setPendingDelete({ type: 'link', link })}
+          onMoveLink={async (linkId, targetFolderId) => {
+            await data.moveLink(linkId, targetFolderId);
+            setExpandedIds((prev) => {
+              if (prev.has(targetFolderId)) return prev;
+              const next = new Set(prev);
+              next.add(targetFolderId);
+              saveExpandedFolderIds(Array.from(next));
+              return next;
+            });
+          }}
         />
       )}
 

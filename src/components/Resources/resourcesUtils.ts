@@ -73,7 +73,16 @@ export function mapFirestoreResourceLink(id: string, data: DocumentData): Resour
     folderId: String(data.folderId || ''),
     title: String(data.title || ''),
     url: String(data.url || ''),
-    kind: kind === 'doc' || kind === 'sheet' || kind === 'other' ? kind : 'other',
+    kind:
+      kind === 'doc' ||
+      kind === 'sheet' ||
+      kind === 'powerpoint' ||
+      kind === 'pdf' ||
+      kind === 'audio' ||
+      kind === 'video' ||
+      kind === 'other'
+        ? kind
+        : 'other',
     sortOrder: typeof data.sortOrder === 'number' ? data.sortOrder : 0,
     createdBy: String(data.createdBy || ''),
     createdAt: coerceDate(data.createdAt),
@@ -128,11 +137,54 @@ export function inferResourceLinkKind(url: string): ResourceLinkKind {
   if (lower.includes('docs.google.com/spreadsheets') || lower.includes('sheets.google.com')) {
     return 'sheet';
   }
+  if (
+    lower.includes('docs.google.com/presentation') ||
+    lower.includes('slides.google.com') ||
+    lower.endsWith('.pptx') ||
+    lower.endsWith('.ppt')
+  ) {
+    return 'powerpoint';
+  }
   if (lower.includes('docs.google.com/document') || lower.includes('docs.google.com/doc')) {
     return 'doc';
   }
+  if (
+    lower.endsWith('.pdf') ||
+    lower.includes('.pdf?') ||
+    lower.includes('.pdf#') ||
+    lower.includes('/pdf') ||
+    lower.includes('application/pdf')
+  ) {
+    return 'pdf';
+  }
+  if (
+    lower.includes('youtube.com') ||
+    lower.includes('youtu.be') ||
+    lower.includes('vimeo.com') ||
+    lower.endsWith('.mp4') ||
+    lower.endsWith('.webm') ||
+    lower.endsWith('.mov') ||
+    lower.endsWith('.m4v')
+  ) {
+    return 'video';
+  }
+  if (
+    lower.includes('soundcloud.com') ||
+    lower.includes('spotify.com') ||
+    lower.endsWith('.mp3') ||
+    lower.endsWith('.wav') ||
+    lower.endsWith('.m4a') ||
+    lower.endsWith('.aac') ||
+    lower.endsWith('.ogg')
+  ) {
+    return 'audio';
+  }
   if (lower.includes('spreadsheet')) return 'sheet';
+  if (lower.includes('presentation') || lower.includes('powerpoint')) return 'powerpoint';
   if (lower.includes('document')) return 'doc';
+  if (lower.includes('pdf')) return 'pdf';
+  if (lower.includes('video')) return 'video';
+  if (lower.includes('audio') || lower.includes('podcast')) return 'audio';
   return 'other';
 }
 

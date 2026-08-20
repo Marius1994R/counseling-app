@@ -141,6 +141,10 @@ const ResourceLinkDialog: React.FC<ResourceLinkDialogProps> = ({
           >
             <option value="doc">{t.resources.kindDoc}</option>
             <option value="sheet">{t.resources.kindSheet}</option>
+            <option value="powerpoint">{t.resources.kindPowerpoint}</option>
+            <option value="pdf">{t.resources.kindPdf}</option>
+            <option value="audio">{t.resources.kindAudio}</option>
+            <option value="video">{t.resources.kindVideo}</option>
             <option value="other">{t.resources.kindOther}</option>
           </select>
         </label>

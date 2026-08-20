@@ -213,8 +213,15 @@ export interface ActivityItem {
   userName: string;
 }
 
-/** External resource link kind (Google Docs/Sheets/other) */
-export type ResourceLinkKind = 'doc' | 'sheet' | 'other';
+/** External resource link kind (Google Docs/Sheets/Slides/PDF/audio/video/other) */
+export type ResourceLinkKind =
+  | 'doc'
+  | 'sheet'
+  | 'powerpoint'
+  | 'pdf'
+  | 'audio'
+  | 'video'
+  | 'other';
 
 /** Preset accent color for a resource folder icon */
 export type ResourceFolderColor =

@@ -360,6 +360,57 @@ export function useResources() {
     [requireManager, folders, refreshCollections]
   );
 
+  /** Move a link into another folder (drag-and-drop). No-op if already there. */
+  const moveLink = useCallback(
+    async (linkId: string, targetFolderId: string) => {
+      await requireManager();
+      const link = links.find((l) => l.id === linkId);
+      if (!link) return;
+      if (link.folderId === targetFolderId) return;
+      if (!folders.some((f) => f.id === targetFolderId)) {
+        throw new Error(t.resources.folderRequired);
+      }
+
+      const sortOrder =
+        links
+          .filter((l) => l.folderId === targetFolderId)
+          .reduce((m, l) => Math.max(m, l.sortOrder), 0) + 1;
+
+      // Optimistic local update for immediate tree feedback
+      setLinks((prev) =>
+        prev.map((l) =>
+          l.id === linkId
+            ? { ...l, folderId: targetFolderId, sortOrder, updatedAt: new Date() }
+            : l
+        )
+      );
+
+      setSaving(true);
+      try {
+        await updateDoc(doc(db, 'resourceLinks', linkId), {
+          folderId: targetFolderId,
+          sortOrder,
+          updatedAt: new Date(),
+        });
+        const nextRev = await bumpMetaRevision();
+        await refreshCollections(nextRev);
+      } catch (err) {
+        // Roll back optimistic move on failure
+        setLinks((prev) =>
+          prev.map((l) =>
+            l.id === linkId
+              ? { ...l, folderId: link.folderId, sortOrder: link.sortOrder }
+              : l
+          )
+        );
+        throw err;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [requireManager, links, folders, refreshCollections]
+  );
+
   const deleteLink = useCallback(
     async (id: string) => {
       await requireManager();
@@ -389,6 +440,7 @@ export function useResources() {
     deleteFolder,
     createLink,
     updateLink,
+    moveLink,
     deleteLink,
     clearCache: clearResourcesCache,
   };

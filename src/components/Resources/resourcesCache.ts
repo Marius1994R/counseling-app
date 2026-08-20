@@ -51,7 +51,16 @@ function reviveLink(raw: Record<string, unknown>): ResourceLink | null {
     folderId: String(raw.folderId || ''),
     title: String(raw.title || ''),
     url: String(raw.url),
-    kind: kind === 'doc' || kind === 'sheet' || kind === 'other' ? kind : 'other',
+    kind:
+      kind === 'doc' ||
+      kind === 'sheet' ||
+      kind === 'powerpoint' ||
+      kind === 'pdf' ||
+      kind === 'audio' ||
+      kind === 'video' ||
+      kind === 'other'
+        ? kind
+        : 'other',
     sortOrder: typeof raw.sortOrder === 'number' ? raw.sortOrder : 0,
     createdBy: String(raw.createdBy || ''),
     createdAt: coerceDate(raw.createdAt),
