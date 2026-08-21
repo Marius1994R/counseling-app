@@ -28,6 +28,7 @@ import {
   meetingFrequencyLabel,
 } from '../../utils/meetingFrequency';
 import {
+  isOpeningSession,
   nextStoredSessionNumber,
   parseSessionNumber,
   toRoadSessionNumber,
@@ -65,7 +66,7 @@ interface SessionReportRecord {
   meetingFrequencyWeeks?: MeetingFrequencyWeeks | null;
   mainTheme: string;
   personResponse: string;
-  previousTaskCompleted: 'yes' | 'no' | 'partial';
+  previousTaskCompleted: 'yes' | 'no' | 'partial' | null;
   previousTaskNotCompletedReason?: string;
   progressNoted: string;
   progressType?: string; // spiritual, emotional, relational, attitude, action
@@ -291,13 +292,22 @@ const SessionReport: React.FC<SessionReportProps> = ({
     }
 
     // Validate required fields
-    if (!mainTheme.trim() || !personResponse.trim() || !progressNoted.trim()) {
+    const openingSession = isOpeningSession(sessionNumber, storedSessionNumbers);
+    if (
+      !mainTheme.trim() ||
+      !personResponse.trim() ||
+      (!openingSession && !progressNoted.trim())
+    ) {
       setSnackbar({ open: true, message: 'Toate câmpurile sunt obligatorii', severity: 'error' });
       return;
     }
     
     // Validate reason field when previousTaskCompleted is 'partial' or 'no'
-    if ((previousTaskCompleted === 'partial' || previousTaskCompleted === 'no') && !previousTaskNotCompletedReason.trim()) {
+    if (
+      !openingSession &&
+      (previousTaskCompleted === 'partial' || previousTaskCompleted === 'no') &&
+      !previousTaskNotCompletedReason.trim()
+    ) {
       setSnackbar({ open: true, message: 'Te rugăm să completezi motivul pentru care tema nu a fost împlinită', severity: 'error' });
       return;
     }
@@ -315,9 +325,13 @@ const SessionReport: React.FC<SessionReportProps> = ({
         meetingDate: parsedMeetingDate,
         mainTheme: mainTheme.trim(),
         personResponse: personResponse.trim(),
-        previousTaskCompleted,
-        previousTaskNotCompletedReason: (previousTaskCompleted === 'partial' || previousTaskCompleted === 'no') ? previousTaskNotCompletedReason.trim() : '',
-        progressNoted: progressNoted.trim(),
+        previousTaskCompleted: openingSession ? null : previousTaskCompleted,
+        previousTaskNotCompletedReason:
+          !openingSession &&
+          (previousTaskCompleted === 'partial' || previousTaskCompleted === 'no')
+            ? previousTaskNotCompletedReason.trim()
+            : '',
+        progressNoted: openingSession ? '' : progressNoted.trim(),
         nextCommitments,
         nextCommitmentsDetails: nextCommitments ? nextCommitmentsDetails : '',
         noCommitmentsReason: !nextCommitments ? noCommitmentsReason : '',
@@ -576,6 +590,8 @@ const SessionReport: React.FC<SessionReportProps> = ({
                             <Typography variant="body2">{report.personResponse}</Typography>
                           </Box>
 
+                          {!isOpeningSession(report.sessionNumber, storedSessionNumbers) && (
+                          <>
                           <Box sx={{ mb: 1 }}>
                             <Typography variant="caption" color="text.secondary">
                               3. Tema/pașii anteriori împliniți:
@@ -597,6 +613,8 @@ const SessionReport: React.FC<SessionReportProps> = ({
                             </Typography>
                             <Typography variant="body2">{report.progressNoted}</Typography>
                           </Box>
+                          </>
+                          )}
 
                           <Box>
                             <Typography variant="caption" color="text.secondary">
@@ -676,6 +694,7 @@ const SessionReport: React.FC<SessionReportProps> = ({
           setAddReportOpen(false);
           if (onCancelAddForm) onCancelAddForm();
         }}
+        existingSessionNumbers={storedSessionNumbers}
         onSubmit={() => {
           void handleAddReport();
         }}

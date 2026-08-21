@@ -207,6 +207,7 @@ const CalendarManagement: React.FC = () => {
         currentUser={data.currentUser}
         preSelectedDate={data.preSelectedDate}
         preSelectedCaseId={data.preSelectedCaseId}
+        sessionReportCounts={data.sessionReportCounts}
       />
 
       <EventForm

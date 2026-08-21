@@ -1,5 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Alert, useMediaQuery, useTheme } from '@mui/material';
+import { useSearchParams } from 'react-router-dom';
 import { useSessionReportsData } from '../../hooks/useSessionReportsData';
 import SessionReportsToolbar from './SessionReportsToolbar';
 import SessionReportsCaseList from './SessionReportsCaseList';
@@ -17,6 +18,23 @@ const SessionReportsPage: React.FC = () => {
   const [sessionReportOpen, setSessionReportOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [mobileDossierOpen, setMobileDossierOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const sessionParam = searchParams.get('session');
+  const focusSession = sessionParam !== null && /^\d+$/.test(sessionParam) ? Number(sessionParam) : null;
+
+  // Deep link from the dashboard session road: the dossier has to be visible
+  // before the timeline can expand the report.
+  useEffect(() => {
+    if (focusSession === null) return;
+    setMobileDossierOpen(true);
+  }, [focusSession]);
+
+  const handleFocusApplied = useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('session');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const openAddReportForCase = useCallback((caseItem: Case) => {
     setSelectedCase(caseItem);
@@ -66,6 +84,8 @@ const SessionReportsPage: React.FC = () => {
   const dossierProps = {
     summary: data.selectedSummary,
     onAddReport: canAddReport ? handleAddReportFromDossier : undefined,
+    focusSession,
+    onFocusApplied: handleFocusApplied,
   };
 
   return (

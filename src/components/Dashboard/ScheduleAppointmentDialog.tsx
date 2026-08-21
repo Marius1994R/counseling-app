@@ -14,6 +14,7 @@ import { t } from '../../utils/translations';
 interface ScheduleAppointmentDialogProps {
   open: boolean;
   preSelectedCaseId?: string | null;
+  preSelectedSessionNumber?: number | null;
   onClose: () => void;
   onScheduled: (appointment: Appointment) => void;
 }
@@ -21,11 +22,18 @@ interface ScheduleAppointmentDialogProps {
 const ScheduleAppointmentDialog: React.FC<ScheduleAppointmentDialogProps> = ({
   open,
   preSelectedCaseId,
+  preSelectedSessionNumber,
   onClose,
   onScheduled,
 }) => {
   const { currentUser } = useAuth();
-  const { cases, counselors, appointments, upsertAppointment } = useDashboardDataContext();
+  const {
+    cases,
+    counselors,
+    appointments,
+    sessionReportCounts,
+    upsertAppointment,
+  } = useDashboardDataContext();
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (appointmentData: AppointmentInput) => {
@@ -54,6 +62,8 @@ const ScheduleAppointmentDialog: React.FC<ScheduleAppointmentDialogProps> = ({
         existingAppointments={appointments}
         currentUser={currentUser}
         preSelectedCaseId={preSelectedCaseId}
+        preSelectedSessionNumber={preSelectedSessionNumber}
+        sessionReportCounts={sessionReportCounts}
       />
 
       <Snackbar

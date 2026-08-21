@@ -288,6 +288,10 @@ export function useDashboardData() {
             id: aptDoc.id,
             title: data.title,
             description: data.description,
+            sessionNumber:
+              typeof data.sessionNumber === 'number'
+                ? Math.max(0, Math.floor(data.sessionNumber))
+                : null,
             date: data.date.toDate(),
             startTime: data.startTime,
             endTime: data.endTime,

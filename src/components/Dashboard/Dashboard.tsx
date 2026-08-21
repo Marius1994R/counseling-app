@@ -50,6 +50,7 @@ const Dashboard: React.FC = () => {
   const [consentCase, setConsentCase] = useState<Case | null>(null);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [scheduleCaseId, setScheduleCaseId] = useState<string | null>(null);
+  const [scheduleSessionNumber, setScheduleSessionNumber] = useState<number | null>(null);
 
   useEffect(() => {
     registerOpenCaseReportModal(() => setCaseSelectionPurpose('report'));
@@ -134,19 +135,24 @@ const Dashboard: React.FC = () => {
     setCaseSelectionPurpose(null);
   };
 
-  const handleOpenSchedule = (caseItem?: Case) => {
+  const handleOpenSchedule = (caseItem?: Case, sessionNumber?: number) => {
     setScheduleCaseId(caseItem?.id ?? null);
+    setScheduleSessionNumber(
+      typeof sessionNumber === 'number' ? Math.max(0, Math.floor(sessionNumber)) : null
+    );
     setScheduleOpen(true);
   };
 
   const handleCloseSchedule = () => {
     setScheduleOpen(false);
     setScheduleCaseId(null);
+    setScheduleSessionNumber(null);
   };
 
   const handleAppointmentScheduled = (appointment: Appointment) => {
     setScheduleOpen(false);
     setScheduleCaseId(null);
+    setScheduleSessionNumber(null);
     navigate(getCalendarDatePath(appointment.date));
   };
 
@@ -329,6 +335,7 @@ const Dashboard: React.FC = () => {
       <ScheduleAppointmentDialog
         open={scheduleOpen}
         preSelectedCaseId={scheduleCaseId}
+        preSelectedSessionNumber={scheduleSessionNumber}
         onClose={handleCloseSchedule}
         onScheduled={handleAppointmentScheduled}
       />

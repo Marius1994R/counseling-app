@@ -57,6 +57,14 @@ const isSameScheduledDateTime = (
   );
 };
 
+const normalizeSessionNumber = (value: unknown): number | null =>
+  typeof value === 'number' && Number.isFinite(value)
+    ? Math.max(0, Math.floor(value))
+    : null;
+
+const SESSION_LOOKAHEAD = 4;
+const EMPTY_SESSION_REPORT_COUNTS: Record<string, number> = {};
+
 const FormSection: React.FC<{ title: string; children: React.ReactNode }> = ({
   title,
   children,
@@ -89,6 +97,8 @@ interface AppointmentFormProps {
   currentUser?: { id: string; role: string; email: string } | null;
   preSelectedDate?: Date | null;
   preSelectedCaseId?: string | null;
+  preSelectedSessionNumber?: number | null;
+  sessionReportCounts?: Record<string, number>;
 }
 
 const AppointmentForm: React.FC<AppointmentFormProps> = ({
@@ -101,11 +111,14 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
   existingAppointments,
   currentUser,
   preSelectedDate,
-  preSelectedCaseId
+  preSelectedCaseId,
+  preSelectedSessionNumber,
+  sessionReportCounts = EMPTY_SESSION_REPORT_COUNTS,
 }) => {
   const [formData, setFormData] = useState({
     counselorId: '',
     caseId: '',
+    sessionNumber: null as number | null,
     date: dayjs() as Dayjs | null,
     startTime: null as Dayjs | null,
     endTime: null as Dayjs | null,
@@ -256,6 +269,7 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
       setFormData({
         counselorId: appointmentData.counselorId,
         caseId: caseId,
+        sessionNumber: normalizeSessionNumber(appointmentData.sessionNumber),
         date: dayjs(appointmentData.date),
         startTime: dayjs(appointmentData.date).hour(parseInt(appointmentData.startTime.split(':')[0])).minute(parseInt(appointmentData.startTime.split(':')[1])),
         endTime: dayjs(appointmentData.date).hour(parseInt(appointmentData.endTime.split(':')[0])).minute(parseInt(appointmentData.endTime.split(':')[1])),
@@ -284,6 +298,10 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
       setFormData({
         counselorId: defaultCounselorId,
         caseId: validPreselectedCase,
+        sessionNumber: validPreselectedCase
+          ? normalizeSessionNumber(preSelectedSessionNumber) ??
+            Math.max(0, Math.floor(sessionReportCounts[validPreselectedCase] ?? 0))
+          : null,
         date: (() => {
           const initial = preSelectedDate ? dayjs(preSelectedDate) : dayjs();
           return initial.isBefore(dayjs().startOf('day')) ? dayjs() : initial;
@@ -295,7 +313,17 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
       });
     }
     setErrors({});
-  }, [appointmentData, open, currentUser, counselors, cases, preSelectedDate, preSelectedCaseId]);
+  }, [
+    appointmentData,
+    open,
+    currentUser,
+    counselors,
+    cases,
+    preSelectedDate,
+    preSelectedCaseId,
+    preSelectedSessionNumber,
+    sessionReportCounts,
+  ]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -368,6 +396,7 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
       counselorName: selectedCounselor?.fullName || '',
       caseId: formData.caseId,
       caseTitle: selectedCase?.title || '',
+      sessionNumber: formData.sessionNumber,
       date: formData.date!.toDate(),
       startTime: formData.startTime!.format('HH:mm'),
       endTime: formData.endTime!.format('HH:mm'),
@@ -440,7 +469,14 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
           );
         if (!caseStillValid) {
           newFormData.caseId = '';
+          newFormData.sessionNumber = null;
         }
+      }
+
+      if (field === 'caseId') {
+        newFormData.sessionNumber = value
+          ? Math.max(0, Math.floor(sessionReportCounts[value] ?? 0))
+          : null;
       }
 
       return newFormData;
@@ -466,7 +502,13 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
         );
       if (!caseStillValid) {
         updatedFormData.caseId = '';
+        updatedFormData.sessionNumber = null;
       }
+    }
+    if (field === 'caseId') {
+      updatedFormData.sessionNumber = value
+        ? Math.max(0, Math.floor(sessionReportCounts[value] ?? 0))
+        : null;
     }
 
     if (field === 'date' || field === 'startTime' || field === 'endTime') {
@@ -519,6 +561,14 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
     currentUser?.role === 'admin' || currentUser?.role === 'leader';
 
   const selectedCase = cases.find((c) => c.id === formData.caseId);
+  const nextSessionNumber = formData.caseId
+    ? Math.max(0, Math.floor(sessionReportCounts[formData.caseId] ?? 0))
+    : 0;
+  const maxSessionOption = Math.max(
+    nextSessionNumber + SESSION_LOOKAHEAD,
+    formData.sessionNumber ?? 0
+  );
+  const sessionOptions = Array.from({ length: maxSessionOption + 1 }, (_, index) => index);
   const subtitle = selectedCase
     ? `${selectedCase.counseledName} · ${selectedCase.title}`
     : t.appointments.formSubtitle;
@@ -654,6 +704,45 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
                         {t.appointments.counselorCasesOnly}
                       </Typography>
                     )}
+                  </FormControl>
+                </Box>
+
+                <Box sx={{ flex: '1 1 180px', minWidth: '160px' }}>
+                  <FormControl fullWidth disabled={!formData.caseId}>
+                    <InputLabel shrink>{t.appointments.session}</InputLabel>
+                    <Select<number | ''>
+                      value={formData.sessionNumber ?? ''}
+                      onChange={(e) =>
+                        handleChange(
+                          'sessionNumber',
+                          e.target.value === '' ? null : Number(e.target.value)
+                        )
+                      }
+                      label={t.appointments.session}
+                      displayEmpty
+                      renderValue={(selected) =>
+                        selected === '' ? (
+                          <Typography component="span" color="text.secondary">
+                            {t.appointments.noSession}
+                          </Typography>
+                        ) : (
+                          `${t.sessionReports.sessionNumber} ${selected}`
+                        )
+                      }
+                    >
+                      <MenuItem value="">{t.appointments.noSession}</MenuItem>
+                      {sessionOptions.map((session) => (
+                        <MenuItem key={session} value={session}>
+                          {t.sessionReports.sessionNumber} {session}
+                          {session === nextSessionNumber
+                            ? ` · ${t.appointments.nextSession}`
+                            : ''}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.5 }}>
+                      {t.appointments.sessionOptionalHint}
+                    </Typography>
                   </FormControl>
                 </Box>
               </FormSection>

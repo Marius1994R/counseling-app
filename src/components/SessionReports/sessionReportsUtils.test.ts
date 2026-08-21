@@ -10,6 +10,7 @@ import {
   SessionReportRecord,
   shouldUseAllTimeForDeepLink,
   toRoadSessionNumber,
+  isOpeningSession,
 } from './sessionReportsUtils';
 import { getCutoffDate } from '../../utils/timeRange';
 
@@ -225,5 +226,11 @@ describe('sessionReportsUtils', () => {
     expect(toRoadSessionNumber(2, [1, 2])).toBe(1);
     expect(toRoadSessionNumber(0, [0, 1])).toBe(0);
     expect(toRoadSessionNumber(1, [0, 1])).toBe(1);
+    expect(isOpeningSession(0, [])).toBe(true);
+    expect(isOpeningSession(1, [])).toBe(false);
+    expect(isOpeningSession(1, [1, 2])).toBe(true);
+    expect(isOpeningSession(2, [1, 2])).toBe(false);
+    expect(isOpeningSession(0, [0, 1])).toBe(true);
+    expect(isOpeningSession(1, [0, 1])).toBe(false);
   });
 });

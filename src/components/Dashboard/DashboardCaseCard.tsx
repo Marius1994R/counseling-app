@@ -20,13 +20,14 @@ interface DashboardCaseCardProps {
   reportCount: number;
   lastActivityLabel: string;
   nextAppointment?: Appointment;
+  appointmentBySession?: Record<number, Appointment>;
   pulseAppointment?: boolean;
   onView: () => void;
   onAddNote: () => void;
   onAddReport: () => void;
-  onSchedule: () => void;
+  onSchedule: (sessionNumber?: number) => void;
   onOpenAppointment?: () => void;
-  onOpenReports?: () => void;
+  onOpenReport?: (session: number) => void;
 }
 
 const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
@@ -34,16 +35,21 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
   reportCount,
   lastActivityLabel,
   nextAppointment,
+  appointmentBySession,
   pulseAppointment = false,
   onView,
   onAddNote,
   onAddReport,
   onSchedule,
   onOpenAppointment,
-  onOpenReports,
+  onOpenReport,
 }) => {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md sm:p-5">
+    // The hover lift makes this card a stacking context, so the session-road
+    // bubble can only clear the next card's pulsing chip if the card itself is
+    // raised. No static z-index: without one the card stays out of the stacking
+    // order on touch, where there is no hover.
+    <div className="relative rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition duration-200 ease-out hover:z-30 hover:-translate-y-0.5 hover:shadow-md focus-within:z-30 sm:p-5">
       <div className="flex items-start gap-3">
         <div
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${getAvatarColorClass(
@@ -102,7 +108,14 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
           </div>
 
           <div className="mt-3">
-            <SessionRoad reportCount={reportCount} onOpenReports={onOpenReports} />
+            <SessionRoad
+              reportCount={reportCount}
+              nextAppointment={nextAppointment}
+              appointmentBySession={appointmentBySession}
+              onOpenReport={onOpenReport}
+              onAddReport={onAddReport}
+              onSchedule={(session) => onSchedule(session)}
+            />
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -131,7 +144,7 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
             </button>
             <button
               type="button"
-              onClick={onSchedule}
+              onClick={() => onSchedule()}
               className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition duration-200 ease-out hover:bg-slate-50 active:scale-[0.98]"
             >
               Programează

@@ -139,6 +139,8 @@ export interface Appointment {
   id: string;
   title: string;
   description?: string;
+  /** Optional 0-based session number from the case session road. */
+  sessionNumber?: number | null;
   date: Date;
   startTime: string;
   endTime: string;

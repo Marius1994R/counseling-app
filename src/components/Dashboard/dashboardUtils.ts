@@ -314,6 +314,31 @@ export function buildNextAppointmentByCaseId(
   return map;
 }
 
+/**
+ * Earliest future appointment per case and session number. Only appointments
+ * labelled with a session are indexed, so the road can tell which of its nodes
+ * is already booked.
+ */
+export function buildSessionAppointmentsByCaseId(
+  appointments: Appointment[],
+  now = new Date()
+): Record<string, Record<number, Appointment>> {
+  const map: Record<string, Record<number, Appointment>> = {};
+  for (const apt of appointments) {
+    if (!apt.caseId) continue;
+    if (typeof apt.sessionNumber !== 'number') continue;
+    const start = getAppointmentDateTime(apt, apt.startTime);
+    if (start <= now) continue;
+    const forCase = map[apt.caseId] ?? {};
+    const existing = forCase[apt.sessionNumber];
+    if (!existing || start < getAppointmentDateTime(existing, existing.startTime)) {
+      forCase[apt.sessionNumber] = apt;
+    }
+    map[apt.caseId] = forCase;
+  }
+  return map;
+}
+
 /** Chip label: „Astăzi 10:00”, „Mâine 10:00”, or „Joi 21 aug · 10:00”. */
 export function formatNextAppointmentChipLabel(
   appointment: Appointment,

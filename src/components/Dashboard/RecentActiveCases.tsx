@@ -5,6 +5,7 @@ import { Appointment, Case } from '../../types';
 import {
   ActivityRecord,
   buildNextAppointmentByCaseId,
+  buildSessionAppointmentsByCaseId,
   formatTimeAgo,
   getCalendarDatePath,
 } from './dashboardUtils';
@@ -21,7 +22,7 @@ interface RecentActiveCasesProps {
   loading?: boolean;
   onAddReport: (caseItem: Case) => void;
   onAddNote: (caseItem: Case) => void;
-  onSchedule: (caseItem: Case) => void;
+  onSchedule: (caseItem: Case, sessionNumber?: number) => void;
 }
 
 const RecentActiveCases: React.FC<RecentActiveCasesProps> = ({
@@ -40,6 +41,11 @@ const RecentActiveCases: React.FC<RecentActiveCasesProps> = ({
 
   const nextAppointmentByCaseId = useMemo(
     () => buildNextAppointmentByCaseId(upcomingAppointments),
+    [upcomingAppointments]
+  );
+
+  const sessionAppointmentsByCaseId = useMemo(
+    () => buildSessionAppointmentsByCaseId(upcomingAppointments),
     [upcomingAppointments]
   );
 
@@ -78,12 +84,15 @@ const RecentActiveCases: React.FC<RecentActiveCasesProps> = ({
                 reportCount={sessionReportCounts[caseItem.id] ?? 0}
                 lastActivityLabel={getLastActivity(caseItem)}
                 nextAppointment={nextAppointment}
+                appointmentBySession={sessionAppointmentsByCaseId[caseItem.id]}
                 pulseAppointment={pulseAppointment}
                 onView={() => navigate(`/cases?caseId=${caseItem.id}`)}
                 onAddNote={() => onAddNote(caseItem)}
                 onAddReport={() => onAddReport(caseItem)}
-                onSchedule={() => onSchedule(caseItem)}
-                onOpenReports={() => navigate(`/session-reports?caseId=${caseItem.id}`)}
+                onSchedule={(sessionNumber) => onSchedule(caseItem, sessionNumber)}
+                onOpenReport={(session) =>
+                  navigate(`/session-reports?caseId=${caseItem.id}&session=${session}`)
+                }
                 onOpenAppointment={
                   nextAppointment
                     ? () => navigate(getCalendarDatePath(nextAppointment.date))

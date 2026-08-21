@@ -6,6 +6,7 @@ import {
   MEETING_FREQUENCY_OPTIONS,
   meetingFrequencyLabel,
 } from '../../utils/meetingFrequency';
+import { isOpeningSession } from '../SessionReports/sessionReportsUtils';
 
 function todayDateInputValue(): string {
   const d = new Date();
@@ -44,6 +45,7 @@ interface SessionReportFormDialogProps {
   onChange: (patch: Partial<SessionReportFormValues>) => void;
   onClose: () => void;
   onSubmit: () => void;
+  existingSessionNumbers?: number[];
 }
 
 function ChipOption(props: {
@@ -118,6 +120,7 @@ const SessionReportFormDialog: React.FC<SessionReportFormDialogProps> = ({
   onChange,
   onClose,
   onSubmit,
+  existingSessionNumbers = [],
 }) => {
   const [step, setStep] = useState(0);
   const [stepError, setStepError] = useState('');
@@ -130,6 +133,8 @@ const SessionReportFormDialog: React.FC<SessionReportFormDialogProps> = ({
   }, [open]);
 
   if (!open) return null;
+
+  const openingSession = isOpeningSession(values.sessionNumber, existingSessionNumbers);
 
   const validateStep = (index: number): string | null => {
     if (index === 0) {
@@ -146,6 +151,7 @@ const SessionReportFormDialog: React.FC<SessionReportFormDialogProps> = ({
         return t.sessionReports.wizard.requiredFields;
       }
       if (
+        !openingSession &&
         (values.previousTaskCompleted === 'partial' ||
           values.previousTaskCompleted === 'no') &&
         !values.previousTaskNotCompletedReason.trim()
@@ -155,7 +161,7 @@ const SessionReportFormDialog: React.FC<SessionReportFormDialogProps> = ({
       return null;
     }
     if (index === 2) {
-      if (!values.progressNoted.trim()) {
+      if (!openingSession && !values.progressNoted.trim()) {
         return t.sessionReports.wizard.requiredFields;
       }
       if (
@@ -347,6 +353,7 @@ const SessionReportFormDialog: React.FC<SessionReportFormDialogProps> = ({
                 />
               </label>
 
+              {!openingSession && (
               <div>
                 <p className="text-sm font-medium text-slate-800">
                   {t.sessionReports.wizard.previousTask} *
@@ -394,11 +401,13 @@ const SessionReportFormDialog: React.FC<SessionReportFormDialogProps> = ({
                   />
                 )}
               </div>
+              )}
             </div>
           )}
 
           {step === 2 && (
             <div className="space-y-3">
+              {!openingSession && (
               <label className="block text-sm font-medium text-slate-800">
                 {t.sessionReports.wizard.progress} *
                 <span className="mt-0.5 block text-xs font-normal text-slate-500">
@@ -413,6 +422,7 @@ const SessionReportFormDialog: React.FC<SessionReportFormDialogProps> = ({
                   className={`${inputClass} resize-none`}
                 />
               </label>
+              )}
 
               <div>
                 <p className="text-sm font-medium text-slate-800">

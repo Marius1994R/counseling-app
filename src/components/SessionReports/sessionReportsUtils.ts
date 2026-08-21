@@ -9,7 +9,7 @@ export interface SessionReportRecord {
   sessionNumber: number;
   mainTheme: string;
   personResponse: string;
-  previousTaskCompleted: 'yes' | 'no' | 'partial';
+  previousTaskCompleted: 'yes' | 'no' | 'partial' | null;
   previousTaskNotCompletedReason?: string;
   progressNoted: string;
   nextCommitments: 'yes' | 'no';
@@ -38,9 +38,14 @@ export function parseSessionReportDoc(
     sessionNumber: parseSessionNumber(data.sessionNumber),
     mainTheme: data.mainTheme as string,
     personResponse: data.personResponse as string,
-    previousTaskCompleted: data.previousTaskCompleted as 'yes' | 'no' | 'partial',
+    previousTaskCompleted:
+      data.previousTaskCompleted === 'yes' ||
+      data.previousTaskCompleted === 'no' ||
+      data.previousTaskCompleted === 'partial'
+        ? data.previousTaskCompleted
+        : null,
     previousTaskNotCompletedReason: (data.previousTaskNotCompletedReason as string) || '',
-    progressNoted: data.progressNoted as string,
+    progressNoted: (data.progressNoted as string) || '',
     nextCommitments: data.nextCommitments as 'yes' | 'no',
     nextCommitmentsDetails: data.nextCommitmentsDetails as string | undefined,
     noCommitmentsReason: data.noCommitmentsReason as string | undefined,
@@ -71,6 +76,14 @@ export function toRoadSessionNumber(
   if (allSessionNumbers.length === 0) return sessionNumber;
   if (allSessionNumbers.some((n) => n === 0)) return sessionNumber;
   return sessionNumber - 1;
+}
+
+/** First meeting on the road: no previous theme or observed progress yet. */
+export function isOpeningSession(
+  sessionNumber: number,
+  allSessionNumbers: number[]
+): boolean {
+  return sessionNumber === 0 || toRoadSessionNumber(sessionNumber, allSessionNumbers) === 0;
 }
 
 export function buildCaseSummaries(
@@ -236,8 +249,11 @@ export function formatReportDate(date: Date): string {
   });
 }
 
-export function getTaskCompletedLabel(value: 'yes' | 'no' | 'partial'): string {
+export function getTaskCompletedLabel(
+  value: 'yes' | 'no' | 'partial' | null | undefined
+): string {
   if (value === 'yes') return 'Da';
   if (value === 'partial') return 'Parțial';
-  return 'Nu';
+  if (value === 'no') return 'Nu';
+  return '';
 }

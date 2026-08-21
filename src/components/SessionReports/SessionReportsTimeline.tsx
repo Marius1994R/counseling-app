@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Drawer } from '@mui/material';
 import { Close } from '@mui/icons-material';
 import { PlusIcon } from '@heroicons/react/24/outline';
-import { CaseReportSummary, formatReportDate, toRoadSessionNumber } from './sessionReportsUtils';
+import { CaseReportSummary, formatReportDate, isOpeningSession, toRoadSessionNumber } from './sessionReportsUtils';
 import SessionReportDetailCard from './SessionReportDetailCard';
 import { t } from '../../utils/translations';
 
@@ -13,6 +13,9 @@ interface SessionReportsTimelineProps {
   variant?: 'panel' | 'drawer';
   open?: boolean;
   onClose?: () => void;
+  /** Deep link from the dashboard road: road session number to expand. */
+  focusSession?: number | null;
+  onFocusApplied?: () => void;
 }
 
 const SessionReportsTimeline: React.FC<SessionReportsTimelineProps> = ({
@@ -21,10 +24,28 @@ const SessionReportsTimeline: React.FC<SessionReportsTimelineProps> = ({
   variant = 'panel',
   open = false,
   onClose,
+  focusSession = null,
+  onFocusApplied,
 }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const isDrawer = variant === 'drawer';
   const sessionNumbers = summary?.reports.map((report) => report.sessionNumber) ?? [];
+  const reportRefs = useRef<Record<string, HTMLElement | null>>({});
+
+  useEffect(() => {
+    if (focusSession === null || !summary) return;
+    const numbers = summary.reports.map((report) => report.sessionNumber);
+    const target = summary.reports.find(
+      (report) => toRoadSessionNumber(report.sessionNumber, numbers) === focusSession
+    );
+    if (!target) return;
+
+    setExpandedId(target.id);
+    onFocusApplied?.();
+    window.requestAnimationFrame(() => {
+      reportRefs.current[target.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, [focusSession, summary, onFocusApplied]);
 
   const content = !summary ? (
     <div className="flex flex-1 items-center justify-center p-8 text-center">
@@ -88,7 +109,13 @@ const SessionReportsTimeline: React.FC<SessionReportsTimelineProps> = ({
               const isExpanded = expandedId === report.id;
 
               return (
-                <article key={report.id} className="relative pl-8">
+                <article
+                  key={report.id}
+                  ref={(element) => {
+                    reportRefs.current[report.id] = element;
+                  }}
+                  className="relative pl-8"
+                >
                   <div
                     className="absolute left-0 top-2 h-2.5 w-2.5 rounded-full bg-brand-500 ring-4 ring-white"
                     aria-hidden="true"
@@ -120,7 +147,13 @@ const SessionReportsTimeline: React.FC<SessionReportsTimelineProps> = ({
                       </p>
                     )}
 
-                    {isExpanded && <SessionReportDetailCard report={report} className="mt-2" />}
+                    {isExpanded && (
+                      <SessionReportDetailCard
+                        report={report}
+                        className="mt-2"
+                        isOpeningSession={isOpeningSession(report.sessionNumber, sessionNumbers)}
+                      />
+                    )}
                   </button>
                 </article>
               );

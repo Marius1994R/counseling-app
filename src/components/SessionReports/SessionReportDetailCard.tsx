@@ -5,11 +5,13 @@ import { t } from '../../utils/translations';
 interface SessionReportDetailCardProps {
   report: SessionReportRecord;
   className?: string;
+  isOpeningSession?: boolean;
 }
 
 const SessionReportDetailCard: React.FC<SessionReportDetailCardProps> = ({
   report,
   className = '',
+  isOpeningSession = false,
 }) => (
   <div className={`space-y-3 border-t border-slate-200 pt-4 ${className}`}>
     <p className="text-sm font-semibold text-slate-900">{t.sessionReports.reportDetails}</p>
@@ -24,6 +26,8 @@ const SessionReportDetailCard: React.FC<SessionReportDetailCardProps> = ({
       <p className="text-sm text-slate-800">{report.personResponse}</p>
     </div>
 
+    {!isOpeningSession && (
+    <>
     <div>
       <p className="text-xs font-medium text-slate-500">{t.sessionReports.fields.previousTask}</p>
       <p className="text-sm capitalize text-slate-800">
@@ -41,6 +45,8 @@ const SessionReportDetailCard: React.FC<SessionReportDetailCardProps> = ({
       <p className="text-xs font-medium text-slate-500">{t.sessionReports.fields.progress}</p>
       <p className="text-sm text-slate-800">{report.progressNoted}</p>
     </div>
+    </>
+    )}
 
     <div>
       <p className="text-xs font-medium text-slate-500">{t.sessionReports.fields.commitments}</p>
