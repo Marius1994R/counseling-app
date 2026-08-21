@@ -26,6 +26,7 @@ import {
 } from '../Dashboard/dashboardUtils';
 import { Appointment, Case, CaseStatus } from '../../types';
 import MeetingNotes from './MeetingNotes';
+import MeetingNoteFormDialog from '../MeetingNotes/MeetingNoteFormDialog';
 import SessionReport from './SessionReport';
 import CaseTimelineDialog from './CaseTimelineDialog';
 import CasesPageHeader from './CasesPageHeader';
@@ -106,6 +107,7 @@ const Cases: React.FC = () => {
         pulseAppointment={pulseAppointment}
         hasActiveFilters={hasActiveFilters}
         onOpenNotes={data.handleOpenMeetingNotes}
+        onAddNote={data.handleOpenAddNote}
         onOpenAddReport={data.handleOpenSessionReport}
         onOpenReports={handleOpenReports}
         onOpenTimeline={handleOpenTimeline}
@@ -213,7 +215,24 @@ const Cases: React.FC = () => {
         onClose={data.handleCloseMeetingNotes}
         caseId={data.selectedCaseForNotes?.id || ''}
         caseTitle={data.selectedCaseForNotes?.title || ''}
+        reportCount={
+          data.selectedCaseForNotes
+            ? data.caseReportsCount[data.selectedCaseForNotes.id] ?? 0
+            : 0
+        }
         onNoteAdded={data.handleNoteAdded}
+      />
+
+      <MeetingNoteFormDialog
+        open={data.addNoteOpen}
+        caseItem={data.selectedCaseForNotes}
+        reportCount={
+          data.selectedCaseForNotes
+            ? data.caseReportsCount[data.selectedCaseForNotes.id] ?? 0
+            : 0
+        }
+        onClose={data.handleCloseAddNote}
+        onSaved={data.handleNoteAdded}
       />
 
       <CaseTimelineDialog

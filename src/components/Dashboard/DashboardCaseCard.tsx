@@ -20,7 +20,7 @@ interface DashboardCaseCardProps {
   nextAppointment?: Appointment;
   pulseAppointment?: boolean;
   onView: () => void;
-  onNotes: () => void;
+  onAddNote: () => void;
   onAddReport: () => void;
   onSchedule: () => void;
   onOpenAppointment?: () => void;
@@ -49,7 +49,7 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
   nextAppointment,
   pulseAppointment = false,
   onView,
-  onNotes,
+  onAddNote,
   onAddReport,
   onSchedule,
   onOpenAppointment,
@@ -128,7 +128,7 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
             </button>
             <button
               type="button"
-              onClick={onNotes}
+              onClick={onAddNote}
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition duration-200 ease-out hover:bg-slate-50 active:scale-[0.98]"
             >
               <DocumentTextIcon className="h-4 w-4" />

@@ -5,6 +5,7 @@ import {
   FolderOpenIcon,
   CalendarIcon,
   ClipboardDocumentListIcon,
+  DocumentTextIcon,
   BookOpenIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
@@ -33,6 +34,7 @@ const navItems: NavItem[] = [
   { label: 'Cazuri', path: CASES_PATH, icon: FolderOpenIcon },
   { label: t.navigation.calendar, path: CALENDAR_PATH, icon: CalendarIcon },
   { label: t.navigation.sessionReports, path: '/session-reports', icon: ClipboardDocumentListIcon },
+  { label: t.navigation.meetingNotes, path: '/meeting-notes', icon: DocumentTextIcon },
   { label: t.navigation.resources, path: '/resources', icon: BookOpenIcon },
 ];
 

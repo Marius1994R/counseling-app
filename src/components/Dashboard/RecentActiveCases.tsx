@@ -20,6 +20,7 @@ interface RecentActiveCasesProps {
   upcomingAppointments: Appointment[];
   loading?: boolean;
   onAddReport: (caseItem: Case) => void;
+  onAddNote: (caseItem: Case) => void;
 }
 
 const RecentActiveCases: React.FC<RecentActiveCasesProps> = ({
@@ -29,6 +30,7 @@ const RecentActiveCases: React.FC<RecentActiveCasesProps> = ({
   upcomingAppointments,
   loading,
   onAddReport,
+  onAddNote,
 }) => {
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
@@ -76,7 +78,7 @@ const RecentActiveCases: React.FC<RecentActiveCasesProps> = ({
                 nextAppointment={nextAppointment}
                 pulseAppointment={pulseAppointment}
                 onView={() => navigate(`/cases?caseId=${caseItem.id}`)}
-                onNotes={() => navigate(`/cases?caseId=${caseItem.id}&openNotes=true`)}
+                onAddNote={() => onAddNote(caseItem)}
                 onAddReport={() => onAddReport(caseItem)}
                 onSchedule={() => navigate(`/calendar?new=true&caseId=${caseItem.id}`)}
                 onOpenReports={() => navigate(`/session-reports?caseId=${caseItem.id}`)}

@@ -154,6 +154,7 @@ const AdminCasesPanel: React.FC<AdminCasesPanelProps> = ({
           caseReportsCount={{}}
           hasActiveFilters={hasFilters}
           onOpenNotes={onEdit}
+          onAddNote={onEdit}
           onOpenAddReport={onOpenSessionReport}
           onOpenReports={onOpenSessionReport}
           onOpenTimeline={onOpenTimeline}

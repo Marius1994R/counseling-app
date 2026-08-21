@@ -45,6 +45,7 @@ interface CaseListCardProps {
   nextAppointment?: Appointment;
   pulseAppointment?: boolean;
   onOpenNotes: () => void;
+  onAddNote: () => void;
   onOpenAddReport: () => void;
   onOpenReports: () => void;
   onOpenTimeline: () => void;
@@ -70,6 +71,7 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
   nextAppointment,
   pulseAppointment = false,
   onOpenNotes,
+  onAddNote,
   onOpenAddReport,
   onOpenReports,
   onOpenTimeline,
@@ -321,7 +323,7 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
                       onClick={onOpenNotes}
                       className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 transition hover:text-brand-700"
                     >
-                      {t.meetingNotes.viewAllNotes}
+                      {t.meetingNotes.viewLatestNotes}
                     </button>
                   </>
                 ) : (
@@ -331,7 +333,7 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
                     </p>
                     <button
                       type="button"
-                      onClick={onOpenNotes}
+                      onClick={onAddNote}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
                     >
                       <DocumentTextIcon className="h-4 w-4" />
@@ -391,6 +393,12 @@ const CaseListCard: React.FC<CaseListCardProps> = ({
           </h3>
 
           <div className="flex flex-col gap-2">
+            {!hideMeetingNotes && (
+              <button type="button" onClick={onAddNote} className={actionBtnClass}>
+                <DocumentTextIcon className="h-4 w-4" />
+                {t.meetingNotes.addNote}
+              </button>
+            )}
             {caseItem.status === 'active' && !blurSensitiveContent && (
               <button
                 type="button"

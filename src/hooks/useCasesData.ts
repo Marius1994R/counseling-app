@@ -42,6 +42,7 @@ export function useCasesData() {
   });
 
   const [meetingNotesOpen, setMeetingNotesOpen] = useState(false);
+  const [addNoteOpen, setAddNoteOpen] = useState(false);
   const [sessionReportOpen, setSessionReportOpen] = useState(false);
   const [selectedCaseForNotes, setSelectedCaseForNotes] = useState<Case | null>(null);
   const [caseNotes, setCaseNotes] = useState<Record<string, string>>({});
@@ -95,6 +96,7 @@ export function useCasesData() {
     nextParams.delete('caseIds');
     nextParams.delete('focus');
     nextParams.delete('openNotes');
+    nextParams.delete('addNote');
     setSearchParams(nextParams, { replace: true });
   }, [searchParams, setSearchParams]);
 
@@ -103,19 +105,30 @@ export function useCasesData() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (loading || searchParams.get('openNotes') !== 'true') return;
+    if (loading) return;
 
     const targetId = searchParams.get('caseId');
     if (!targetId) return;
 
+    const openNotes = searchParams.get('openNotes') === 'true';
+    const addNote = searchParams.get('addNote') === 'true';
+    if (!openNotes && !addNote) return;
+
     const caseItem = cases.find((c) => c.id === targetId);
     if (caseItem) {
       setSelectedCaseForNotes(caseItem);
-      setMeetingNotesOpen(true);
+      if (addNote) {
+        setAddNoteOpen(true);
+        setMeetingNotesOpen(false);
+      } else {
+        setMeetingNotesOpen(true);
+        setAddNoteOpen(false);
+      }
     }
 
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete('openNotes');
+    nextParams.delete('addNote');
     setSearchParams(nextParams, { replace: true });
   }, [loading, cases, searchParams, setSearchParams]);
 
@@ -237,6 +250,11 @@ export function useCasesData() {
     setMeetingNotesOpen(true);
   }, []);
 
+  const handleOpenAddNote = useCallback((caseItem: Case) => {
+    setSelectedCaseForNotes(caseItem);
+    setAddNoteOpen(true);
+  }, []);
+
   const handleOpenSessionReport = useCallback((caseItem: Case) => {
     setSelectedCaseForNotes(caseItem);
     setSessionReportOpen(true);
@@ -263,8 +281,17 @@ export function useCasesData() {
 
   const handleCloseMeetingNotes = useCallback(() => {
     setMeetingNotesOpen(false);
-    setSelectedCaseForNotes(null);
-  }, []);
+    if (!addNoteOpen) {
+      setSelectedCaseForNotes(null);
+    }
+  }, [addNoteOpen]);
+
+  const handleCloseAddNote = useCallback(() => {
+    setAddNoteOpen(false);
+    if (!meetingNotesOpen) {
+      setSelectedCaseForNotes(null);
+    }
+  }, [meetingNotesOpen]);
 
   const handleCloseSessionReport = useCallback(() => {
     setSessionReportOpen(false);
@@ -312,6 +339,7 @@ export function useCasesData() {
     editData,
     setEditData,
     meetingNotesOpen,
+    addNoteOpen,
     sessionReportOpen,
     selectedCaseForNotes,
     descriptionModalOpen,
@@ -326,10 +354,12 @@ export function useCasesData() {
     handleSaveCase,
     handleCloseEditDialog,
     handleOpenMeetingNotes,
+    handleOpenAddNote,
     handleOpenSessionReport,
     handleNoteAdded,
     handleSessionReportSaved,
     handleCloseMeetingNotes,
+    handleCloseAddNote,
     handleCloseSessionReport,
     handleOpenDescription,
     handleIssueTypeToggle,

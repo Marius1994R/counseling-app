@@ -12,6 +12,7 @@ import Cases from './components/Cases/Cases';
 import CounselorsManagement from './components/Counselors/CounselorsManagement';
 import CalendarManagement from './components/Calendar/CalendarManagement';
 import SessionReportsPage from './components/SessionReports/SessionReportsPage';
+import MeetingNotesPage from './components/MeetingNotes/MeetingNotesPage';
 import MonthlyReportPage from './components/MonthlyReport/MonthlyReportPage';
 import ResourcesPage from './components/Resources/ResourcesPage';
 import AdminTools from './components/Admin/AdminTools';
@@ -136,6 +137,14 @@ const AppContent: React.FC = () => {
         element={
           <ProtectedRoute>
             <SessionReportsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/meeting-notes"
+        element={
+          <ProtectedRoute>
+            <MeetingNotesPage />
           </ProtectedRoute>
         }
       />

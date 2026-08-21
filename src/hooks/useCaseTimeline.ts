@@ -64,11 +64,19 @@ export function useCaseTimeline() {
           const data = docSnap.data();
           const createdAt = data.createdAt?.toDate?.() as Date | undefined;
           if (!createdAt) return;
+          const sessionNumber =
+            typeof data.sessionNumber === 'number' && Number.isFinite(data.sessionNumber)
+              ? data.sessionNumber
+              : null;
+          const sessionSuffix =
+            sessionNumber != null
+              ? ` · ${t.meetingNotes.sessionLabel.replace('{n}', String(sessionNumber))}`
+              : '';
           merged.push({
             id: `note-${docSnap.id}`,
             kind: 'note',
             at: createdAt,
-            title: t.caseTimeline.noteTitle,
+            title: `${t.caseTimeline.noteTitle}${sessionSuffix}`,
             summary: truncate(String(data.content || '')),
             sourceId: docSnap.id,
             authorName: data.createdByName as string | undefined,

@@ -4,19 +4,11 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Button,
   Box,
   Typography,
   Card,
   CardContent,
-  Radio,
-  RadioGroup,
-  FormControl,
-  FormControlLabel,
-  InputLabel,
-  Select,
-  MenuItem,
   Snackbar,
   Alert,
   CircularProgress,
@@ -32,7 +24,6 @@ import { logSessionReportAdded } from '../../utils/activityLogger';
 import { MeetingFrequencyWeeks } from '../../types';
 import { t } from '../../utils/translations';
 import {
-  MEETING_FREQUENCY_OPTIONS,
   isMeetingFrequencyWeeks,
   meetingFrequencyLabel,
 } from '../../utils/meetingFrequency';
@@ -41,6 +32,7 @@ import {
   parseSessionNumber,
   toRoadSessionNumber,
 } from '../SessionReports/sessionReportsUtils';
+import SessionReportFormDialog from './SessionReportFormDialog';
 
 function todayDateInputValue(): string {
   const d = new Date();
@@ -232,6 +224,7 @@ const SessionReport: React.FC<SessionReportProps> = ({
     } catch (err) {
       console.error('Error loading case meeting frequency:', err);
       setCaseHasFrequency(false);
+      setMeetingFrequencyWeeks('');
     }
   }, [caseId]);
 
@@ -396,7 +389,12 @@ const SessionReport: React.FC<SessionReportProps> = ({
 
   return (
     <>
-      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+      <Dialog
+        open={open && !addReportOpen}
+        onClose={handleClose}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Note sx={{ color: '#ffc700' }} />
@@ -404,9 +402,6 @@ const SessionReport: React.FC<SessionReportProps> = ({
           </Box>
         </DialogTitle>
         <DialogContent>
-          {/* Only show reports list and add button if add form is not open */}
-          {!addReportOpen && (
-            <>
               {!hideAddButton && caseStatus === 'active' && (
                 <Box sx={{ mb: 3 }}>
                   <Button
@@ -629,281 +624,62 @@ const SessionReport: React.FC<SessionReportProps> = ({
               </Box>
             </Box>
               ) : null}
-            </>
-          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Închide</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Add Report Dialog */}
-      <Dialog
+      <SessionReportFormDialog
         open={addReportOpen}
-        onClose={(_, reason) => {
-          if (loading) return;
-          if (reason === 'backdropClick' || reason === 'escapeKeyDown') {
-            setAddReportOpen(false);
-            if (onCancelAddForm) onCancelAddForm();
-            return;
+        caseTitle={caseTitle}
+        loading={loading}
+        frequencyRequired={frequencyRequired}
+        values={{
+          sessionNumber,
+          meetingDate,
+          meetingFrequencyWeeks,
+          mainTheme,
+          personResponse,
+          previousTaskCompleted,
+          previousTaskNotCompletedReason,
+          progressNoted,
+          nextCommitments,
+          nextCommitmentsDetails,
+          noCommitmentsReason,
+        }}
+        onChange={(patch) => {
+          if (patch.sessionNumber !== undefined) setSessionNumber(patch.sessionNumber);
+          if (patch.meetingDate !== undefined) setMeetingDate(patch.meetingDate);
+          if (patch.meetingFrequencyWeeks !== undefined) {
+            setMeetingFrequencyWeeks(patch.meetingFrequencyWeeks);
           }
+          if (patch.mainTheme !== undefined) setMainTheme(patch.mainTheme);
+          if (patch.personResponse !== undefined) setPersonResponse(patch.personResponse);
+          if (patch.previousTaskCompleted !== undefined) {
+            setPreviousTaskCompleted(patch.previousTaskCompleted);
+          }
+          if (patch.previousTaskNotCompletedReason !== undefined) {
+            setPreviousTaskNotCompletedReason(patch.previousTaskNotCompletedReason);
+          }
+          if (patch.progressNoted !== undefined) setProgressNoted(patch.progressNoted);
+          if (patch.nextCommitments !== undefined) setNextCommitments(patch.nextCommitments);
+          if (patch.nextCommitmentsDetails !== undefined) {
+            setNextCommitmentsDetails(patch.nextCommitmentsDetails);
+          }
+          if (patch.noCommitmentsReason !== undefined) {
+            setNoCommitmentsReason(patch.noCommitmentsReason);
+          }
+        }}
+        onClose={() => {
+          if (loading) return;
           setAddReportOpen(false);
           if (onCancelAddForm) onCancelAddForm();
         }}
-        disableEscapeKeyDown={loading}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Raport Post-Sesiune de Consiliere</DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
-            {/* Session Number */}
-            <Box>
-              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
-                Numărul Sesiunii *
-              </Typography>
-              <TextField
-                fullWidth
-                type="number"
-                value={sessionNumber}
-                onChange={(e) => {
-                  const parsed = parseInt(e.target.value, 10);
-                  setSessionNumber(Number.isFinite(parsed) && parsed >= 0 ? parsed : 0);
-                }}
-                size="small"
-                inputProps={{ min: 0 }}
-              />
-            </Box>
-
-            <Box>
-              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
-                {t.sessionReports.meetingDate} *
-              </Typography>
-              <TextField
-                fullWidth
-                type="date"
-                value={meetingDate}
-                onChange={(e) => setMeetingDate(e.target.value)}
-                size="small"
-                InputLabelProps={{ shrink: true }}
-                inputProps={{ max: todayDateInputValue() }}
-                required
-              />
-            </Box>
-
-            <Box>
-              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
-                {t.sessionReports.meetingFrequency}
-                {frequencyRequired ? ' *' : ''}
-              </Typography>
-              {!frequencyRequired && (
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                  {t.sessionReports.meetingFrequencyOptionalHint}
-                </Typography>
-              )}
-              <FormControl fullWidth size="small" required={frequencyRequired}>
-                <InputLabel id="meeting-frequency-label">{t.sessionReports.meetingFrequency}</InputLabel>
-                <Select
-                  labelId="meeting-frequency-label"
-                  label={t.sessionReports.meetingFrequency}
-                  value={meetingFrequencyWeeks}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setMeetingFrequencyWeeks(
-                      value === '' ? '' : (Number(value) as MeetingFrequencyWeeks)
-                    );
-                  }}
-                >
-                  {!frequencyRequired && (
-                    <MenuItem value="">
-                      <em>—</em>
-                    </MenuItem>
-                  )}
-                  {MEETING_FREQUENCY_OPTIONS.map((weeks) => (
-                    <MenuItem key={weeks} value={weeks}>
-                      {meetingFrequencyLabel(weeks)}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-
-            {/* Q1: Main theme */}
-            <Box>
-              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
-                1. Care a fost tema principală abordată în această sesiune? *
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                ex: iertare, relații, frică, identitate, decizii practice etc.
-              </Typography>
-              <TextField
-                fullWidth
-                value={mainTheme}
-                onChange={(e) => setMainTheme(e.target.value)}
-                placeholder="Introdu tema principală..."
-                size="small"
-                inputProps={{ maxLength: 50 }}
-                helperText={`${mainTheme.length}/50 caractere`}
-              />
-            </Box>
-
-            {/* Q2: Person response */}
-            <Box>
-              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
-                2. Cum a răspuns persoana consiliată la ceea ce s-a discutat și aplicat? *
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                ex: receptivă / rezervată / confuză / hotărâtă etc.
-              </Typography>
-              <TextField
-                fullWidth
-                value={personResponse}
-                onChange={(e) => setPersonResponse(e.target.value)}
-                placeholder="Descrie răspunsul persoanei..."
-                size="small"
-                multiline
-                rows={2}
-              />
-            </Box>
-
-            {/* Q3: Previous task completion */}
-            <Box>
-              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
-                3. A împlinit persoana consiliată tema sau pașii practici stabiliți la sesiunea anterioară? *
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                ex: da, parțial, nu – o scurtă observație despre motiv
-              </Typography>
-              <FormControl component="fieldset">
-                <RadioGroup
-                  value={previousTaskCompleted}
-                  onChange={(e) => setPreviousTaskCompleted(e.target.value as 'yes' | 'no' | 'partial')}
-                >
-                  <FormControlLabel value="yes" control={<Radio />} label="Da" />
-                  <FormControlLabel value="partial" control={<Radio />} label="Parțial" />
-                  <FormControlLabel value="no" control={<Radio />} label="Nu" />
-                </RadioGroup>
-              </FormControl>
-              {/* Show reason field when Partial or No is selected */}
-              {(previousTaskCompleted === 'partial' || previousTaskCompleted === 'no') && (
-                <TextField
-                  fullWidth
-                  required
-                  value={previousTaskNotCompletedReason}
-                  onChange={(e) => setPreviousTaskNotCompletedReason(e.target.value)}
-                  placeholder="Te rugăm să explici motivul pentru care tema nu a fost împlinită..."
-                  size="small"
-                  multiline
-                  rows={2}
-                  sx={{ mt: 2 }}
-                  error={!previousTaskNotCompletedReason.trim()}
-                  helperText={!previousTaskNotCompletedReason.trim() ? 'Acest câmp este obligatoriu' : ''}
-                />
-              )}
-            </Box>
-
-            {/* Q4: Progress noted */}
-            <Box>
-              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
-                4. Se observă progres față de sesiunea anterioară? Dacă da, în ce mod? *
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                (spiritual, emoțional, relațional, în atitudine sau în acțiune)
-              </Typography>
-              <TextField
-                fullWidth
-                value={progressNoted}
-                onChange={(e) => setProgressNoted(e.target.value)}
-                placeholder="Descrie progresul observat..."
-                size="small"
-                multiline
-                rows={3}
-              />
-            </Box>
-
-            {/* Q5: Next commitments */}
-            <Box>
-              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
-                5. Există teme, pași practici sau angajamente asumate pentru următoarea întâlnire? *
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                ex: rugăciune specifică, studiu, confruntare, decizie, acțiune concretă etc.
-              </Typography>
-              <FormControl component="fieldset" sx={{ mb: 2 }}>
-                <RadioGroup
-                  value={nextCommitments}
-                  onChange={(e) => setNextCommitments(e.target.value as 'yes' | 'no')}
-                >
-                  <FormControlLabel value="yes" control={<Radio />} label="Da" />
-                  <FormControlLabel value="no" control={<Radio />} label="Nu" />
-                </RadioGroup>
-              </FormControl>
-              
-              {nextCommitments === 'yes' ? (
-                <TextField
-                  fullWidth
-                  value={nextCommitmentsDetails}
-                  onChange={(e) => setNextCommitmentsDetails(e.target.value)}
-                  placeholder="Descrie angajamentele pentru următoarea sesiune..."
-                  size="small"
-                  multiline
-                  rows={2}
-                />
-              ) : (
-                <TextField
-                  fullWidth
-                  value={noCommitmentsReason}
-                  onChange={(e) => setNoCommitmentsReason(e.target.value)}
-                  placeholder="De ce nu există angajamente?"
-                  size="small"
-                  multiline
-                  rows={2}
-                  required={nextCommitments === 'no'}
-                />
-              )}
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => {
-              if (loading) return;
-              setAddReportOpen(false);
-              // If onCancelAddForm callback is provided, call it to show case selection
-              if (onCancelAddForm) {
-                onCancelAddForm();
-              }
-            }}
-            disabled={loading}
-          >
-            Anulează
-          </Button>
-          <Button 
-            onClick={handleAddReport} 
-            variant="contained" 
-            disabled={
-              loading ||
-              !mainTheme.trim() ||
-              !personResponse.trim() ||
-              !progressNoted.trim() ||
-              ((previousTaskCompleted === 'partial' || previousTaskCompleted === 'no') && !previousTaskNotCompletedReason.trim()) ||
-              (nextCommitments === 'yes' && !nextCommitmentsDetails.trim()) ||
-              (nextCommitments === 'no' && !noCommitmentsReason.trim())
-            }
-            startIcon={
-              loading ? <CircularProgress size={16} color="inherit" /> : undefined
-            }
-            sx={{ 
-              backgroundColor: '#ffc700',
-              color: '#000',
-              fontWeight: 'bold',
-              '&:hover': { backgroundColor: '#e6b300' }
-            }}
-          >
-            Salvează Raport
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onSubmit={() => {
+          void handleAddReport();
+        }}
+      />
 
       <Snackbar
         open={snackbar.open}

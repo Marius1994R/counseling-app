@@ -453,7 +453,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                           fontSize: { xs: '0.7rem', sm: '0.75rem' }
                         }}
                       >
-                        {t.meetingNotes.viewAllNotes}
+                        {t.meetingNotes.viewLatestNotes}
                       </Button>
                     )}
                   </Box>
@@ -484,7 +484,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                           fontSize: { xs: '0.7rem', sm: '0.75rem' }
                         }}
                       >
-                        {t.meetingNotes.viewAllNotes}
+                        {t.meetingNotes.viewLatestNotes}
                       </Button>
                     )}
                   </Box>

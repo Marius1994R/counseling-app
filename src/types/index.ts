@@ -121,6 +121,19 @@ export interface SessionReport {
   createdAt: Date;
 }
 
+/** Private meeting note for a counseling case (optionally tied to a session). */
+export interface MeetingNote {
+  id: string;
+  caseId: string;
+  content: string;
+  /** Road session index (0-based). Null for legacy notes without a session. */
+  sessionNumber: number | null;
+  createdAt: Date;
+  createdBy: string;
+  createdByName: string;
+  updatedAt: Date;
+}
+
 // Appointment interface
 export interface Appointment {
   id: string;

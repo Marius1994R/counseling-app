@@ -31,6 +31,7 @@ import RecentActiveCases from './RecentActiveCases';
 import QuickPanel from './QuickPanel';
 import Timeline from './Timeline';
 import SessionReport from '../Cases/SessionReport';
+import MeetingNoteFormDialog from '../MeetingNotes/MeetingNoteFormDialog';
 import { t } from '../../utils/translations';
 
 const Dashboard: React.FC = () => {
@@ -55,6 +56,7 @@ const Dashboard: React.FC = () => {
   const [sessionReportOpen, setSessionReportOpen] = useState(false);
   const [selectedCaseForReport, setSelectedCaseForReport] = useState<Case | null>(null);
   const [reportFromSelection, setReportFromSelection] = useState(false);
+  const [addNoteCase, setAddNoteCase] = useState<Case | null>(null);
 
   useEffect(() => {
     registerOpenCaseReportModal(() => setCaseSelectionModalOpen(true));
@@ -198,6 +200,7 @@ const Dashboard: React.FC = () => {
             upcomingAppointments={upcomingAppointments}
             loading={loading}
             onAddReport={handleAddReportForCase}
+            onAddNote={setAddNoteCase}
           />
         </div>
         <div className="order-1 lg:order-none">
@@ -289,6 +292,15 @@ const Dashboard: React.FC = () => {
         hideAddButton={false}
         caseStatus={selectedCaseForReport?.status}
         autoOpenAddForm
+      />
+
+      <MeetingNoteFormDialog
+        open={addNoteCase !== null}
+        caseItem={addNoteCase}
+        reportCount={
+          addNoteCase ? sessionReportCounts[addNoteCase.id] ?? 0 : 0
+        }
+        onClose={() => setAddNoteCase(null)}
       />
     </div>
   );

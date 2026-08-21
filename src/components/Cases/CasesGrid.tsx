@@ -13,6 +13,7 @@ interface CasesGridProps {
   pulseAppointment?: boolean;
   hasActiveFilters: boolean;
   onOpenNotes: (caseItem: Case) => void;
+  onAddNote: (caseItem: Case) => void;
   onOpenAddReport: (caseItem: Case) => void;
   onOpenReports: (caseItem: Case) => void;
   onOpenTimeline: (caseItem: Case) => void;
@@ -34,6 +35,7 @@ const CasesGrid: React.FC<CasesGridProps> = ({
   pulseAppointment = false,
   hasActiveFilters,
   onOpenNotes,
+  onAddNote,
   onOpenAddReport,
   onOpenReports,
   onOpenTimeline,
@@ -80,6 +82,7 @@ const CasesGrid: React.FC<CasesGridProps> = ({
             nextAppointment={nextAppointment}
             pulseAppointment={pulseAppointment}
             onOpenNotes={() => onOpenNotes(caseItem)}
+            onAddNote={() => onAddNote(caseItem)}
             onOpenAddReport={() => onOpenAddReport(caseItem)}
             onOpenReports={() => onOpenReports(caseItem)}
             onOpenTimeline={() => onOpenTimeline(caseItem)}
