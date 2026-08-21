@@ -31,7 +31,7 @@ interface QuickActionsProps {
   onUpdateProfile?: () => void;
 }
 
-const MOBILE_PREVIEW_COUNT = 2;
+const MOBILE_PREVIEW_COUNT = 3;
 
 const QuickActions: React.FC<QuickActionsProps> = ({
   onRaportCaz,
@@ -52,11 +52,6 @@ const QuickActions: React.FC<QuickActionsProps> = ({
       onClick: onSchedule,
     },
     {
-      label: 'Raport lunar',
-      icon: DocumentChartBarIcon,
-      onClick: () => navigate('/monthly-report'),
-    },
-    {
       label: 'Raport caz',
       icon: DocumentTextIcon,
       onClick: onRaportCaz,
@@ -65,6 +60,11 @@ const QuickActions: React.FC<QuickActionsProps> = ({
       label: t.meetingNotes.addNote,
       icon: PencilSquareIcon,
       onClick: onAddNote,
+    },
+    {
+      label: 'Raport lunar',
+      icon: DocumentChartBarIcon,
+      onClick: () => navigate('/monthly-report'),
     },
     {
       label: t.cases.addConsent,

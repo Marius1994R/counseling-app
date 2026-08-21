@@ -219,7 +219,7 @@ const SessionReportFormDialog: React.FC<SessionReportFormDialogProps> = ({
         aria-hidden="true"
         onClick={handleClose}
       />
-      <div className="relative flex max-h-[min(90vh,100%)] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+      <div className="relative flex h-[min(90vh,38rem)] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
         <div className="shrink-0 border-b border-slate-100 px-4 pb-3 pt-4 sm:px-5 sm:pt-5">
           <h2
             id="session-report-form-title"
@@ -273,11 +273,17 @@ const SessionReportFormDialog: React.FC<SessionReportFormDialogProps> = ({
               <label className="block text-sm font-medium text-slate-800">
                 {t.sessionReports.meetingFrequency}
                 {frequencyRequired ? ' *' : ''}
-                {!frequencyRequired && (
-                  <span className="mt-0.5 block text-xs font-normal text-slate-500">
-                    {t.sessionReports.meetingFrequencyOptionalHint}
-                  </span>
-                )}
+                {/* Rendered in both states so the field keeps the same height */}
+                <span
+                  aria-hidden={frequencyRequired || undefined}
+                  className={`mt-0.5 block text-xs font-normal ${
+                    frequencyRequired ? 'invisible' : 'text-slate-500'
+                  }`}
+                >
+                  {frequencyRequired
+                    ? '\u00A0'
+                    : t.sessionReports.meetingFrequencyOptionalHint}
+                </span>
                 <select
                   value={values.meetingFrequencyWeeks}
                   disabled={loading}
@@ -460,9 +466,12 @@ const SessionReportFormDialog: React.FC<SessionReportFormDialogProps> = ({
             </div>
           )}
 
-          {stepError && (
-            <p className="mt-3 text-sm text-red-600">{stepError}</p>
-          )}
+          <p
+            aria-live="polite"
+            className="mt-3 min-h-[1.25rem] text-sm text-red-600"
+          >
+            {stepError}
+          </p>
         </div>
 
         <div className="flex shrink-0 items-center justify-between gap-2 border-t border-slate-100 px-4 py-3 sm:px-5">

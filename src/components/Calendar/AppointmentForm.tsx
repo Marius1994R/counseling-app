@@ -13,6 +13,8 @@ import {
   Box,
   Typography,
   CircularProgress,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
@@ -55,6 +57,27 @@ const isSameScheduledDateTime = (
   );
 };
 
+const FormSection: React.FC<{ title: string; children: React.ReactNode }> = ({
+  title,
+  children,
+}) => (
+  <Box>
+    <Typography
+      component="h3"
+      sx={{
+        fontSize: '0.75rem',
+        fontWeight: 600,
+        letterSpacing: '0.06em',
+        textTransform: 'uppercase',
+        color: 'text.secondary',
+      }}
+    >
+      {title}
+    </Typography>
+    <Box sx={{ mt: 1.5, display: 'flex', gap: 2, flexWrap: 'wrap' }}>{children}</Box>
+  </Box>
+);
+
 interface AppointmentFormProps {
   open: boolean;
   onClose: () => void;
@@ -90,6 +113,8 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
     description: ''
   });
 
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [startTimePickerOpen, setStartTimePickerOpen] = useState(false);
@@ -493,6 +518,11 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
   const isAdminOrLeader =
     currentUser?.role === 'admin' || currentUser?.role === 'leader';
 
+  const selectedCase = cases.find((c) => c.id === formData.caseId);
+  const subtitle = selectedCase
+    ? `${selectedCase.counseledName} · ${selectedCase.title}`
+    : t.appointments.formSubtitle;
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Dialog
@@ -506,19 +536,43 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
           handleClose();
         }}
         disableEscapeKeyDown={submitting}
-        maxWidth="md"
+        maxWidth="sm"
         fullWidth
+        fullScreen={fullScreen}
+        PaperProps={{
+          sx: {
+            borderRadius: fullScreen ? 0 : 3,
+            border: fullScreen ? 'none' : '1px solid',
+            borderColor: 'divider',
+          },
+        }}
       >
-        <DialogTitle>
-          {appointmentData ? t.appointments.editAppointment : t.appointments.scheduleAppointment}
+        <DialogTitle
+          sx={{
+            px: { xs: 2, sm: 2.5 },
+            py: 2,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Typography component="span" sx={{ display: 'block', fontSize: '1rem', fontWeight: 600 }}>
+            {appointmentData ? t.appointments.editAppointment : t.appointments.scheduleAppointment}
+          </Typography>
+          <Typography
+            component="span"
+            noWrap
+            sx={{ mt: 0.5, display: 'block', fontSize: '0.875rem', color: 'text.secondary' }}
+          >
+            {subtitle}
+          </Typography>
         </DialogTitle>
         <form onSubmit={handleSubmit}>
-          <DialogContent>
-            <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <DialogContent sx={{ px: { xs: 2, sm: 2.5 }, py: 2.5 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <FormSection title={t.appointments.sectionDetails}>
                 {/* Only show counselor dropdown for admin/leader users */}
                 {(currentUser?.role === 'admin' || currentUser?.role === 'leader') && (
-                  <Box sx={{ flex: '1 1 300px', minWidth: '250px' }}>
+                  <Box sx={{ flex: '1 1 240px', minWidth: '220px' }}>
                     <FormControl fullWidth required error={!!errors.counselorId}>
                       <InputLabel>{t.appointments.counselor}</InputLabel>
                       <Select
@@ -602,10 +656,10 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
                     )}
                   </FormControl>
                 </Box>
-              </Box>
-              
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                <Box sx={{ flex: '1 1 300px', minWidth: '250px' }}>
+              </FormSection>
+
+              <FormSection title={t.appointments.sectionSchedule}>
+                <Box sx={{ flex: '1 1 100%' }}>
                   <DatePicker
                     label={t.appointments.date}
                     value={formData.date}
@@ -621,7 +675,7 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
                   />
                 </Box>
                 
-                <Box sx={{ flex: '1 1 150px', minWidth: '120px' }}>
+                <Box sx={{ flex: '1 1 140px', minWidth: '120px' }}>
                   <TimePicker
                     label={t.appointments.startTime}
                     value={formData.startTime}
@@ -649,7 +703,7 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
                   />
                 </Box>
                 
-                <Box sx={{ flex: '1 1 150px', minWidth: '120px' }}>
+                <Box sx={{ flex: '1 1 140px', minWidth: '120px' }}>
                   <TimePicker
                     label={t.appointments.endTime}
                     value={formData.endTime}
@@ -677,10 +731,10 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
                     }}
                   />
                 </Box>
-              </Box>
-              
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                <Box sx={{ flex: '1 1 300px', minWidth: '250px' }}>
+              </FormSection>
+
+              <FormSection title={t.appointments.sectionLocation}>
+                <Box sx={{ flex: '1 1 100%' }}>
                   <FormControl fullWidth required error={!!errors.room}>
                     <InputLabel shrink>{t.appointments.room}</InputLabel>
                     <Select
@@ -712,25 +766,36 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
                     )}
                   </FormControl>
                 </Box>
-              </Box>
-              
-              <TextField
-                fullWidth
-                label={`${t.appointments.description} (Opțional)`}
-                value={formData.description}
-                onChange={(e) => handleChange('description', e.target.value)}
-                multiline
-                rows={3}
-              />
+
+                <Box sx={{ flex: '1 1 100%' }}>
+                  <TextField
+                    fullWidth
+                    label={`${t.appointments.description} (Opțional)`}
+                    value={formData.description}
+                    onChange={(e) => handleChange('description', e.target.value)}
+                    multiline
+                    rows={3}
+                  />
+                </Box>
+              </FormSection>
             </Box>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={handleClose} disabled={submitting}>
+          <DialogActions
+            sx={{
+              px: { xs: 2, sm: 2.5 },
+              py: 2,
+              gap: 1,
+              borderTop: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            <Button onClick={handleClose} disabled={submitting} variant="outlined" color="inherit">
               {t.common.cancel}
             </Button>
             <Button 
               type="submit" 
               variant="contained"
+              disableElevation
               disabled={
                 submitting ||
                 !formData.counselorId ||

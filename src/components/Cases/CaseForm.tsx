@@ -15,6 +15,8 @@ import {
   Typography,
   Checkbox,
   CircularProgress,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { Case, CaseStatus, IssueType, CivilStatus, Sex, Counselor, CasePriority, ReferralSource } from '../../types';
 import { t } from '../../utils/translations';
@@ -32,6 +34,27 @@ import {
   stripRoPhonePrefix,
   toE164RoPhone,
 } from '../../utils/nameUtils';
+
+const FormSection: React.FC<{ title: string; children: React.ReactNode }> = ({
+  title,
+  children,
+}) => (
+  <Box>
+    <Typography
+      component="h3"
+      sx={{
+        fontSize: '0.75rem',
+        fontWeight: 600,
+        letterSpacing: '0.06em',
+        textTransform: 'uppercase',
+        color: 'text.secondary',
+      }}
+    >
+      {title}
+    </Typography>
+    <Box sx={{ mt: 1.5, display: 'flex', gap: 2, flexWrap: 'wrap' }}>{children}</Box>
+  </Box>
+);
 
 export type CaseFormSubmitData = Omit<Case, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>;
 
@@ -56,6 +79,8 @@ const CaseForm: React.FC<CaseFormProps> = ({
   inactiveUserIds,
   restrictSensitiveContent = false,
 }) => {
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const initialCaseName = resolvePersonName({
     firstName: caseData?.firstName,
     lastName: caseData?.lastName,
@@ -401,367 +426,360 @@ const CaseForm: React.FC<CaseFormProps> = ({
         handleClose();
       }}
       disableEscapeKeyDown={submitting}
-      maxWidth="md"
+      maxWidth="sm"
       fullWidth
-      fullScreen={false}
-      sx={{
-        '& .MuiDialog-paper': {
-          m: { xs: 1, sm: 2 },
-          maxHeight: { xs: '95vh', sm: '90vh' },
+      fullScreen={fullScreen}
+      PaperProps={{
+        sx: {
+          borderRadius: fullScreen ? 0 : 3,
+          border: fullScreen ? 'none' : '1px solid',
+          borderColor: 'divider',
         },
       }}
     >
       <DialogTitle
         sx={{
-          fontSize: { xs: '1.25rem', sm: '1.5rem' },
-          pb: { xs: 1, sm: 2 },
+          px: { xs: 2, sm: 2.5 },
+          py: 2,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
         }}
       >
-        {caseData ? t.cases.editCase : t.cases.createCase}
+        <Typography component="span" sx={{ display: 'block', fontSize: '1rem', fontWeight: 600 }}>
+          {caseData ? t.cases.editCase : t.cases.createCase}
+        </Typography>
+        <Typography
+          component="span"
+          noWrap
+          sx={{ mt: 0.5, display: 'block', fontSize: '0.875rem', color: 'text.secondary' }}
+        >
+          {caseData
+            ? `${caseData.counseledName} · ${caseData.title}`
+            : t.cases.createFormSubtitle}
+        </Typography>
       </DialogTitle>
       <form onSubmit={handleSubmit}>
-        <DialogContent
-          sx={{
-            px: { xs: 1.5, sm: 3 },
-            py: { xs: 1, sm: 2 },
-          }}
-        >
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 }, pt: 1 }}>
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: { xs: 'column', sm: 'row' },
-                gap: { xs: 1.5, sm: 2 },
-              }}
-            >
-              <TextField
-                fullWidth
-                label={t.cases.lastName}
-                value={formData.lastName}
-                onChange={handleChange('lastName')}
-                error={!!errors.lastName}
-                helperText={errors.lastName}
-                required
-                size="small"
-              />
-              <TextField
-                fullWidth
-                label={t.cases.firstName}
-                value={formData.firstName}
-                onChange={handleChange('firstName')}
-                error={!!errors.firstName}
-                helperText={errors.firstName}
-                required
-                size="small"
-              />
-            </Box>
-
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: { xs: 'column', sm: 'row' },
-                gap: { xs: 1.5, sm: 2 },
-              }}
-            >
-              <TextField
-                fullWidth
-                label={t.cases.age}
-                type="number"
-                value={formData.age}
-                onChange={handleChange('age')}
-                error={!!errors.age}
-                helperText={errors.age}
-                required
-                size="small"
-              />
-
-              <FormControl fullWidth size="small">
-                <InputLabel>{t.cases.sex}</InputLabel>
-                <Select
-                  value={formData.sex}
-                  onChange={handleChange('sex')}
-                  label={t.cases.sex}
-                >
-                  <MenuItem value="masculin">{t.cases.sexMasculin}</MenuItem>
-                  <MenuItem value="feminin">{t.cases.sexFeminin}</MenuItem>
-                </Select>
-              </FormControl>
-
-              <FormControl fullWidth size="small">
-                <InputLabel>{t.cases.civilStatus}</InputLabel>
-                <Select
-                  value={formData.civilStatus}
-                  onChange={handleChange('civilStatus')}
-                  label={t.cases.civilStatus}
-                >
-                  {civilStatusOptions.map((status) => (
-                    <MenuItem key={status} value={status}>
-                      {translateCivilStatus(status, formData.sex)}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-
-            <Box>
-              <Typography
-                variant="subtitle2"
-                gutterBottom
-                sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
-              >
-                {t.cases.issueTypes} *
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 0.75, sm: 1 } }}>
-                {issueTypeOptions.map((issueType) => (
-                  <Chip
-                    key={issueType}
-                    label={t.issueTypes[issueType]}
-                    onClick={() => handleIssueTypeChange(issueType)}
-                    color={formData.issueTypes.includes(issueType) ? 'primary' : 'default'}
-                    variant={formData.issueTypes.includes(issueType) ? 'filled' : 'outlined'}
-                    size="small"
-                  />
-                ))}
+        <DialogContent sx={{ px: { xs: 2, sm: 2.5 }, py: 2.5 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 3,
+              opacity: submitting ? 0.45 : 1,
+              pointerEvents: submitting ? 'none' : 'auto',
+            }}
+          >
+            <FormSection title={t.cases.clientInfo}>
+              <Box sx={{ flex: '1 1 200px', minWidth: '160px' }}>
+                <TextField
+                  fullWidth
+                  label={t.cases.lastName}
+                  value={formData.lastName}
+                  onChange={handleChange('lastName')}
+                  error={!!errors.lastName}
+                  helperText={errors.lastName}
+                  required
+                />
               </Box>
-              {errors.issueTypes && (
-                <Typography color="error" variant="caption">
-                  {errors.issueTypes}
-                </Typography>
-              )}
-            </Box>
-
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: { xs: 'column', sm: 'row' },
-                gap: { xs: 1.5, sm: 2 },
-              }}
-            >
-              <FormControl fullWidth size="small">
-                <InputLabel>{t.cases.referralSourceOptional}</InputLabel>
-                <Select
-                  value={formData.referralSource}
-                  onChange={handleChange('referralSource')}
-                  label={t.cases.referralSourceOptional}
-                >
-                  <MenuItem value="">
-                    <em>{t.referralSources.none}</em>
-                  </MenuItem>
-                  {REFERRAL_SOURCE_OPTIONS.map((source) => (
-                    <MenuItem key={source} value={source}>
-                      {t.referralSources[source]}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <FormControl fullWidth size="small">
-                <InputLabel>{t.cases.priority}</InputLabel>
-                <Select
-                  value={formData.priority}
-                  onChange={handleChange('priority')}
-                  label={t.cases.priority}
-                >
-                  <MenuItem value="normal">{t.casePriority.normal}</MenuItem>
-                  <MenuItem value="high">{t.casePriority.high}</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
-
-            <FormControl fullWidth size="small">
-              <InputLabel>{t.cases.status}</InputLabel>
-              <Select
-                value={formData.status}
-                onChange={handleChange('status')}
-                label={t.cases.status}
-              >
-                {statusOptions.map((status) => (
-                  <MenuItem key={status} value={status}>
-                    {translateStatus(status)}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: { xs: 'column', sm: 'row' },
-                gap: { xs: 1.5, sm: 2 },
-              }}
-            >
-              <TextField
-                fullWidth
-                label={t.cases.phoneNumber}
-                value={formData.phoneNumber}
-                onChange={handleChange('phoneNumber')}
-                error={!!errors.phoneNumber}
-                helperText={errors.phoneNumber || 'Introdu 9 cifre după +40'}
-                required
-                size="small"
-                placeholder="700 123 456"
-                InputProps={{
-                  startAdornment: (
-                    <Typography sx={{ mr: 1, color: 'text.secondary' }}>+40</Typography>
-                  ),
-                }}
-              />
-
-              <FormControl fullWidth error={!!errors.counselorId} size="small">
-                <InputLabel sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                  {t.cases.assignedCounselor}
-                  {(formData.status === 'active' ||
-                    formData.status === 'finished' ||
-                    forceAssign) &&
-                    ' *'}
-                </InputLabel>
-                <Select
-                  value={formData.counselorId}
-                  onChange={(event) => {
-                    setCounselorTouched(true);
-                    handleChange('counselorId')(event);
-                  }}
-                  label={t.cases.assignedCounselor}
-                >
-                  <MenuItem value="">
-                    <em>Nealocat</em>
-                  </MenuItem>
-                  {rankedCounselors.map((counselor, index) => (
-                    <MenuItem key={counselor.id} value={counselor.id}>
-                      {formatCounselorOptionLabel(counselor, { recommended: index === 0 })}
-                    </MenuItem>
-                  ))}
-                </Select>
-                {errors.counselorId && (
-                  <Typography
-                    variant="caption"
-                    color="error"
-                    sx={{ mt: 0.5, ml: 1.75, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+              <Box sx={{ flex: '1 1 200px', minWidth: '160px' }}>
+                <TextField
+                  fullWidth
+                  label={t.cases.firstName}
+                  value={formData.firstName}
+                  onChange={handleChange('firstName')}
+                  error={!!errors.firstName}
+                  helperText={errors.firstName}
+                  required
+                />
+              </Box>
+              <Box sx={{ flex: '1 1 100px', minWidth: '90px' }}>
+                <TextField
+                  fullWidth
+                  label={t.cases.age}
+                  type="number"
+                  value={formData.age}
+                  onChange={handleChange('age')}
+                  error={!!errors.age}
+                  helperText={errors.age}
+                  required
+                />
+              </Box>
+              <Box sx={{ flex: '1 1 120px', minWidth: '110px' }}>
+                <FormControl fullWidth>
+                  <InputLabel>{t.cases.sex}</InputLabel>
+                  <Select
+                    value={formData.sex}
+                    onChange={handleChange('sex')}
+                    label={t.cases.sex}
                   >
-                    {errors.counselorId}
+                    <MenuItem value="masculin">{t.cases.sexMasculin}</MenuItem>
+                    <MenuItem value="feminin">{t.cases.sexFeminin}</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+              <Box sx={{ flex: '1 1 180px', minWidth: '150px' }}>
+                <FormControl fullWidth>
+                  <InputLabel>{t.cases.civilStatus}</InputLabel>
+                  <Select
+                    value={formData.civilStatus}
+                    onChange={handleChange('civilStatus')}
+                    label={t.cases.civilStatus}
+                  >
+                    {civilStatusOptions.map((status) => (
+                      <MenuItem key={status} value={status}>
+                        {translateCivilStatus(status, formData.sex)}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+              <Box sx={{ flex: '1 1 220px', minWidth: '180px' }}>
+                <TextField
+                  fullWidth
+                  label={t.cases.phoneNumber}
+                  value={formData.phoneNumber}
+                  onChange={handleChange('phoneNumber')}
+                  error={!!errors.phoneNumber}
+                  helperText={errors.phoneNumber || 'Introdu 9 cifre după +40'}
+                  required
+                  placeholder="700 123 456"
+                  InputProps={{
+                    startAdornment: (
+                      <Typography sx={{ mr: 1, color: 'text.secondary' }}>+40</Typography>
+                    ),
+                  }}
+                />
+              </Box>
+            </FormSection>
+
+            <FormSection title={t.cases.caseDetails}>
+              <Box sx={{ flex: '1 1 100%' }}>
+                <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                  {t.cases.issueTypes} *
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                  {issueTypeOptions.map((issueType) => (
+                    <Chip
+                      key={issueType}
+                      label={t.issueTypes[issueType]}
+                      onClick={() => handleIssueTypeChange(issueType)}
+                      color={formData.issueTypes.includes(issueType) ? 'primary' : 'default'}
+                      variant={formData.issueTypes.includes(issueType) ? 'filled' : 'outlined'}
+                    />
+                  ))}
+                </Box>
+                {errors.issueTypes && (
+                  <Typography color="error" variant="caption">
+                    {errors.issueTypes}
                   </Typography>
                 )}
-              </FormControl>
-            </Box>
-
-            {formData.counselorId && (
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                <Checkbox
-                  id="force-assign-checkbox"
-                  checked={forceAssign}
-                  onChange={(e) => setForceAssign(e.target.checked)}
-                  size="small"
-                  sx={{ pt: 0.25 }}
-                />
-                <Box>
-                  <Typography
-                    component="label"
-                    htmlFor="force-assign-checkbox"
-                    variant="body2"
-                    sx={{ cursor: 'pointer', display: 'inline-block' }}
-                  >
-                    {t.assignments.forceAssign}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    {t.assignments.forceAssignHint}
-                  </Typography>
-                </Box>
               </Box>
-            )}
+              <Box sx={{ flex: '1 1 200px', minWidth: '160px' }}>
+                <FormControl fullWidth>
+                  <InputLabel>{t.cases.referralSourceOptional}</InputLabel>
+                  <Select
+                    value={formData.referralSource}
+                    onChange={handleChange('referralSource')}
+                    label={t.cases.referralSourceOptional}
+                  >
+                    <MenuItem value="">
+                      <em>{t.referralSources.none}</em>
+                    </MenuItem>
+                    {REFERRAL_SOURCE_OPTIONS.map((source) => (
+                      <MenuItem key={source} value={source}>
+                        {t.referralSources[source]}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+              <Box sx={{ flex: '1 1 160px', minWidth: '140px' }}>
+                <FormControl fullWidth>
+                  <InputLabel>{t.cases.priority}</InputLabel>
+                  <Select
+                    value={formData.priority}
+                    onChange={handleChange('priority')}
+                    label={t.cases.priority}
+                  >
+                    <MenuItem value="normal">{t.casePriority.normal}</MenuItem>
+                    <MenuItem value="high">{t.casePriority.high}</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+              <Box sx={{ flex: '1 1 160px', minWidth: '140px' }}>
+                <FormControl fullWidth>
+                  <InputLabel>{t.cases.status}</InputLabel>
+                  <Select
+                    value={formData.status}
+                    onChange={handleChange('status')}
+                    label={t.cases.status}
+                  >
+                    {statusOptions.map((status) => (
+                      <MenuItem key={status} value={status}>
+                        {translateStatus(status)}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            </FormSection>
 
-            {hideExistingDescription ? (
-              <Box>
-                <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                  {t.cases.description}
-                </Typography>
-                <Box
-                  sx={{
-                    position: 'relative',
-                    overflow: 'hidden',
-                    borderRadius: 1,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    bgcolor: 'grey.50',
-                    p: 2,
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      filter: 'blur(6px)',
-                      userSelect: 'none',
-                      pointerEvents: 'none',
-                      color: 'text.secondary',
+            <FormSection title={t.cases.sectionAssignment}>
+              <Box sx={{ flex: '1 1 100%' }}>
+                <FormControl fullWidth error={!!errors.counselorId}>
+                  <InputLabel>
+                    {t.cases.assignedCounselor}
+                    {(formData.status === 'active' ||
+                      formData.status === 'finished' ||
+                      forceAssign) &&
+                      ' *'}
+                  </InputLabel>
+                  <Select
+                    value={formData.counselorId}
+                    onChange={(event) => {
+                      setCounselorTouched(true);
+                      handleChange('counselorId')(event);
                     }}
-                    aria-hidden
+                    label={t.cases.assignedCounselor}
                   >
-                    Conținut confidențial rezervat. Detaliile cazului nu sunt afișate pentru acest rol.
-                  </Typography>
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      inset: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      bgcolor: 'rgba(248,250,252,0.45)',
-                      px: 2,
-                    }}
-                  >
+                    <MenuItem value="">
+                      <em>Nealocat</em>
+                    </MenuItem>
+                    {rankedCounselors.map((counselor, index) => (
+                      <MenuItem key={counselor.id} value={counselor.id}>
+                        {formatCounselorOptionLabel(counselor, { recommended: index === 0 })}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {errors.counselorId && (
+                    <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
+                      {errors.counselorId}
+                    </Typography>
+                  )}
+                </FormControl>
+              </Box>
+              {formData.counselorId && (
+                <Box sx={{ flex: '1 1 100%', display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                  <Checkbox
+                    id="force-assign-checkbox"
+                    checked={forceAssign}
+                    onChange={(e) => setForceAssign(e.target.checked)}
+                    size="small"
+                    sx={{ pt: 0.25 }}
+                  />
+                  <Box>
                     <Typography
-                      variant="caption"
-                      sx={{
-                        bgcolor: 'background.paper',
-                        px: 1.5,
-                        py: 0.75,
-                        borderRadius: 999,
-                        fontWeight: 600,
-                        color: 'text.secondary',
-                        boxShadow: 1,
-                        textAlign: 'center',
-                      }}
+                      component="label"
+                      htmlFor="force-assign-checkbox"
+                      variant="body2"
+                      sx={{ cursor: 'pointer', display: 'inline-block' }}
                     >
-                      {t.adminTools.sensitiveContentRestricted}
+                      {t.assignments.forceAssign}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      {t.assignments.forceAssignHint}
                     </Typography>
                   </Box>
                 </Box>
-              </Box>
-            ) : (
-              <TextField
-                fullWidth
-                label={t.cases.description}
-                multiline
-                rows={4}
-                value={formData.description}
-                onChange={handleChange('description')}
-                error={!!errors.description}
-                helperText={errors.description}
-                placeholder="Descrie problemele și dificultățile pe care le întâmpină persoana..."
-                size="small"
-                required
-              />
-            )}
+              )}
+            </FormSection>
+
+            <FormSection title={t.cases.description}>
+              {hideExistingDescription ? (
+                <Box sx={{ flex: '1 1 100%' }}>
+                  <Box
+                    sx={{
+                      position: 'relative',
+                      overflow: 'hidden',
+                      borderRadius: 2,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      bgcolor: 'grey.50',
+                      p: 2,
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        filter: 'blur(6px)',
+                        userSelect: 'none',
+                        pointerEvents: 'none',
+                        color: 'text.secondary',
+                      }}
+                      aria-hidden
+                    >
+                      Conținut confidențial rezervat. Detaliile cazului nu sunt afișate pentru acest rol.
+                    </Typography>
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: 'rgba(248,250,252,0.45)',
+                        px: 2,
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          bgcolor: 'background.paper',
+                          px: 1.5,
+                          py: 0.75,
+                          borderRadius: 999,
+                          fontWeight: 600,
+                          color: 'text.secondary',
+                          boxShadow: 1,
+                          textAlign: 'center',
+                        }}
+                      >
+                        {t.adminTools.sensitiveContentRestricted}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              ) : (
+                <Box sx={{ flex: '1 1 100%' }}>
+                  <TextField
+                    fullWidth
+                    label={t.cases.description}
+                    multiline
+                    rows={4}
+                    value={formData.description}
+                    onChange={handleChange('description')}
+                    error={!!errors.description}
+                    helperText={errors.description}
+                    placeholder="Descrie problemele și dificultățile pe care le întâmpină persoana..."
+                    required
+                  />
+                </Box>
+              )}
+            </FormSection>
           </Box>
         </DialogContent>
 
         <DialogActions
           sx={{
-            px: { xs: 1.5, sm: 3 },
-            py: { xs: 1, sm: 2 },
-            flexDirection: { xs: 'column-reverse', sm: 'row' },
-            gap: { xs: 1, sm: 0 },
+            px: { xs: 2, sm: 2.5 },
+            py: 2,
+            gap: 1,
+            borderTop: '1px solid',
+            borderColor: 'divider',
           }}
         >
           <Button
             onClick={handleClose}
             disabled={submitting}
-            sx={{ width: { xs: '100%', sm: 'auto' }, order: { xs: 2, sm: 1 } }}
+            variant="outlined"
+            color="inherit"
           >
             {t.common.cancel}
           </Button>
           <Button
             type="submit"
             variant="contained"
+            disableElevation
             disabled={
               submitting ||
               !formData.lastName.trim() ||
@@ -781,7 +799,6 @@ const CaseForm: React.FC<CaseFormProps> = ({
             startIcon={
               submitting ? <CircularProgress size={16} color="inherit" /> : undefined
             }
-            sx={{ width: { xs: '100%', sm: 'auto' }, order: { xs: 1, sm: 2 } }}
           >
             {caseData ? t.common.save : t.common.add}
           </Button>

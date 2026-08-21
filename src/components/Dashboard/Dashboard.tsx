@@ -1,23 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  CircularProgress,
-  Typography,
-  Box,
-  Chip,
-  Alert,
-} from '@mui/material';
-import { Description, ArrowForward } from '@mui/icons-material';
+import { Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { Case } from '../../types';
+import { Appointment, Case } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDashboardDataContext } from '../../contexts/DashboardDataContext';
 import { useDashboardReport } from '../../contexts/DashboardReportContext';
@@ -25,6 +9,7 @@ import {
   collectDashboardActionCaseBuckets,
   computeDashboardActionMetrics,
   getActiveCases,
+  getCalendarDatePath,
 } from './dashboardUtils';
 import KpiRow from './KpiRow';
 import RecentActiveCases from './RecentActiveCases';
@@ -32,6 +17,8 @@ import QuickPanel from './QuickPanel';
 import Timeline from './Timeline';
 import SessionReport from '../Cases/SessionReport';
 import ConsentUploadDialog from '../Cases/ConsentUploadDialog';
+import ScheduleAppointmentDialog from './ScheduleAppointmentDialog';
+import CaseSelectionDialog from './CaseSelectionDialog';
 import MeetingNoteFormDialog from '../MeetingNotes/MeetingNoteFormDialog';
 import { t } from '../../utils/translations';
 
@@ -61,6 +48,8 @@ const Dashboard: React.FC = () => {
   const [selectedCaseForReport, setSelectedCaseForReport] = useState<Case | null>(null);
   const [addNoteCase, setAddNoteCase] = useState<Case | null>(null);
   const [consentCase, setConsentCase] = useState<Case | null>(null);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduleCaseId, setScheduleCaseId] = useState<string | null>(null);
 
   useEffect(() => {
     registerOpenCaseReportModal(() => setCaseSelectionPurpose('report'));
@@ -143,6 +132,22 @@ const Dashboard: React.FC = () => {
   const handleCloseConsent = () => {
     setConsentCase(null);
     setCaseSelectionPurpose(null);
+  };
+
+  const handleOpenSchedule = (caseItem?: Case) => {
+    setScheduleCaseId(caseItem?.id ?? null);
+    setScheduleOpen(true);
+  };
+
+  const handleCloseSchedule = () => {
+    setScheduleOpen(false);
+    setScheduleCaseId(null);
+  };
+
+  const handleAppointmentScheduled = (appointment: Appointment) => {
+    setScheduleOpen(false);
+    setScheduleCaseId(null);
+    navigate(getCalendarDatePath(appointment.date));
   };
 
   const handleConsentUploaded = (caseItem: Case) => {
@@ -252,6 +257,7 @@ const Dashboard: React.FC = () => {
             loading={loading}
             onAddReport={handleAddReportForCase}
             onAddNote={setAddNoteCase}
+            onSchedule={handleOpenSchedule}
           />
         </div>
         <div className="order-1 lg:order-none">
@@ -264,7 +270,7 @@ const Dashboard: React.FC = () => {
             onRaportCaz={() => setCaseSelectionPurpose('report')}
             onAddNote={() => setCaseSelectionPurpose('note')}
             onAddConsent={() => setCaseSelectionPurpose('consent')}
-            onSchedule={() => navigate('/calendar?new=true')}
+            onSchedule={() => handleOpenSchedule()}
             onAddCase={() => navigate('/admin?tab=2&create=true')}
             onUpdateProfile={() => navigate('/profile?edit=true')}
           />
@@ -281,62 +287,15 @@ const Dashboard: React.FC = () => {
         />
       </div>
 
-      <Dialog
+      <CaseSelectionDialog
         open={caseSelectionPurpose !== null}
+        title={caseSelectionTitle}
+        cases={caseSelectionList}
+        loading={loading}
+        emptyMessage={caseSelectionEmpty}
+        onSelect={handleSelectCase}
         onClose={handleCloseCaseSelection}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center' }}>
-          <Description sx={{ mr: 1, color: 'primary.main' }} />
-          {caseSelectionTitle}
-        </DialogTitle>
-        <DialogContent>
-          {loading ? (
-            <Box display="flex" justifyContent="center" p={3}>
-              <CircularProgress sx={{ color: '#C99700' }} />
-            </Box>
-          ) : caseSelectionList.length === 0 ? (
-            <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-              {caseSelectionEmpty}
-            </Typography>
-          ) : (
-            <List>
-              {caseSelectionList.map((caseItem) => (
-                  <ListItem key={caseItem.id} disablePadding sx={{ mb: 1 }}>
-                    <ListItemButton
-                      onClick={() => handleSelectCase(caseItem)}
-                      sx={{
-                        border: '1px solid rgba(0, 0, 0, 0.12)',
-                        borderRadius: 1,
-                        '&:hover': {
-                          backgroundColor: 'rgba(79, 70, 229, 0.08)',
-                          borderColor: '#C99700',
-                        },
-                      }}
-                    >
-                      <ListItemText
-                        primary={caseItem.title}
-                        secondary={
-                          <Box sx={{ mt: 0.5 }}>
-                            <Typography variant="caption" display="block" color="text.secondary">
-                              {caseItem.counseledName}
-                            </Typography>
-                            <Chip label={caseItem.status} size="small" sx={{ mt: 0.5, height: 20, fontSize: '0.7rem' }} />
-                          </Box>
-                        }
-                      />
-                      <ArrowForward sx={{ color: 'text.secondary' }} />
-                    </ListItemButton>
-                  </ListItem>
-                ))}
-            </List>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseCaseSelection}>{t.common.cancel}</Button>
-        </DialogActions>
-      </Dialog>
+      />
 
       <SessionReport
         open={sessionReportOpen}
@@ -365,6 +324,13 @@ const Dashboard: React.FC = () => {
         caseItem={consentCase}
         onClose={handleCloseConsent}
         onUploaded={handleConsentUploaded}
+      />
+
+      <ScheduleAppointmentDialog
+        open={scheduleOpen}
+        preSelectedCaseId={scheduleCaseId}
+        onClose={handleCloseSchedule}
+        onScheduled={handleAppointmentScheduled}
       />
     </div>
   );

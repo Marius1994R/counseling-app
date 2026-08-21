@@ -7,7 +7,10 @@ import {
   Button,
   TextField,
   Box,
+  Typography,
   CircularProgress,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
@@ -17,6 +20,27 @@ import dayjs, { Dayjs } from 'dayjs';
 import { ChurchEvent } from '../../types';
 import { t } from '../../utils/translations';
 import { validateEventForm } from './eventUtils';
+
+const FormSection: React.FC<{ title: string; children: React.ReactNode }> = ({
+  title,
+  children,
+}) => (
+  <Box>
+    <Typography
+      component="h3"
+      sx={{
+        fontSize: '0.75rem',
+        fontWeight: 600,
+        letterSpacing: '0.06em',
+        textTransform: 'uppercase',
+        color: 'text.secondary',
+      }}
+    >
+      {title}
+    </Typography>
+    <Box sx={{ mt: 1.5, display: 'flex', gap: 2, flexWrap: 'wrap' }}>{children}</Box>
+  </Box>
+);
 
 interface EventFormProps {
   open: boolean;
@@ -42,8 +66,12 @@ const EventForm: React.FC<EventFormProps> = ({
   const [startTime, setStartTime] = useState<Dayjs | null>(null);
   const [endTime, setEndTime] = useState<Dayjs | null>(null);
   const [registrationUrl, setRegistrationUrl] = useState('');
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [startTimePickerOpen, setStartTimePickerOpen] = useState(false);
+  const [endTimePickerOpen, setEndTimePickerOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -71,6 +99,8 @@ const EventForm: React.FC<EventFormProps> = ({
     }
     setErrors({});
     setSubmitting(false);
+    setStartTimePickerOpen(false);
+    setEndTimePickerOpen(false);
   }, [open, eventData, preSelectedDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -119,6 +149,8 @@ const EventForm: React.FC<EventFormProps> = ({
       )
     ).length === 0;
 
+  const subtitle = name.trim() || t.events.formSubtitle;
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Dialog
@@ -132,30 +164,74 @@ const EventForm: React.FC<EventFormProps> = ({
           handleClose();
         }}
         disableEscapeKeyDown={submitting}
-        maxWidth="md"
+        maxWidth="sm"
         fullWidth
+        fullScreen={fullScreen}
+        PaperProps={{
+          sx: {
+            borderRadius: fullScreen ? 0 : 3,
+            border: fullScreen ? 'none' : '1px solid',
+            borderColor: 'divider',
+          },
+        }}
       >
-        <DialogTitle>
-          {eventData ? t.events.editEvent : t.events.addEvent}
+        <DialogTitle
+          sx={{
+            px: { xs: 2, sm: 2.5 },
+            py: 2,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Typography component="span" sx={{ display: 'block', fontSize: '1rem', fontWeight: 600 }}>
+            {eventData ? t.events.editEvent : t.events.addEvent}
+          </Typography>
+          <Typography
+            component="span"
+            noWrap
+            sx={{ mt: 0.5, display: 'block', fontSize: '0.875rem', color: 'text.secondary' }}
+          >
+            {subtitle}
+          </Typography>
         </DialogTitle>
         <form onSubmit={handleSubmit}>
-          <DialogContent>
-            <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <TextField
-                fullWidth
-                required
-                label={t.events.name}
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  if (errors.name) setErrors((prev) => ({ ...prev, name: '' }));
-                }}
-                error={!!errors.name}
-                helperText={errors.name}
-              />
+          <DialogContent sx={{ px: { xs: 2, sm: 2.5 }, py: 2.5 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <FormSection title={t.events.sectionDetails}>
+                <Box sx={{ flex: '1 1 100%' }}>
+                  <TextField
+                    fullWidth
+                    required
+                    label={t.events.name}
+                    value={name}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      if (errors.name) setErrors((prev) => ({ ...prev, name: '' }));
+                    }}
+                    error={!!errors.name}
+                    helperText={errors.name}
+                  />
+                </Box>
+                <Box sx={{ flex: '1 1 100%' }}>
+                  <TextField
+                    fullWidth
+                    required
+                    label={t.events.description}
+                    value={description}
+                    onChange={(e) => {
+                      setDescription(e.target.value);
+                      if (errors.description) setErrors((prev) => ({ ...prev, description: '' }));
+                    }}
+                    multiline
+                    rows={3}
+                    error={!!errors.description}
+                    helperText={errors.description}
+                  />
+                </Box>
+              </FormSection>
 
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                <Box sx={{ flex: '1 1 200px' }}>
+              <FormSection title={t.events.sectionSchedule}>
+                <Box sx={{ flex: '1 1 200px', minWidth: '160px' }}>
                   <DatePicker
                     label={t.events.startDate}
                     value={startDate}
@@ -177,7 +253,7 @@ const EventForm: React.FC<EventFormProps> = ({
                     }}
                   />
                 </Box>
-                <Box sx={{ flex: '1 1 200px' }}>
+                <Box sx={{ flex: '1 1 200px', minWidth: '160px' }}>
                   <DatePicker
                     label={t.events.endDate}
                     value={endDate}
@@ -196,10 +272,7 @@ const EventForm: React.FC<EventFormProps> = ({
                     }}
                   />
                 </Box>
-              </Box>
-
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                <Box sx={{ flex: '1 1 150px' }}>
+                <Box sx={{ flex: '1 1 140px', minWidth: '120px' }}>
                   <TimePicker
                     label={t.events.startTime}
                     value={startTime}
@@ -212,17 +285,25 @@ const EventForm: React.FC<EventFormProps> = ({
                     }}
                     ampm={false}
                     format="HH:mm"
+                    views={['hours', 'minutes']}
+                    open={startTimePickerOpen}
+                    onOpen={() => setStartTimePickerOpen(true)}
+                    onClose={() => setStartTimePickerOpen(false)}
                     slotProps={{
                       textField: {
                         fullWidth: true,
                         required: true,
                         error: !!errors.startTime,
                         helperText: errors.startTime,
+                        onClick: () => setStartTimePickerOpen(true),
+                      },
+                      layout: {
+                        sx: { minWidth: 260, maxWidth: 260 },
                       },
                     }}
                   />
                 </Box>
-                <Box sx={{ flex: '1 1 150px' }}>
+                <Box sx={{ flex: '1 1 140px', minWidth: '120px' }}>
                   <TimePicker
                     label={t.events.endTime}
                     value={endTime}
@@ -233,59 +314,68 @@ const EventForm: React.FC<EventFormProps> = ({
                     disabled={!startTime}
                     ampm={false}
                     format="HH:mm"
+                    views={['hours', 'minutes']}
+                    open={endTimePickerOpen}
+                    onOpen={() => setEndTimePickerOpen(true)}
+                    onClose={() => setEndTimePickerOpen(false)}
                     slotProps={{
                       textField: {
                         fullWidth: true,
                         required: true,
                         error: !!errors.endTime,
                         helperText: errors.endTime,
+                        onClick: () => {
+                          if (startTime) setEndTimePickerOpen(true);
+                        },
+                      },
+                      layout: {
+                        sx: { minWidth: 260, maxWidth: 260 },
                       },
                     }}
                   />
                 </Box>
-              </Box>
+              </FormSection>
 
-              <TextField
-                fullWidth
-                required
-                label={t.events.description}
-                value={description}
-                onChange={(e) => {
-                  setDescription(e.target.value);
-                  if (errors.description) setErrors((prev) => ({ ...prev, description: '' }));
-                }}
-                multiline
-                rows={4}
-                error={!!errors.description}
-                helperText={errors.description}
-              />
-
-              <TextField
-                fullWidth
-                label={t.events.registrationUrl}
-                value={registrationUrl}
-                onChange={(e) => {
-                  setRegistrationUrl(e.target.value);
-                  if (errors.registrationUrl) setErrors((prev) => ({ ...prev, registrationUrl: '' }));
-                }}
-                placeholder="https://..."
-                error={!!errors.registrationUrl}
-                helperText={errors.registrationUrl || t.events.registrationUrlHint}
-              />
+              <FormSection title={t.events.sectionRegistration}>
+                <Box sx={{ flex: '1 1 100%' }}>
+                  <TextField
+                    fullWidth
+                    label={t.events.registrationUrl}
+                    value={registrationUrl}
+                    onChange={(e) => {
+                      setRegistrationUrl(e.target.value);
+                      if (errors.registrationUrl) {
+                        setErrors((prev) => ({ ...prev, registrationUrl: '' }));
+                      }
+                    }}
+                    placeholder="https://..."
+                    error={!!errors.registrationUrl}
+                    helperText={errors.registrationUrl || t.events.registrationUrlHint}
+                  />
+                </Box>
+              </FormSection>
             </Box>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={handleClose} disabled={submitting}>
+          <DialogActions
+            sx={{
+              px: { xs: 2, sm: 2.5 },
+              py: 2,
+              gap: 1,
+              borderTop: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            <Button onClick={handleClose} disabled={submitting} variant="outlined" color="inherit">
               {t.common.cancel}
             </Button>
             <Button
               type="submit"
               variant="contained"
+              disableElevation
               disabled={submitting || !isFormComplete}
               startIcon={
                 submitting ? <CircularProgress size={16} color="inherit" /> : undefined
               }
-              sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B89A00' } }}
             >
               {eventData ? t.common.save : t.events.save}
             </Button>

@@ -21,6 +21,7 @@ interface RecentActiveCasesProps {
   loading?: boolean;
   onAddReport: (caseItem: Case) => void;
   onAddNote: (caseItem: Case) => void;
+  onSchedule: (caseItem: Case) => void;
 }
 
 const RecentActiveCases: React.FC<RecentActiveCasesProps> = ({
@@ -31,6 +32,7 @@ const RecentActiveCases: React.FC<RecentActiveCasesProps> = ({
   loading,
   onAddReport,
   onAddNote,
+  onSchedule,
 }) => {
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
@@ -80,7 +82,7 @@ const RecentActiveCases: React.FC<RecentActiveCasesProps> = ({
                 onView={() => navigate(`/cases?caseId=${caseItem.id}`)}
                 onAddNote={() => onAddNote(caseItem)}
                 onAddReport={() => onAddReport(caseItem)}
-                onSchedule={() => navigate(`/calendar?new=true&caseId=${caseItem.id}`)}
+                onSchedule={() => onSchedule(caseItem)}
                 onOpenReports={() => navigate(`/session-reports?caseId=${caseItem.id}`)}
                 onOpenAppointment={
                   nextAppointment

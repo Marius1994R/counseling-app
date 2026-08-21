@@ -31,6 +31,30 @@ export function getStatusLabel(status: CaseStatus): string {
   return STATUS_LABELS[status] ?? status;
 }
 
+const STATUS_BADGE_CLASSES: Record<string, string> = {
+  active: 'bg-green-50 text-green-700',
+  waiting: 'bg-amber-50 text-amber-700',
+  finished: 'bg-slate-100 text-slate-600',
+  cancelled: 'bg-slate-100 text-slate-600',
+  unfinished: 'bg-red-50 text-red-700',
+};
+
+export function getStatusBadgeClass(status: CaseStatus): string {
+  return STATUS_BADGE_CLASSES[status] ?? 'bg-slate-100 text-slate-600';
+}
+
+const AVATAR_COLORS = [
+  'bg-brand-100 text-brand-600',
+  'bg-amber-100 text-amber-700',
+  'bg-green-100 text-green-700',
+  'bg-sky-100 text-sky-700',
+];
+
+export function getAvatarColorClass(name: string): string {
+  const index = (name.charCodeAt(0) || 0) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[index];
+}
+
 export function getCaseDisplayId(caseItem: Case): string {
   return `#C-${caseItem.id.slice(-4).toUpperCase()}`;
 }

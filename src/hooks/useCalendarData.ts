@@ -2,27 +2,25 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   collection,
-  getDocs,
   query,
   orderBy,
-  where,
-  addDoc,
   updateDoc,
   deleteDoc,
   doc,
   onSnapshot,
-  DocumentData,
-  Timestamp,
 } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { useDashboardDataContext } from '../contexts/DashboardDataContext';
 import { db } from '../firebase';
 import { Appointment } from '../types';
-import { logAppointmentCreated } from '../utils/activityLogger';
+import {
+  assertNoRoomConflict,
+  createAppointment,
+  mapFirestoreAppointment,
+} from '../utils/appointmentService';
 import {
   getAppointmentsForDate,
   findCounselorForUser,
-  hasRoomConflict,
   isPastAppointment,
 } from '../components/Calendar/calendarUtils';
 import { isAdminOrLeader } from '../utils/roleAuth';
@@ -31,24 +29,6 @@ import { t } from '../utils/translations';
 interface UseCalendarDataOptions {
   /** @deprecated unused — kept for call-site compatibility */
   isAdminView?: boolean;
-}
-
-function mapFirestoreAppointment(id: string, data: DocumentData): Appointment {
-  return {
-    id,
-    title: data.title,
-    description: data.description,
-    date: data.date.toDate(),
-    startTime: data.startTime,
-    endTime: data.endTime,
-    counselorId: data.counselorId,
-    counselorName: data.counselorName,
-    caseId: data.caseId,
-    caseTitle: data.caseTitle,
-    room: data.room,
-    createdBy: data.createdBy,
-    createdAt: data.createdAt.toDate(),
-  };
 }
 
 export function useCalendarData(_options: UseCalendarDataOptions = {}) {
@@ -303,68 +283,14 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
     [appointments, currentUser, removeAppointment]
   );
 
-  const assertNoRoomConflict = useCallback(
-    async (
-      appointmentData: Omit<Appointment, 'id' | 'createdAt' | 'createdBy'>,
-      excludeId?: string
-    ) => {
-      // Prefer in-memory listener data; fall back to a day-scoped query for races.
-      const dayStart = new Date(appointmentData.date);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(appointmentData.date);
-      dayEnd.setHours(23, 59, 59, 999);
-
-      const dayAppointments = appointments.filter((apt) => {
-        const d = new Date(apt.date);
-        return d >= dayStart && d <= dayEnd;
-      });
-
-      if (
-        hasRoomConflict({
-          appointments: dayAppointments,
-          room: appointmentData.room || '',
-          date: appointmentData.date,
-          startTime: appointmentData.startTime,
-          endTime: appointmentData.endTime,
-          excludeId,
-        })
-      ) {
-        throw new Error(t.appointments.roomConflict);
-      }
-
-      const appointmentsSnapshot = await getDocs(
-        query(
-          collection(db, 'appointments'),
-          where('date', '>=', Timestamp.fromDate(dayStart)),
-          where('date', '<=', Timestamp.fromDate(dayEnd))
-        )
-      );
-      const latest: Appointment[] = [];
-      appointmentsSnapshot.forEach((aptDoc) => {
-        latest.push(mapFirestoreAppointment(aptDoc.id, aptDoc.data()));
-      });
-
-      if (
-        hasRoomConflict({
-          appointments: latest,
-          room: appointmentData.room || '',
-          date: appointmentData.date,
-          startTime: appointmentData.startTime,
-          endTime: appointmentData.endTime,
-          excludeId,
-        })
-      ) {
-        throw new Error(t.appointments.roomConflict);
-      }
-    },
-    [appointments]
-  );
-
   const handleFormSubmit = useCallback(
     async (appointmentData: Omit<Appointment, 'id' | 'createdAt' | 'createdBy'>) => {
       try {
         if (editingAppointment) {
-          await assertNoRoomConflict(appointmentData, editingAppointment.id);
+          await assertNoRoomConflict(appointmentData, {
+            knownAppointments: appointments,
+            excludeId: editingAppointment.id,
+          });
 
           const appointmentRef = doc(db, 'appointments', editingAppointment.id);
           await updateDoc(appointmentRef, {
@@ -376,31 +302,8 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
             ...appointmentData,
           });
         } else {
-          await assertNoRoomConflict(appointmentData);
-
-          const appointmentsRef = collection(db, 'appointments');
-          const docRef = await addDoc(appointmentsRef, {
-            ...appointmentData,
-            createdAt: new Date(),
-            createdBy: currentUser?.id || 'unknown',
-          });
-
-          if (currentUser && appointmentData.caseId && appointmentData.caseTitle) {
-            await logAppointmentCreated(
-              docRef.id,
-              appointmentData.title,
-              appointmentData.caseId,
-              appointmentData.caseTitle,
-              currentUser.id,
-              currentUser.fullName || currentUser.email || 'Unknown User'
-            );
-          }
-          upsertAppointment({
-            ...appointmentData,
-            id: docRef.id,
-            createdAt: new Date(),
-            createdBy: currentUser?.id || 'unknown',
-          });
+          await assertNoRoomConflict(appointmentData, { knownAppointments: appointments });
+          upsertAppointment(await createAppointment(appointmentData, currentUser));
         }
         setFormOpen(false);
         setEditingAppointment(null);
@@ -415,7 +318,7 @@ export function useCalendarData(_options: UseCalendarDataOptions = {}) {
         throw err;
       }
     },
-    [editingAppointment, currentUser, assertNoRoomConflict, upsertAppointment]
+    [editingAppointment, appointments, currentUser, upsertAppointment]
   );
 
   const handleDateClick = useCallback((date: Date) => {

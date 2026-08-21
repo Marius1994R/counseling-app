@@ -17,6 +17,8 @@ import {
   Snackbar,
   Typography,
   CircularProgress,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { useCasesData } from '../../hooks/useCasesData';
 import { useDashboardDataContext } from '../../contexts/DashboardDataContext';
@@ -35,8 +37,31 @@ import CasesGrid from './CasesGrid';
 import { useTimedPulse } from '../../hooks/useTimedPulse';
 import { t } from '../../utils/translations';
 
+const FormSection: React.FC<{ title: string; children: React.ReactNode }> = ({
+  title,
+  children,
+}) => (
+  <Box>
+    <Typography
+      component="h3"
+      sx={{
+        fontSize: '0.75rem',
+        fontWeight: 600,
+        letterSpacing: '0.06em',
+        textTransform: 'uppercase',
+        color: 'text.secondary',
+      }}
+    >
+      {title}
+    </Typography>
+    <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 2 }}>{children}</Box>
+  </Box>
+);
+
 const Cases: React.FC = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const data = useCasesData();
   const { upcomingAppointments } = useDashboardDataContext();
   const [timelineCase, setTimelineCase] = useState<Case | null>(null);
@@ -127,83 +152,124 @@ const Cases: React.FC = () => {
           data.handleCloseEditDialog();
         }}
         disableEscapeKeyDown={data.saveLoading}
-        maxWidth="md"
+        maxWidth="sm"
         fullWidth
+        fullScreen={fullScreen}
+        PaperProps={{
+          sx: {
+            borderRadius: fullScreen ? 0 : 3,
+            border: fullScreen ? 'none' : '1px solid',
+            borderColor: 'divider',
+          },
+        }}
       >
-        <DialogTitle>{t.cases.editCase}</DialogTitle>
-        <DialogContent>
+        <DialogTitle
+          sx={{
+            px: { xs: 2, sm: 2.5 },
+            py: 2,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Typography component="span" sx={{ display: 'block', fontSize: '1rem', fontWeight: 600 }}>
+            {t.cases.editCase}
+          </Typography>
+          <Typography
+            component="span"
+            noWrap
+            sx={{ mt: 0.5, display: 'block', fontSize: '0.875rem', color: 'text.secondary' }}
+          >
+            {data.selectedCase
+              ? `${data.selectedCase.counseledName} · ${data.selectedCase.title}`
+              : t.cases.editFormSubtitle}
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ px: { xs: 2, sm: 2.5 }, py: 2.5 }}>
           <Box
             sx={{
               display: 'flex',
               flexDirection: 'column',
-              gap: 2,
-              mt: 1,
+              gap: 3,
               opacity: data.saveLoading ? 0.45 : 1,
               pointerEvents: data.saveLoading ? 'none' : 'auto',
             }}
           >
-            <FormControl fullWidth disabled={data.saveLoading}>
-              <InputLabel>{t.cases.status} *</InputLabel>
-              <Select
-                value={data.editData.status}
-                onChange={(e) =>
-                  data.setEditData((prev) => ({
-                    ...prev,
-                    status: e.target.value as CaseStatus,
-                  }))
-                }
-                label={`${t.cases.status} *`}
-              >
-                <MenuItem value="waiting">{t.status.waiting}</MenuItem>
-                <MenuItem value="active">{t.status.active}</MenuItem>
-                <MenuItem value="unfinished">{t.status.unfinished}</MenuItem>
-                <MenuItem value="finished">{t.status.completed}</MenuItem>
-                <MenuItem value="cancelled">{t.status.cancelled}</MenuItem>
-              </Select>
-            </FormControl>
+            <FormSection title={t.cases.status}>
+              <FormControl fullWidth disabled={data.saveLoading}>
+                <InputLabel>{t.cases.status} *</InputLabel>
+                <Select
+                  value={data.editData.status}
+                  onChange={(e) =>
+                    data.setEditData((prev) => ({
+                      ...prev,
+                      status: e.target.value as CaseStatus,
+                    }))
+                  }
+                  label={`${t.cases.status} *`}
+                >
+                  <MenuItem value="waiting">{t.status.waiting}</MenuItem>
+                  <MenuItem value="active">{t.status.active}</MenuItem>
+                  <MenuItem value="unfinished">{t.status.unfinished}</MenuItem>
+                  <MenuItem value="finished">{t.status.completed}</MenuItem>
+                  <MenuItem value="cancelled">{t.status.cancelled}</MenuItem>
+                </Select>
+              </FormControl>
+            </FormSection>
 
-            <Box>
-              <Typography variant="subtitle2" gutterBottom>
-                {t.cases.issueTypes} *
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+            <FormSection title={t.cases.issueTypes}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
                 {data.commonIssueTypes.map((issueType) => (
                   <Chip
                     key={issueType}
                     label={t.issueTypes[issueType]}
                     clickable
                     color={data.editData.issueTypes.includes(issueType) ? 'primary' : 'default'}
+                    variant={data.editData.issueTypes.includes(issueType) ? 'filled' : 'outlined'}
                     onClick={() => data.handleIssueTypeToggle(issueType)}
-                    sx={{ mb: 1 }}
                   />
                 ))}
               </Box>
-            </Box>
+            </FormSection>
 
-            <TextField
-              label={t.cases.description}
-              multiline
-              rows={4}
-              value={data.editData.description}
-              onChange={(e) =>
-                data.setEditData((prev) => ({ ...prev, description: e.target.value }))
-              }
-              fullWidth
-            />
+            <FormSection title={t.cases.description}>
+              <TextField
+                label={t.cases.description}
+                multiline
+                rows={4}
+                value={data.editData.description}
+                onChange={(e) =>
+                  data.setEditData((prev) => ({ ...prev, description: e.target.value }))
+                }
+                fullWidth
+              />
+            </FormSection>
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={data.handleCloseEditDialog} disabled={data.saveLoading}>
+        <DialogActions
+          sx={{
+            px: { xs: 2, sm: 2.5 },
+            py: 2,
+            gap: 1,
+            borderTop: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Button
+            onClick={data.handleCloseEditDialog}
+            disabled={data.saveLoading}
+            variant="outlined"
+            color="inherit"
+          >
             {t.common.cancel}
           </Button>
           <Button
             onClick={data.handleSaveCase}
             variant="contained"
+            disableElevation
             disabled={data.saveLoading || data.editData.issueTypes.length === 0}
             startIcon={
               data.saveLoading ? <CircularProgress size={16} color="inherit" /> : undefined
             }
-            sx={{ backgroundColor: '#C99700', '&:hover': { backgroundColor: '#B89A00' } }}
           >
             {t.common.save}
           </Button>

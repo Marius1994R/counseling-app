@@ -3,7 +3,9 @@ import { ClipboardDocumentListIcon, DocumentTextIcon } from '@heroicons/react/24
 import { Appointment, Case } from '../../types';
 import {
   formatNextAppointmentChipLabel,
+  getAvatarColorClass,
   getInitials,
+  getStatusBadgeClass,
   getStatusLabel,
 } from './dashboardUtils';
 import SessionRoad from './SessionRoad';
@@ -27,21 +29,6 @@ interface DashboardCaseCardProps {
   onOpenReports?: () => void;
 }
 
-const statusBadgeClass: Record<string, string> = {
-  active: 'bg-green-50 text-green-700',
-  waiting: 'bg-amber-50 text-amber-700',
-  finished: 'bg-slate-100 text-slate-600',
-  cancelled: 'bg-slate-100 text-slate-600',
-  unfinished: 'bg-red-50 text-red-700',
-};
-
-const avatarColors = [
-  'bg-brand-100 text-brand-600',
-  'bg-amber-100 text-amber-700',
-  'bg-green-100 text-green-700',
-  'bg-sky-100 text-sky-700',
-];
-
 const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
   caseItem,
   reportCount,
@@ -55,13 +42,13 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
   onOpenAppointment,
   onOpenReports,
 }) => {
-  const colorIndex = caseItem.counseledName.charCodeAt(0) % avatarColors.length;
-
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md sm:p-5">
       <div className="flex items-start gap-3">
         <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${avatarColors[colorIndex]}`}
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${getAvatarColorClass(
+            caseItem.counseledName
+          )}`}
         >
           {getInitials(caseItem.counseledName)}
         </div>
@@ -97,9 +84,9 @@ const DashboardCaseCard: React.FC<DashboardCaseCardProps> = ({
               </span>
             )}
             <span
-              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                statusBadgeClass[caseItem.status] ?? 'bg-slate-100 text-slate-600'
-              }`}
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${getStatusBadgeClass(
+                caseItem.status
+              )}`}
             >
               {getStatusLabel(caseItem.status)}
             </span>
