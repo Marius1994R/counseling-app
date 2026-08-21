@@ -506,7 +506,12 @@ export const t = {
     noCases: 'Nu există cazuri pentru filtrele selectate.',
     loadError: 'Eroare la încărcarea rapoartelor',
     selectCaseForReport: 'Selectează caz pentru raport',
+    selectCaseForNote: 'Selectează caz pentru notă',
+    selectCaseForConsent: 'Selectează caz pentru consimțământ',
     noActiveCases: 'Nu există cazuri active disponibile pentru raportare',
+    noActiveCasesForNote: 'Nu există cazuri active disponibile pentru note',
+    noActiveCasesForConsent:
+      'Nu există cazuri active fără consimțământ',
     reportDetails: 'Detalii raport',
     meetingDate: 'Data întâlnirii',
     meetingDateRequired: 'Data întâlnirii este obligatorie',

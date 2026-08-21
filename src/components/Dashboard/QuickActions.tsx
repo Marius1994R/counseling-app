@@ -5,11 +5,14 @@ import {
   CalendarIcon,
   DocumentChartBarIcon,
   DocumentTextIcon,
+  DocumentArrowUpIcon,
+  PencilSquareIcon,
   UserIcon,
   ChevronDownIcon,
   ChevronUpIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
+import { t } from '../../utils/translations';
 
 interface QuickAction {
   label: string;
@@ -21,6 +24,8 @@ interface QuickAction {
 
 interface QuickActionsProps {
   onRaportCaz: () => void;
+  onAddNote: () => void;
+  onAddConsent: () => void;
   onSchedule: () => void;
   onAddCase?: () => void;
   onUpdateProfile?: () => void;
@@ -30,6 +35,8 @@ const MOBILE_PREVIEW_COUNT = 2;
 
 const QuickActions: React.FC<QuickActionsProps> = ({
   onRaportCaz,
+  onAddNote,
+  onAddConsent,
   onSchedule,
   onAddCase,
   onUpdateProfile,
@@ -53,6 +60,16 @@ const QuickActions: React.FC<QuickActionsProps> = ({
       label: 'Raport caz',
       icon: DocumentTextIcon,
       onClick: onRaportCaz,
+    },
+    {
+      label: t.meetingNotes.addNote,
+      icon: PencilSquareIcon,
+      onClick: onAddNote,
+    },
+    {
+      label: t.cases.addConsent,
+      icon: DocumentArrowUpIcon,
+      onClick: onAddConsent,
     },
     {
       label: 'Actualizează profil',

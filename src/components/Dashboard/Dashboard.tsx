@@ -31,8 +31,11 @@ import RecentActiveCases from './RecentActiveCases';
 import QuickPanel from './QuickPanel';
 import Timeline from './Timeline';
 import SessionReport from '../Cases/SessionReport';
+import ConsentUploadDialog from '../Cases/ConsentUploadDialog';
 import MeetingNoteFormDialog from '../MeetingNotes/MeetingNoteFormDialog';
 import { t } from '../../utils/translations';
+
+type CaseSelectionPurpose = 'report' | 'note' | 'consent';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -52,39 +55,46 @@ const Dashboard: React.FC = () => {
     refetch,
   } = useDashboardDataContext();
 
-  const [caseSelectionModalOpen, setCaseSelectionModalOpen] = useState(false);
+  const [caseSelectionPurpose, setCaseSelectionPurpose] =
+    useState<CaseSelectionPurpose | null>(null);
   const [sessionReportOpen, setSessionReportOpen] = useState(false);
   const [selectedCaseForReport, setSelectedCaseForReport] = useState<Case | null>(null);
-  const [reportFromSelection, setReportFromSelection] = useState(false);
   const [addNoteCase, setAddNoteCase] = useState<Case | null>(null);
+  const [consentCase, setConsentCase] = useState<Case | null>(null);
 
   useEffect(() => {
-    registerOpenCaseReportModal(() => setCaseSelectionModalOpen(true));
+    registerOpenCaseReportModal(() => setCaseSelectionPurpose('report'));
     return () => registerOpenCaseReportModal(null);
   }, [registerOpenCaseReportModal]);
 
-  const handleCloseCaseSelection = () => setCaseSelectionModalOpen(false);
+  const handleCloseCaseSelection = () => setCaseSelectionPurpose(null);
 
-  const handleSelectCaseForReport = (selectedCase: Case) => {
-    setSelectedCaseForReport(selectedCase);
-    setCaseSelectionModalOpen(false);
-    setReportFromSelection(true);
-    setSessionReportOpen(true);
+  const handleSelectCase = (selectedCase: Case) => {
+    const purpose = caseSelectionPurpose;
+    setCaseSelectionPurpose(null);
+    if (purpose === 'report') {
+      setSelectedCaseForReport(selectedCase);
+      setSessionReportOpen(true);
+      return;
+    }
+    if (purpose === 'note') {
+      setAddNoteCase(selectedCase);
+      return;
+    }
+    if (purpose === 'consent') {
+      setConsentCase(selectedCase);
+    }
   };
 
   const handleAddReportForCase = (caseItem: Case) => {
     setSelectedCaseForReport(caseItem);
-    setReportFromSelection(false);
     setSessionReportOpen(true);
   };
 
   const handleCloseSessionReport = () => {
     setSessionReportOpen(false);
     setSelectedCaseForReport(null);
-    if (reportFromSelection) {
-      setCaseSelectionModalOpen(true);
-    }
-    setReportFromSelection(false);
+    setCaseSelectionPurpose(null);
   };
 
   const handleReportSaved = (result?: {
@@ -96,9 +106,8 @@ const Dashboard: React.FC = () => {
     const caseId = selectedCaseForReport?.id;
     const caseItem = selectedCaseForReport;
     setSessionReportOpen(false);
-    setCaseSelectionModalOpen(false);
+    setCaseSelectionPurpose(null);
     setSelectedCaseForReport(null);
-    setReportFromSelection(false);
     if (caseId && caseItem) {
       incrementSessionReportCount(caseId);
       if (result?.caseId === caseId) {
@@ -117,13 +126,55 @@ const Dashboard: React.FC = () => {
   const handleCancelAddForm = () => {
     setSessionReportOpen(false);
     setSelectedCaseForReport(null);
-    if (reportFromSelection) {
-      setCaseSelectionModalOpen(true);
-    }
-    setReportFromSelection(false);
+    setCaseSelectionPurpose(null);
+  };
+
+  const handleCloseAddNote = () => {
+    setAddNoteCase(null);
+    setCaseSelectionPurpose(null);
+  };
+
+  const handleNoteSaved = () => {
+    setAddNoteCase(null);
+    setCaseSelectionPurpose(null);
+    void refetch();
+  };
+
+  const handleCloseConsent = () => {
+    setConsentCase(null);
+    setCaseSelectionPurpose(null);
+  };
+
+  const handleConsentUploaded = (caseItem: Case) => {
+    upsertCase({
+      ...caseItem,
+      consentAttached: true,
+      updatedAt: new Date(),
+    });
+    setConsentCase(null);
+    setCaseSelectionPurpose(null);
+    void refetch();
   };
 
   const activeCases = getActiveCases(cases);
+  const caseSelectionList =
+    caseSelectionPurpose === 'consent'
+      ? activeCases.filter((c) => c.consentAttached !== true)
+      : activeCases;
+
+  const caseSelectionTitle =
+    caseSelectionPurpose === 'note'
+      ? t.sessionReports.selectCaseForNote
+      : caseSelectionPurpose === 'consent'
+        ? t.sessionReports.selectCaseForConsent
+        : t.sessionReports.selectCaseForReport;
+
+  const caseSelectionEmpty =
+    caseSelectionPurpose === 'note'
+      ? t.sessionReports.noActiveCasesForNote
+      : caseSelectionPurpose === 'consent'
+        ? t.sessionReports.noActiveCasesForConsent
+        : t.sessionReports.noActiveCases;
   const showTeamPulse = currentUser?.role === 'leader';
   const actionCaseBuckets = useMemo(
     () => collectDashboardActionCaseBuckets(cases, appointments, activities, sessionReportCounts),
@@ -210,7 +261,9 @@ const Dashboard: React.FC = () => {
             sessionReportCounts={sessionReportCounts}
             loading={loading}
             onViewCalendar={() => navigate('/calendar')}
-            onRaportCaz={() => setCaseSelectionModalOpen(true)}
+            onRaportCaz={() => setCaseSelectionPurpose('report')}
+            onAddNote={() => setCaseSelectionPurpose('note')}
+            onAddConsent={() => setCaseSelectionPurpose('consent')}
             onSchedule={() => navigate('/calendar?new=true')}
             onAddCase={() => navigate('/admin?tab=2&create=true')}
             onUpdateProfile={() => navigate('/profile?edit=true')}
@@ -228,28 +281,31 @@ const Dashboard: React.FC = () => {
         />
       </div>
 
-      <Dialog open={caseSelectionModalOpen} onClose={handleCloseCaseSelection} maxWidth="sm" fullWidth>
+      <Dialog
+        open={caseSelectionPurpose !== null}
+        onClose={handleCloseCaseSelection}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center' }}>
           <Description sx={{ mr: 1, color: 'primary.main' }} />
-          Selectează Caz pentru Raport
+          {caseSelectionTitle}
         </DialogTitle>
         <DialogContent>
           {loading ? (
             <Box display="flex" justifyContent="center" p={3}>
               <CircularProgress sx={{ color: '#C99700' }} />
             </Box>
-          ) : cases.filter((c) => c.status === 'active').length === 0 ? (
+          ) : caseSelectionList.length === 0 ? (
             <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-              Nu există cazuri active disponibile pentru raportare
+              {caseSelectionEmpty}
             </Typography>
           ) : (
             <List>
-              {cases
-                .filter((caseItem) => caseItem.status === 'active')
-                .map((caseItem) => (
+              {caseSelectionList.map((caseItem) => (
                   <ListItem key={caseItem.id} disablePadding sx={{ mb: 1 }}>
                     <ListItemButton
-                      onClick={() => handleSelectCaseForReport(caseItem)}
+                      onClick={() => handleSelectCase(caseItem)}
                       sx={{
                         border: '1px solid rgba(0, 0, 0, 0.12)',
                         borderRadius: 1,
@@ -300,7 +356,15 @@ const Dashboard: React.FC = () => {
         reportCount={
           addNoteCase ? sessionReportCounts[addNoteCase.id] ?? 0 : 0
         }
-        onClose={() => setAddNoteCase(null)}
+        onClose={handleCloseAddNote}
+        onSaved={handleNoteSaved}
+      />
+
+      <ConsentUploadDialog
+        open={consentCase !== null}
+        caseItem={consentCase}
+        onClose={handleCloseConsent}
+        onUploaded={handleConsentUploaded}
       />
     </div>
   );

@@ -11,6 +11,8 @@ interface QuickPanelProps {
   loading?: boolean;
   onViewCalendar: () => void;
   onRaportCaz: () => void;
+  onAddNote: () => void;
+  onAddConsent: () => void;
   onSchedule: () => void;
   onAddCase?: () => void;
   onUpdateProfile?: () => void;
@@ -28,6 +30,8 @@ const QuickPanel: React.FC<QuickPanelProps> = (props) => (
     <div className="order-1 lg:order-2">
       <QuickActions
         onRaportCaz={props.onRaportCaz}
+        onAddNote={props.onAddNote}
+        onAddConsent={props.onAddConsent}
         onSchedule={props.onSchedule}
         onAddCase={props.onAddCase}
         onUpdateProfile={props.onUpdateProfile}
